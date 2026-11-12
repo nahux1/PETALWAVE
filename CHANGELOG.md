@@ -1,5 +1,8 @@
 # petalwave — registro de cambios
 
+## 2.5.1 — carátulas livianas
+- Opción **carátulas livianas en las listas** (ajustes → rendimiento, activada por defecto): las filas y tarjetas piden `/cover/:id?s=t|m` (128 / 256 px), que el servidor genera una vez con ffmpeg y guarda en `data/covers/thumbs`; las de YouTube Music se piden a Google en 120 px. El reproductor y la pantalla completa siguen en calidad completa. Medido: unos 35 MB menos con 26 canciones, y más con bibliotecas grandes.
+
 ## 2.5 — rendimiento, mayúsculas y cuentas
 - **Modo rendimiento** (botón en la barra y ajustes → rendimiento): calidad / equilibrado / máximo. Máximo apaga el vidrio (backdrop-filter), no carga el video de fondo, apaga fondo animado y decoraciones y baja todo a 30 fps, sin tocar los ajustes guardados. Medido en frío: −108 MB sonando y −258 MB en pantalla completa.
 - **Mayúscula inicial** en la interfaz (ajustes → tema, activada por defecto). Nunca cambia títulos, artistas, playlists, letras ni lo que escribís (`ui/js/caps.js`).

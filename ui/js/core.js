@@ -24,7 +24,13 @@ export const ago = (t) => {
 export const icon = (name, cls = '') => `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
 // pistas locales: id de 16 hex · pistas online de YouTube Music: "yt_<videoId>"
 export const isRemote = (id) => typeof id === 'string' && id.startsWith('yt_');
-export const coverUrl = (id) => (isRemote(id) ? `/ytcover/${id.slice(3)}` : `/cover/${id}`);
+// size: 't' (128 px, filas) o 'm' (256 px, tarjetas). Solo si "carátulas livianas" está activado (por defecto sí)
+export const coverUrl = (id, size) => {
+  const base = isRemote(id) ? `/ytcover/${id.slice(3)}` : `/cover/${id}`;
+  return size && P.get('thumbs') !== false ? base + '?s=' + size : base;
+};
+// miniaturas de Google (YouTube Music): se piden directamente del tamaño en que se muestran
+export const thumbUrl = (u, px = 120) => (u && P.get('thumbs') !== false ? String(u).replace(/=w\d+-h\d+[^&?#]*/, `=w${px}-h${px}-l90-rj`) : u);
 export const mediaUrl = (id) => (isRemote(id) ? `/stream/${id.slice(3)}` : `/media/${id}`);
 
 // ---------- API ----------

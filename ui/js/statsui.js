@@ -29,9 +29,9 @@ export async function renderStats() {
     <div class="h3">${range === 'all' ? 'por mes' : 'por día'}</div>
     <div class="chart">${s.chart.map((c) => `<div class="b" style="height:${Math.max(2, (c.seconds / max) * 100)}%"><em>${fmtLong(c.seconds)}</em><span>${range === 'month' ? c.label.slice(3) : c.label}</span></div>`).join('')}</div>
     <div class="tops">
-      <div><div class="h3">canciones más escuchadas</div>${s.topTracks.length ? s.topTracks.map((x, i) => { const t = T(x.id); return t ? topRow(i, coverUrl(t.id), t.title, `${t.artist || '—'} · ${x.plays} ${x.plays === 1 ? 'vez' : 'veces'}`, `data-t="${t.id}"`) : ''; }).join('') : '<div class="m">todavía no hay datos: escuchá un poco ♪</div>'}</div>
-      <div><div class="h3">artistas favoritos</div>${s.topArtists.map((x, i) => topRow(i, coverUrl(x.cover), x.name, `${x.plays} reproducciones · ${fmtLong(x.seconds)}`, `data-a="${esc(x.name)}"`)).join('') || '<div class="m">—</div>'}</div>
-      <div><div class="h3">álbumes más escuchados</div>${s.topAlbums.map((x, i) => topRow(i, coverUrl(x.cover), x.name, `${x.artist} · ${x.plays} reproducciones`, `data-al="${esc(x.name)}" data-ar="${esc(x.artist)}"`)).join('') || '<div class="m">tus archivos no tienen etiqueta de álbum</div>'}</div>
+      <div><div class="h3">canciones más escuchadas</div>${s.topTracks.length ? s.topTracks.map((x, i) => { const t = T(x.id); return t ? topRow(i, coverUrl(t.id, 't'), t.title, `${t.artist || '—'} · ${x.plays} ${x.plays === 1 ? 'vez' : 'veces'}`, `data-t="${t.id}"`) : ''; }).join('') : '<div class="m">todavía no hay datos: escuchá un poco ♪</div>'}</div>
+      <div><div class="h3">artistas favoritos</div>${s.topArtists.map((x, i) => topRow(i, coverUrl(x.cover, 't'), x.name, `${x.plays} reproducciones · ${fmtLong(x.seconds)}`, `data-a="${esc(x.name)}"`)).join('') || '<div class="m">—</div>'}</div>
+      <div><div class="h3">álbumes más escuchados</div>${s.topAlbums.map((x, i) => topRow(i, coverUrl(x.cover, 't'), x.name, `${x.artist} · ${x.plays} reproducciones`, `data-al="${esc(x.name)}" data-ar="${esc(x.artist)}"`)).join('') || '<div class="m">tus archivos no tienen etiqueta de álbum</div>'}</div>
     </div>
     <div class="h3" style="margin-top:22px">❀ hecho para vos</div>
     <div class="m">mixes armados con tu propia biblioteca e historial (sin internet)</div>

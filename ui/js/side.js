@@ -16,7 +16,7 @@ export function setSideTab(t) {
 // ---------- cola ----------
 function qrow(t, i, cls) {
   return `<div class="qrow ${cls}" data-qi="${i}" draggable="true"><span class="ix">${i === S.qi ? '♪' : i + 1}</span>
-    <img loading="lazy" src="${coverUrl(t.id)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'th'}))">
+    <img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'th'}))">
     <div style="min-width:0"><div class="n">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')} · ${fmtTime(t.duration)}</div></div>
     <button class="x" data-qx="${i}" title="quitar">${icon('x')}</button></div>`;
 }
@@ -76,7 +76,7 @@ function renderHist() {
   const box = $('#sbHist');
   const list = S.history.map(T).filter(Boolean);
   if (!list.length) { box.innerHTML = '<div class="empty">todavía no escuchaste nada en esta sesión</div>'; return; }
-  box.innerHTML = list.map((t, i) => `<div class="qrow" data-h="${i}"><span class="ix">${i + 1}</span><img loading="lazy" src="${coverUrl(t.id)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'th'}))"><div style="min-width:0"><div class="n">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></div><span></span></div>`).join('');
+  box.innerHTML = list.map((t, i) => `<div class="qrow" data-h="${i}"><span class="ix">${i + 1}</span><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'th'}))"><div style="min-width:0"><div class="n">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></div><span></span></div>`).join('');
   box.onclick = (e) => { const r = e.target.closest('[data-h]'); if (r) playList(S.history.slice(), +r.dataset.h); };
 }
 

@@ -76,10 +76,10 @@ class Streamer {
   }
 
   // portada: la de la lista de ytmusicapi si la conocemos; si no, la miniatura del video. Se cachea en disco.
-  async cover(req, res, id) {
+  // baja (una vez) la portada de YouTube y devuelve la ruta en disco, o null
+  async coverFile(id) {
     const file = path.join(this.coverDir, 'yt_' + id + '.jpg');
-    const send = () => { res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'max-age=86400' }); fs.createReadStream(file).pipe(res); };
-    if (fs.existsSync(file)) return send();
+    if (fs.existsSync(file)) return file;
     const urls = [this.thumbs.get(id), `https://i.ytimg.com/vi/${id}/hqdefault.jpg`].filter(Boolean);
     for (const u of urls) {
       try {
@@ -89,10 +89,15 @@ class Streamer {
         if (!r.ok) continue;
         fs.mkdirSync(this.coverDir, { recursive: true });
         fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
-        return send();
+        return file;
       } catch {}
     }
-    res.writeHead(404, { 'Cache-Control': 'max-age=300' }); res.end();
+    return null;
+  }
+  async cover(req, res, id) {
+    const file = await this.coverFile(id);
+    if (!file) { res.writeHead(404, { 'Cache-Control': 'max-age=300' }); return res.end(); }
+    res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'max-age=86400' }); fs.createReadStream(file).pipe(res);
   }
 }
 

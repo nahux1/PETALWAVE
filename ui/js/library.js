@@ -128,7 +128,7 @@ function headerHtml(list) {
   const total = list.reduce((a, t) => a + (t.duration || 0), 0);
   const sub = `${list.length} canciones · ${fmtTime(total)}`;
   const acts = (extra = '') => `<div class="acts"><button class="go" data-h="play">${icon('play')} reproducir</button><button class="cb" data-h="shuffle">${icon('shuf')} aleatorio</button>${extra}</div>`;
-  const big = (title, coverId, kind, extra) => `<div class="ttlbar">${coverId ? `<img class="hcover" src="${coverUrl(coverId)}" onerror="this.style.visibility='hidden'">` : ''}<div><div class="sub">${esc(kind)}</div><h2 data-raw>${esc(title)}</h2><div class="sub">${sub}</div>${acts(extra)}</div></div>`;
+  const big = (title, coverId, kind, extra) => `<div class="ttlbar">${coverId ? `<img class="hcover" src="${coverUrl(coverId, 't')}" onerror="this.style.visibility='hidden'">` : ''}<div><div class="sub">${esc(kind)}</div><h2 data-raw>${esc(title)}</h2><div class="sub">${sub}</div>${acts(extra)}</div></div>`;
   const firstCover = (l) => (l.find((t) => t.hasCover || t.video) || l[0] || {}).id;
   switch (view.type) {
     case 'artist': return big(view.key, firstCover(list), 'artista', `<button class="cb" data-h="radio">${icon('radio')} radio</button>`);
@@ -219,7 +219,7 @@ function renderTable(body) {
       const t = T(ids[i]); if (!t) continue;
       html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}" draggable="true">
         <span class="ix"><span class="num">${t.id === cur ? '♪' : view.type === 'album' && t.trackNo ? t.trackNo : i + 1}</span><span class="pi" data-play>${icon('play')}</span></span>
-        <span class="tc"><img loading="lazy" src="${coverUrl(t.id)}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></span></span>
+        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></span></span>
         <span class="c2">${esc(t.album || '')}</span>
         <span class="num2">${fmtTime(t.duration)}</span>
         <span class="num2">${D.plays[t.id] || ''}</span>
@@ -384,7 +384,7 @@ function renderGroups(head, body) {
     const l = groups.get(k);
     const c = (l.find((t) => t.hasCover || t.video) || l[0]).id;
     const [name, artist] = k.split('\u0000');
-    return `<div class="card ${view.type === 'artists' ? 'round' : ''}" data-k="${i}"><div class="cimg">♪<img loading="lazy" src="${coverUrl(c)}" onerror="this.classList.add('x')"><button class="cplay" data-cp="${i}">${icon('play')}</button></div>
+    return `<div class="card ${view.type === 'artists' ? 'round' : ''}" data-k="${i}"><div class="cimg">♪<img loading="lazy" src="${coverUrl(c, 'm')}" onerror="this.classList.add('x')"><button class="cplay" data-cp="${i}">${icon('play')}</button></div>
       <div class="cn">${esc(name)}</div><div class="cs">${view.type === 'albums' ? esc(artist) + ' · ' : ''}${l.length} canciones</div></div>`;
   }).join('')}</div>`;
   const keyFor = (i) => { const k = keys[i]; if (view.type === 'artists') return { type: 'artist', key: k }; const [album, artist] = k.split('\u0000'); return { type: 'album', key: { album, artist } }; };

@@ -71,6 +71,7 @@ export async function renderSettings() {
       ${chk('blur', 'desenfoque de fondo', 'apagalo si la PC va lenta')}
       ${chk('anim', 'animaciones')}
       ${chk('compact', 'modo compacto', 'filas chicas, sin visualizador · tecla k')}
+      <label class="cfrow"><span>carátulas livianas en las listas${tip('En las listas las carátulas se ven chiquitas: con esto se cargan en miniatura (128 px) en vez de tamaño completo. Gasta menos memoria, sobre todo con bibliotecas grandes. La carátula grande del reproductor siempre se ve en calidad completa.')}<span class="m">menos memoria; se ven igual de nítidas</span></span><input type="checkbox" id="cThumbs" ${p.thumbs !== false ? 'checked' : ''}></label>
       <div class="m" id="cMem" style="margin-top:8px"></div>
     </div>
     <div class="cfgsec"><h3>❀ acerca de</h3>
@@ -114,6 +115,7 @@ export async function renderSettings() {
   loadStatus().then(paintAcc);
   $('#cDlSes').onchange = (e) => { P.set('dlSession', e.target.checked); const d = P.get('dl'); d.cookies = e.target.checked ? 'txt' : ''; P.save(); bus.emit('dl:prefs'); };
   $('#cSpot').onclick = () => { bus.emit('ws', 'sync'); document.querySelector('[data-yt="spotify"]')?.click(); };
+  $('#cThumbs').onchange = (e) => { P.set('thumbs', e.target.checked); bus.emit('prefs', 'thumbs'); toast(e.target.checked ? 'carátulas livianas activadas' : 'carátulas en tamaño completo', { ms: 1600 }); };
   $('#cCaps').onchange = (e) => setCaps(e.target.checked);
   $('#cWpTint').onchange = (e) => { P.set('wpTint', e.target.checked); document.body.classList.toggle('wptint', e.target.checked); };
   $('#cXf').oninput = (e) => { P.set('crossfade', +e.target.value); $('#cXfV').textContent = e.target.value + ' s'; };

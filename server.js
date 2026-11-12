@@ -114,6 +114,26 @@ function sysStats() {
   };
 }
 
+// ---------- miniaturas de carátulas (opcionales: ajustes → rendimiento) ----------
+// en las listas las carátulas se ven de 40 px pero se cargaban de 512: con la miniatura se decodifica ~16 veces menos
+const THUMB = { t: 128, m: 256 };
+const THUMB_DIR = path.join(DATA, 'covers', 'thumbs');
+const thumbQ = new U.Limiter(2), thumbPending = new Map();
+async function thumbOf(src, key, size) {
+  const dst = path.join(THUMB_DIR, key + '-' + size + '.jpg');
+  try { if (fs.statSync(dst).mtimeMs >= fs.statSync(src).mtimeMs) return dst; } catch {}
+  if (!FFMPEG) return src;
+  if (thumbPending.has(dst)) return thumbPending.get(dst);
+  const job = thumbQ.run(async () => {
+    fs.mkdirSync(THUMB_DIR, { recursive: true });
+    const tmp = dst + '.tmp.jpg';
+    await U.run(FFMPEG, ['-y', '-v', 'error', '-i', src, '-vf', `scale=${size}:${size}:force_original_aspect_ratio=increase,crop=${size}:${size}`, '-q:v', '4', '-frames:v', '1', tmp], { timeout: 15000 });
+    try { fs.renameSync(tmp, dst); return dst; } catch { return src; }   // si ffmpeg falla, se usa la original
+  }).finally(() => thumbPending.delete(dst));
+  thumbPending.set(dst, job);
+  return job;
+}
+
 // ---------- wallpaper ----------
 // fondos: imágenes (gif animado incluido) y videos en loop (mp4 / webm)
 const WP_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' };
@@ -275,11 +295,18 @@ async function route(req, res) {
     }
     return streamer.proxy(req, res, mm[1]);
   }
-  if ((mm = m(/^\/ytcover\/([\w-]{11})$/))) return streamer.cover(req, res, mm[1]);
+  if ((mm = m(/^\/ytcover\/([\w-]{11})$/))) {
+    const size = THUMB[u.searchParams.get('s')];
+    if (!size) return streamer.cover(req, res, mm[1]);
+    const src = await streamer.coverFile(mm[1]);
+    if (!src) { res.writeHead(404, { 'Cache-Control': 'max-age=300' }); return res.end(); }
+    return serveImg(res, await thumbOf(src, 'yt_' + mm[1], size));
+  }
   if ((mm = m(/^\/cover\/([0-9a-f]{16})$/))) {
     const f = await library.cover(mm[1]);
     if (!f) { res.writeHead(404, { 'Cache-Control': 'max-age=300' }); return res.end(); }
-    return serveImg(res, f);
+    const size = THUMB[u.searchParams.get('s')];
+    return serveImg(res, size ? await thumbOf(f, mm[1], size) : f);
   }
   if ((mm = m(/^\/api\/track\/([0-9a-f]{16})$/))) {
     const t = library.get(mm[1]);

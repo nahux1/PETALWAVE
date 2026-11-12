@@ -1,5 +1,5 @@
 // workspace YouTube Music (ytmusicapi): cuenta, búsqueda, me gusta, playlists, historial, radio, descargar lo que falta
-import { $, $$, bus, P, api, esc, toast, fmtTime, icon, ctxMenu, debounce, host, confirm2 } from './core.js';
+import { $, $$, bus, P, api, esc, toast, fmtTime, icon, ctxMenu, debounce, host, confirm2, thumbUrl } from './core.js';
 import { D, T, plOp, remoteTrack } from './data.js';
 import { playList, current } from './player.js';
 import { cookieHelp } from './downloads.js';
@@ -58,14 +58,14 @@ function refreshLocal() { if (view && view.items) { for (const it of view.items)
 const tracksOf = () => (view && view.items ? view.items.filter((x) => x.videoId) : []);
 function rowHtml(it, i) {
   if (!it.videoId) {   // álbum / playlist
-    return `<div class="yrow" data-open="${i}" style="cursor:pointer"><span class="ix">${i + 1}</span><img loading="lazy" src="${esc(it.thumb)}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+    return `<div class="yrow" data-open="${i}" style="cursor:pointer"><span class="ix">${i + 1}</span><img loading="lazy" src="${esc(thumbUrl(it.thumb))}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
       <div style="min-width:0"><div class="t">${esc(it.title)}</div><div class="a">${esc(it.type === 'album' ? 'álbum · ' + (it.artists || []).join(', ') + (it.year ? ' · ' + it.year : '') : 'playlist · ' + (it.author || '') + (it.count ? ' · ' + it.count : ''))}</div></div>
       <span class="al"></span><span class="d"></span><span></span><span class="acts"><button class="cb sm">abrir ▸</button></span></div>`;
   }
   const local = it.local = localMatch(it);
   const dl = downloading.has(it.videoId);
   const badge = local ? `<span class="ybadge have" data-playlocal="${i}" title="reproducir tu copia local">✓ la tenés</span>` : dl ? '<span class="ybadge dl">⇣ en cola</span>' : '<span class="ybadge miss">no la tenés</span>';
-  return `<div class="yrow ${it.available === false ? 'na' : ''}" data-i="${i}"><span class="ix">${i + 1}</span><img loading="lazy" src="${esc(it.thumb)}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+  return `<div class="yrow ${it.available === false ? 'na' : ''}" data-i="${i}"><span class="ix">${i + 1}</span><img loading="lazy" src="${esc(thumbUrl(it.thumb))}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
     <div style="min-width:0"><div class="t">${esc(it.title)}</div><div class="a">${esc((it.artists || []).join(', ') || '—')}${it.type === 'MUSIC_VIDEO_TYPE_UGC' || it.type === 'video' ? ' · video' : ''}</div></div>
     <span class="al">${esc(it.album || '')}</span><span class="d">${it.duration ? fmtTime(it.duration) : ''}</span>${badge}
     <span class="acts">${local ? '' : `<button class="cb sm" data-pon="${i}" title="escuchar online, sin descargar">${icon('play')}</button><button class="cb sm" data-dl="${i}" title="descargar" ${dl ? 'disabled' : ''}>${icon('dl')}</button>`}<button class="cb sm" data-more="${i}" title="más">${icon('more')}</button></span></div>`;
