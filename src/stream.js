@@ -26,7 +26,8 @@ class Streamer {
       const tries = fs.existsSync(this.cookiesTxt) ? ['cookies', 'plain', 'alt'] : ['plain', 'alt'];
       let r, url;
       for (const mode of tries) {
-        const args = ['-f', 'bestaudio[format_id=141]/bestaudio[ext=m4a]/bestaudio', '--get-url', '--no-playlist', '--no-warnings', '--encoding', 'utf-8'];
+        // si YouTube no entrega formatos de solo audio (pasa sin sesión), usar el mp4 combinado (#18)
+        const args = ['-f', 'bestaudio[format_id=141]/bestaudio[ext=m4a]/bestaudio/best[acodec!=none]/best', '--get-url', '--no-playlist', '--no-warnings', '--encoding', 'utf-8'];
         if (mode === 'cookies') args.push('--cookies', this.cookiesTxt);
         if (mode === 'alt') args.push('--extractor-args', 'youtube:player_client=tv,mweb,web_safari');
         args.push('--', `https://music.youtube.com/watch?v=${id}`);

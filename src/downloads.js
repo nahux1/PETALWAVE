@@ -122,9 +122,9 @@ class Downloads {
         '--merge-output-format', 'mp4', '--embed-metadata', '--embed-thumbnail');
     } else if (job.format === 'm4a') {
       // 141 = AAC 256 kbps, disponible con YouTube Music Premium (si no, el mejor m4a)
-      a.push('-f', 'bestaudio[format_id=141]/bestaudio[ext=m4a]/bestaudio', '-x', '--audio-format', 'm4a', '--embed-metadata', '--embed-thumbnail', ...squareCover);
+      a.push('-f', 'bestaudio[format_id=141]/bestaudio[ext=m4a]/bestaudio/best', '-x', '--audio-format', 'm4a', '--embed-metadata', '--embed-thumbnail', ...squareCover);
     } else if (job.format === 'opus') {
-      a.push('-f', 'bestaudio[acodec=opus]/bestaudio', '-x', '--audio-format', 'opus', '--embed-metadata', '--embed-thumbnail', ...squareCover);
+      a.push('-f', 'bestaudio[acodec=opus]/bestaudio/best', '-x', '--audio-format', 'opus', '--embed-metadata', '--embed-thumbnail', ...squareCover);
     } else {
       const q = AUDIO_FORMATS.mp3.qualities.includes(job.quality) ? job.quality : '320';
       a.push('-x', '--audio-format', 'mp3', '--audio-quality', q + 'K', '--embed-metadata', '--embed-thumbnail', ...squareCover);
