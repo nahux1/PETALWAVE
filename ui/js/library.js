@@ -128,7 +128,7 @@ function headerHtml(list) {
   const total = list.reduce((a, t) => a + (t.duration || 0), 0);
   const sub = `${list.length} canciones · ${fmtTime(total)}`;
   const acts = (extra = '') => `<div class="acts"><button class="go" data-h="play">${icon('play')} reproducir</button><button class="cb" data-h="shuffle">${icon('shuf')} aleatorio</button>${extra}</div>`;
-  const big = (title, coverId, kind, extra) => `<div class="ttlbar">${coverId ? `<img class="hcover" src="${coverUrl(coverId)}" onerror="this.style.visibility='hidden'">` : ''}<div><div class="sub">${esc(kind)}</div><h2>${esc(title)}</h2><div class="sub">${sub}</div>${acts(extra)}</div></div>`;
+  const big = (title, coverId, kind, extra) => `<div class="ttlbar">${coverId ? `<img class="hcover" src="${coverUrl(coverId)}" onerror="this.style.visibility='hidden'">` : ''}<div><div class="sub">${esc(kind)}</div><h2 data-raw>${esc(title)}</h2><div class="sub">${sub}</div>${acts(extra)}</div></div>`;
   const firstCover = (l) => (l.find((t) => t.hasCover || t.video) || l[0] || {}).id;
   switch (view.type) {
     case 'artist': return big(view.key, firstCover(list), 'artista', `<button class="cb" data-h="radio">${icon('radio')} radio</button>`);
@@ -146,7 +146,7 @@ function headerHtml(list) {
       const noVid = $('#fKind').value === 'audio';
       const extra = `<button class="cb" data-h="ytmsync">${icon('sync')} actualizar</button>${online ? `<button class="cb" data-h="ytmdl">${icon('dl')} descargar las ${online} online</button>` : ''}<button class="cb ${noVid ? 'on' : ''}" data-h="novideo" title="ocultar videoclips y videos subidos por usuarios">sin videos</button>`;
       return `<div class="ttlbar"><img class="hcover" src="${pl && pl.thumb ? esc(pl.thumb) : coverUrl((list[0] || {}).id || '')}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><div>
-        <div class="sub">youtube music · ☁ ${online} online sin descargar · ${list.length - online} en tu PC · ${esc(syncTxt)}</div><h2>${esc(name)}</h2>
+        <div class="sub">youtube music · ☁ ${online} online sin descargar · ${list.length - online} en tu PC · ${esc(syncTxt)}</div><h2 data-raw>${esc(name)}</h2>
         <div class="sub">${sub}${l.error ? ' · <span style="color:var(--warn)">' + esc(l.error) + '</span>' : ''}</div>${acts(extra)}</div></div>`;
     }
     case 'recent': return `<div class="ttlbar"><div><h2>recientes</h2><div class="sub">lo último que entró a la biblioteca · ${sub}</div>${acts()}</div></div>`;
@@ -276,7 +276,7 @@ export function trackMenu(x, y, idsArg) {
       { label: 'agregar a playlist', icon: 'plus', sub: () => [
         { label: 'nueva playlist…', icon: 'plus', fn: () => newPlaylist(chosen) },
         D.playlists.length && { sep: true },
-        ...D.playlists.map((p) => ({ label: p.name, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
+        ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
       ] },
       plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
       { label: remote.length > 1 ? `descargar ${remote.length} a mi PC` : 'descargar a mi PC', icon: 'dl', fn: async () => {
@@ -299,7 +299,7 @@ export function trackMenu(x, y, idsArg) {
     { label: 'agregar a playlist', icon: 'plus', sub: () => [
       { label: 'nueva playlist…', icon: 'plus', fn: () => newPlaylist(chosen) },
       D.playlists.length && { sep: true },
-      ...D.playlists.map((p) => ({ label: p.name, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
+      ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
     ] },
     plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
     { sep: true },

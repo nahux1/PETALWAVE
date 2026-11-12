@@ -164,6 +164,13 @@ export async function uploadCookies(file) {
 }
 
 export function initDownloads() {
+  // sesión de YouTube: misma ventana de Google que en YouTube Music (workspace 3)
+  $('#bLogin').onclick = () => import('./ytmui.js').then((m) => m.login());
+  bus.on('ytm:status', (st) => { const b = $('#bLogin'); if (!b) return; b.textContent = st && st.auth ? '✓ ' + ((st.account && st.account.name) || 'sesión iniciada') : 'iniciar sesión en YouTube'; b.className = st && st.auth ? 'cb on' : 'go'; b.title = st && st.auth ? 'sesión de YouTube activa · clic para cambiar de cuenta' : 'iniciar sesión con Google: YouTube y YouTube Music';
+    // con sesión, descargar con tu cuenta (a menos que lo hayas apagado en ajustes → cuentas)
+    if (st && st.auth && P.get('dlSession') !== false && !P.get('dl').cookies) { P.get('dl').cookies = 'txt'; P.save(); $('#dlCk').value = 'txt'; }
+  });
+  bus.on('dl:prefs', () => { $('#dlCk').value = P.get('dl').cookies || ''; });
   $('#dlForm').onsubmit = submit;
   $('#dlUrl').addEventListener('input', onUrlInput);
   $('#dlUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } });

@@ -696,3 +696,27 @@ body.full-on .shell,body.full-on .top{visibility:hidden}
 .upd-bar{position:relative;height:26px;border-radius:var(--r-sm);background:color-mix(in srgb,var(--ink) 55%,transparent);overflow:hidden;border:1px solid var(--bd)}
 .upd-bar i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--ac3),var(--ac));transition:width .25s}
 .upd-bar span{position:relative;display:block;text-align:center;line-height:24px;font-size:12px;font-weight:600}
+
+/* ---------- modo rendimiento ---------- */
+.perfb .pt{font-size:12px}
+.perfb[data-perf="maximo"]{background:var(--ac);color:var(--ink)}
+.perfb[data-perf="equilibrado"]{color:var(--ac2)}
+.perfs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 10px}
+.perf-o{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r-sm);background:color-mix(in srgb,var(--ink) 40%,transparent);color:var(--fg);cursor:pointer;transition:.15s}
+.perf-o:hover{border-color:var(--bd-on)}
+.perf-o.on{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}
+.perf-o .m{font-size:10.5px}
+/* máximo: sin capas de vidrio (backdrop-filter crea capas en la GPU aunque el desenfoque sea 0), sin transiciones de color ni animaciones decorativas */
+body.perf-max{--tt:0s}
+body.perf-max *,body.perf-max *::before,body.perf-max *::after{backdrop-filter:none!important}
+body.perf-max .petal,body.perf-max #scan{display:none!important}
+body.perf-max .cover,body.perf-max .cover:hover{transform:none;box-shadow:0 0 0 1px var(--bd)}
+body.perf-max #tUpd{animation:none}
+body.perf-max .fbg{filter:brightness(var(--full-dim,.32))!important}
+body.perf-max .w{background:color-mix(in srgb,var(--deep) 88%,transparent)}
+
+/* ---------- cuentas ---------- */
+.acc-card{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:8px 0 4px;border:1px solid var(--bd);border-radius:var(--r-sm);background:color-mix(in srgb,var(--ink) 40%,transparent)}
+.acc-card img,.acc-card .av{width:38px;height:38px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:var(--hl);font-style:normal;color:var(--ac2);flex:0 0 auto}
+.acc-card > div{display:flex;flex-direction:column;min-width:0}
+.acc-card .sp{flex:1}

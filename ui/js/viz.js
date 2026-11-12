@@ -3,7 +3,7 @@
 import { engine } from './audio.js';
 import { bus, P } from './core.js';
 import { liveColors } from './theme.js';
-import { C } from './custom.js';
+import { E as C, perf } from './custom.js';
 
 // color del visualizador: del tema, arcoíris o uno fijo (ajustes → estilo del visualizador)
 let VC = C();
@@ -49,7 +49,7 @@ export function start() {
 }
 
 function frame(now) {
-  const fps = +P.get('fps') || 60;
+  const fps = perf() === 'calidad' ? +P.get('fps') || 60 : 30;   // equilibrado y máximo: 30 fps
   if (now - lastFrame < 1000 / fps - 2) { requestAnimationFrame(frame); return; }
   lastFrame = now;
   if (document.hidden) { running = false; return; }

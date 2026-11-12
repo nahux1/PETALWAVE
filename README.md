@@ -16,6 +16,9 @@ No hay que instalar nada más: Node.js, yt-dlp, ffmpeg y Python ya vienen adentr
 Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho en `petalwave.exe` →
 *Mostrar más opciones* → *Enviar a* → *Escritorio*.
 
+**Si tu PC es lenta:** tocá el botón **✦** de la barra hasta que diga **⚡ máximo rendimiento** (apaga efectos y gasta hasta un 27% menos de memoria).
+**Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*.
+
 **Lo básico:** `1` música · `2` descargas (pegá un link y listo, sin cookies) · `3` YouTube Music y Spotify ·
 `5` ajustes (temas, diseño, fondos animados) · `espacio` play/pausa · `f` pantalla completa · `b` ver el fondo.
 

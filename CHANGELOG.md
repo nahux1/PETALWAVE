@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.5 — rendimiento, mayúsculas y cuentas
+- **Modo rendimiento** (botón en la barra y ajustes → rendimiento): calidad / equilibrado / máximo. Máximo apaga el vidrio (backdrop-filter), no carga el video de fondo, apaga fondo animado y decoraciones y baja todo a 30 fps, sin tocar los ajustes guardados. Medido en frío: −108 MB sonando y −258 MB en pantalla completa.
+- **Mayúscula inicial** en la interfaz (ajustes → tema, activada por defecto). Nunca cambia títulos, artistas, playlists, letras ni lo que escribís (`ui/js/caps.js`).
+- **Cuentas**: sección en ajustes y botón en descargas para iniciar sesión con Google en YouTube y YouTube Music (una sola sesión para las dos), cambiar de cuenta o cerrar sesión, y opción de descargar con la sesión (calidad Premium).
+
 ## 2.4 — actualizaciones con un clic
 - Botón ⬆ en la barra cuando hay versión nueva en GitHub y "buscar actualizaciones" en ajustes → acerca de. Baja `petalwave-update.zip` (app + yt-dlp nuevo), espera a que se cierre la app, reemplaza los archivos con robocopy sin tocar `data/`, `descargas/`, cookies ni wallpaper, y la vuelve a abrir (`src/update.js`).
 - La ventana entiende la orden `quit` para cerrarse sola al instalar.

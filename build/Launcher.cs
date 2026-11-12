@@ -299,7 +299,7 @@ static class AppWindow
         loginOpen = true;
         var f = new Form
         {
-            Text = "Iniciar sesión en YouTube Music — petalwave",
+            Text = "Iniciar sesión en YouTube y YouTube Music — petalwave",
             Size = new Size(540, 780), StartPosition = FormStartPosition.CenterParent,
             BackColor = Color.White, Icon = owner.Icon, MinimizeBox = false, ShowInTaskbar = true,
         };

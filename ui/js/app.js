@@ -13,9 +13,10 @@ import { renderStats } from './statsui.js';
 import { renderSettings, keyName, isRecordingKey } from './settings.js';
 import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } from './viz.js';
 import { initYtm, likeCurrent } from './ytmui.js';
-import { applyCustom, C, setC, FULL_BG, FULL_VIZ } from './custom.js';
+import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
+import { applyCaps } from './caps.js';
 
 // ---------- workspaces (como Hyprland: 1..5) ----------
 const WS = ['music', 'dl', 'sync', 'stats', 'cfg'];
@@ -75,6 +76,7 @@ const ACTIONS = {
   },
   full: () => toggleFull(), mini: () => toggleMini(), compact: toggleCompact,
   peek: () => togglePeek(),
+  perf: () => { const m = cyclePerf(); toast(m.icon + ' ' + m.name, { sub: m.desc, ms: 2200 }); },
   fullcfg: () => {
     const b = $('[data-act="fullcfg"]').getBoundingClientRect(), c = C();
     const pick = (k, list) => list.map(([v, t]) => ({ label: (c[k] === v ? '● ' : '○ ') + t, fn: () => setC(k, v) }));
@@ -249,6 +251,7 @@ async function boot() {
   initViz();
   initBg();
   initUpdate();
+  applyCaps();
   try { setDeps(await api.get('/api/status')); } catch {}
   connectStream();
   await Promise.all([loadLibrary(), loadPlaylists(), loadAuto()]);

@@ -37,6 +37,16 @@ LO BÁSICO
 
 Tus canciones descargadas quedan en la carpeta "descargas", adentro de la carpeta petalwave.
 
+SI TU PC VA LENTA
+-----------------
+Tocá el botón ✦ de la barra de arriba hasta que diga "⚡ máximo rendimiento".
+Apaga los efectos (vidrio, video de fondo, animaciones) y usa menos memoria.
+
+INICIAR SESIÓN EN YOUTUBE Y YOUTUBE MUSIC
+------------------------------------------
+Ajustes (5) → Cuentas → "Iniciar sesión con Google". Una sola sesión sirve para los dos.
+La contraseña la escribís en la página de Google: petalwave no la ve ni la guarda.
+
 PROBLEMAS COMUNES
 -----------------
 • "No se encontró Node.js": no extrajiste todo el zip. Volvé a extraerlo completo.

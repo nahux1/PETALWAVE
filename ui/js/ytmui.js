@@ -33,12 +33,12 @@ function renderAcc() {
   }
 }
 // ventana de Google dentro de petalwave: el usuario escribe su contraseña ahí (petalwave no la ve ni la guarda)
-function login() {
+export function login() {
   if (!host.native) return toast('el inicio de sesión necesita la ventana de petalwave (petalwave.exe)', { kind: 'warn' });
   host.send('login');
-  $('#ytmAcc').innerHTML = '<span class="m">⟳ se abrió la ventana de Google: iniciá sesión con tu cuenta de YouTube Music…</span>';
+  $('#ytmAcc').innerHTML = '<span class="m">⟳ se abrió la ventana de Google: iniciá sesión con tu cuenta de Google (sirve para YouTube y YouTube Music)…</span>';
 }
-async function logout() {
+export async function logout() {
   if (!(await confirm2('Cerrar sesión', 'Se borra la sesión guardada en petalwave (cookies.txt). Tu cuenta de Google no se ve afectada y podés volver a iniciar sesión cuando quieras.', 'cerrar sesión'))) return;
   await api.del('/api/cookies');
   toast('sesión cerrada');
@@ -233,6 +233,8 @@ export function initYtm() {
   bus.on('host:login', async (r) => {
     if (r.startsWith('ok')) {
       const s = await loadStatus();
+      // con sesión, las descargas usan tu cuenta (calidad Premium si la tenés), salvo que lo hayas apagado
+      if (s.auth && P.get('dlSession') !== false) { const d = P.get('dl'); d.cookies = 'txt'; P.save(); bus.emit('dl:prefs'); }
       if (s.auth) {
         toast('sesión iniciada ✓', { sub: s.account ? s.account.name : 'YouTube Music' });
         // la lista actual (me gusta, playlists…) se recarga con la sesión nueva

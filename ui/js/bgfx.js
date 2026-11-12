@@ -5,7 +5,7 @@
 import { $, P, bus, api } from './core.js';
 import { engine } from './audio.js';
 import { liveColors } from './theme.js';
-import { C, FX } from './custom.js';
+import { E as C, FX, perf } from './custom.js';
 // resolución interna por efecto (los suaves aguantan muy poca, los de puntos necesitan más)
 const QUALITY = { aurora: 0.3, waves: 0.55, stars: 0.7, rain: 0.6, bokeh: 0.35, nebula: 0.22 };
 
@@ -184,6 +184,9 @@ export async function loadWallpaper() {
   document.body.classList.toggle('has-wp', !!info.has);
   document.body.classList.toggle('wp-video', info.kind === 'video');
   if (!info.has) return info;
+  // máximo rendimiento: el video ni se carga (libera ~40 MB de GPU y el decodificador); queda el degradado del tema
+  if (info.kind === 'video' && perf() === 'maximo') { document.body.classList.add('wp-video-off'); return info; }
+  document.body.classList.remove('wp-video-off');
   if (info.kind === 'video') {
     vid.src = '/wallpaper?' + bust; vid.hidden = false; wp.classList.add('vid');
     vid.playbackRate = cfg().wpRate || 1;
@@ -196,7 +199,8 @@ export async function loadWallpaper() {
 function syncVideo() {
   const vid = $('#wpVid'); if (!vid || vid.hidden) return;
   const c = cfg();
-  const stop = document.hidden || document.body.classList.contains('mini') || document.body.classList.contains('noanim') || (c.wpVidSync && engine.paused);
+  // en máximo rendimiento el video de fondo queda quieto (se ve el primer cuadro)
+  const stop = document.hidden || document.body.classList.contains('mini') || document.body.classList.contains('noanim') || perf() === 'maximo' || (c.wpVidSync && engine.paused);
   vid.playbackRate = c.wpRate || 1;
   if (stop) vid.pause(); else vid.play().catch(() => {});
 }
@@ -206,6 +210,8 @@ export function initBg() {
   addEventListener('resize', () => { if (mode !== 'none') resize(); });
   document.addEventListener('visibilitychange', () => { syncVideo(); if (!document.hidden) startFx(); });
   bus.on('custom', () => { startFx(); syncVideo(); });
+  let lastPerf = perf();
+  bus.on('perf', () => { startFx(); const p = perf(); if ((p === 'maximo') !== (lastPerf === 'maximo')) loadWallpaper(); else syncVideo(); lastPerf = p; });
   bus.on('theme', () => { refreshColors(); setTimeout(refreshColors, 800); setTimeout(refreshColors, 1600); });
   bus.on('np', () => { setTimeout(refreshColors, 900); setTimeout(refreshColors, 1700); });
   bus.on('eng:state', () => { syncVideo(); if (mode !== 'none' && !raf) startFx(); });

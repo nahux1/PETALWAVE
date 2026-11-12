@@ -1,8 +1,10 @@
 // workspace de ajustes: temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento
 import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2 } from './core.js';
 import { allThemes, setTheme, setDyn } from './theme.js';
-import { customizerHtml, bindCustomizer } from './custom.js';
+import { customizerHtml, bindCustomizer, PERF, perf, setPerf } from './custom.js';
 import { checkUpdate, openUpdate } from './update.js';
+import { setCaps } from './caps.js';
+import { loadStatus, login, logout } from './ytmui.js';
 import { MODES, setMode } from './viz.js';
 import { D } from './data.js';
 import { setDest } from './downloads.js';
@@ -28,9 +30,15 @@ export async function renderSettings() {
       <div class="themes">${Object.entries(allThemes()).map(([k, t]) => `<button class="th-card ${p.theme === k ? 'on' : ''}" data-theme="${k}" title="${esc(t.desc)}">${sw(t)}<b>${t.mine ? '✎ ' : ''}${esc(t.name)}</b><div class="m">${esc(t.desc)}</div></button>`).join('')}</div>
       ${chk('dyn', 'colores de la carátula', 'usa los colores de la portada · tecla c', 'Mientras suena algo, los colores del tema se reemplazan por los de la portada de la canción. Elegir un tema lo apaga.')}
       <label class="cfrow"><span>teñir el wallpaper<span class="m">tu imagen toma los colores del tema</span></span><input type="checkbox" id="cWpTint" ${p.wpTint !== false ? 'checked' : ''}></label>
+      <label class="cfrow"><span>mayúscula inicial${tip('Los textos de la interfaz empiezan con mayúscula (Reproducir, Cola, Ajustes…). Tus canciones, artistas, playlists y letras se muestran siempre tal cual.')}<span class="m">botones, menús y títulos de la interfaz</span></span><input type="checkbox" id="cCaps" ${p.caps !== false ? 'checked' : ''}></label>
       <div class="cfrow"><span>wallpaper<span class="m">o arrastrá una imagen a la ventana</span></span><span><button class="cb" id="cWp">elegir</button> <button class="cb" id="cWpDel">quitar</button></span></div>
     </div>
     ${customizerHtml()}
+    <div class="cfgsec"><h3>👤 cuentas ${tip('Una sola sesión de Google sirve para YouTube y YouTube Music. La contraseña la escribís en la página de Google; petalwave no la ve ni la guarda.')}</h3>
+      <div class="acc-card" id="cAcc"><span class="m">consultando la sesión…</span></div>
+      <label class="cfrow"><span>usar mi sesión para descargar<span class="m">mejor calidad (Premium: AAC 256 kbps) y menos bloqueos</span></span><input type="checkbox" id="cDlSes" ${p.dlSession !== false ? 'checked' : ''}></label>
+      <div class="cfrow"><span>Spotify<span class="m">se conecta aparte, en YouTube Music (3) → pestaña Spotify</span></span><button class="cb" id="cSpot">abrir</button></div>
+    </div>
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
       ${chk('resume', 'reanudar al abrir', 'vuelve a donde quedaste')}
@@ -58,7 +66,8 @@ export async function renderSettings() {
       <div class="keys" id="cKeys">${Object.keys(DEFAULT_SHORTCUTS).map((k) => `<span>${esc(SHORTCUT_LABELS[k] || k)}</span><button class="cb sm" data-key="${k}">${esc(pretty(p.shortcuts[k]))}</button>`).join('')}</div>
       <div class="cfrow"><span></span><button class="cb" id="cKeysReset">restaurar</button></div>
     </div>
-    <div class="cfgsec"><h3>⚡ rendimiento</h3>
+    <div class="cfgsec"><h3>⚡ rendimiento ${tip('Elegí cuánto gasta petalwave. Tus ajustes no se borran: el modo solo apaga efectos mientras está puesto. También con el botón de la barra de arriba.')}</h3>
+      <div class="perfs">${Object.entries(PERF).map(([k, m]) => `<button class="perf-o ${perf() === k ? 'on' : ''}" data-perf="${k}"><b>${m.icon} ${esc(m.name)}</b><span class="m">${esc(m.desc)}</span></button>`).join('')}</div>
       ${chk('blur', 'desenfoque de fondo', 'apagalo si la PC va lenta')}
       ${chk('anim', 'animaciones')}
       ${chk('compact', 'modo compacto', 'filas chicas, sin visualizador · tecla k')}
@@ -73,6 +82,9 @@ export async function renderSettings() {
   </div>`;
 
   box.querySelectorAll('[data-theme]').forEach((b) => (b.onclick = () => setTheme(b.dataset.theme)));
+  box.querySelectorAll('[data-perf]').forEach((b) => (b.onclick = () => setPerf(b.dataset.perf)));
+  if (box._offPerf) box._offPerf();
+  box._offPerf = bus.on('perf', () => box.querySelectorAll('[data-perf]').forEach((b) => b.classList.toggle('on', b.dataset.perf === perf())));
   bindCustomizer(box, () => { const y = box.scrollTop; renderSettings().then(() => (box.scrollTop = y)); });
   // mantener tarjetas y casilla al día (también si el tema se cambia con la tecla t o la barra)
   const syncTheme = () => {
@@ -86,6 +98,23 @@ export async function renderSettings() {
     if (k === 'dyn') return setDyn(c.checked);
     P.set(k, c.checked); bus.emit('prefs', k);
   }));
+  // cuentas
+  const paintAcc = (st) => {
+    const el = $('#cAcc'); if (!el) return;
+    if (st && st.auth) {
+      el.innerHTML = `${st.account && st.account.photo ? `<img src="${esc(st.account.photo)}" referrerpolicy="no-referrer">` : '<i class="av">♪</i>'}<div><b data-raw>${esc((st.account && st.account.name) || 'cuenta de Google')}</b><span class="m">conectada a YouTube y YouTube Music</span></div><span class="sp"></span><button class="cb sm" id="cAccSw">cambiar cuenta</button><button class="cb sm danger" id="cAccOut">cerrar sesión</button>`;
+      $('#cAccSw').onclick = login; $('#cAccOut').onclick = logout;
+    } else {
+      el.innerHTML = `<i class="av">◌</i><div><b>sin sesión</b><span class="m">${host.native ? 'iniciá sesión para tus me gusta, playlists e historial y descargas en mejor calidad' : 'abrí petalwave.exe para iniciar sesión (en el navegador no se puede)'}</span></div><span class="sp"></span>${host.native ? '<button class="go" id="cAccIn">iniciar sesión con Google</button>' : ''}`;
+      const b = $('#cAccIn'); if (b) b.onclick = login;
+    }
+  };
+  if (box._offAcc) box._offAcc();
+  box._offAcc = bus.on('ytm:status', paintAcc);
+  loadStatus().then(paintAcc);
+  $('#cDlSes').onchange = (e) => { P.set('dlSession', e.target.checked); const d = P.get('dl'); d.cookies = e.target.checked ? 'txt' : ''; P.save(); bus.emit('dl:prefs'); };
+  $('#cSpot').onclick = () => { bus.emit('ws', 'sync'); document.querySelector('[data-yt="spotify"]')?.click(); };
+  $('#cCaps').onchange = (e) => setCaps(e.target.checked);
   $('#cWpTint').onchange = (e) => { P.set('wpTint', e.target.checked); document.body.classList.toggle('wptint', e.target.checked); };
   $('#cXf').oninput = (e) => { P.set('crossfade', +e.target.value); $('#cXfV').textContent = e.target.value + ' s'; };
   $('#cViz').onchange = (e) => setMode(e.target.value);

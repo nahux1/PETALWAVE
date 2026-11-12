@@ -41,6 +41,33 @@ export const LAYOUTS = {
 };
 
 export const C = () => ({ ...DEF, ...(P.get('custom') || {}) });
+
+// ---------- modo rendimiento (lo elige cada usuario) ----------
+// calidad = todo como lo configuraste · equilibrado = efectos más livianos · máximo = lo mínimo, para PCs lentas
+export const PERF = {
+  calidad: { name: 'calidad', icon: '✦', desc: 'todo como lo configuraste' },
+  equilibrado: { name: 'equilibrado', icon: '◐', desc: 'efectos más livianos y 30 fps' },
+  maximo: { name: 'máximo rendimiento', icon: '⚡', desc: 'sin vidrio, sin video ni fondo animado, 30 fps' },
+};
+const PERF_OVR = {
+  calidad: {},
+  equilibrado: { bgFps: 30, wpBlur: 0, fullBlur: 20 },
+  maximo: { blur: 0, wpBlur: 0, bgFx: 'none', bgFps: 30, vizReflect: false, petals: 'off', scan: 'off', vinyl: false, fullBlur: 0, fullBg: 'theme', fullVizH: 20 },
+};
+export const perf = () => (PERF[P.get('perf')] ? P.get('perf') : 'calidad');
+// valores efectivos: lo que configuraste + lo que cambia el modo rendimiento (tus ajustes guardados no se tocan)
+export const E = () => {
+  const c = C(), p = perf();
+  if (p === 'equilibrado') return { ...c, ...PERF_OVR.equilibrado, blur: Math.min(c.blur, 8) };
+  return { ...c, ...PERF_OVR[p] };
+};
+export function setPerf(p) {
+  if (!PERF[p]) return;
+  P.set('perf', p);
+  applyCustom();
+  bus.emit('perf', p);
+}
+export function cyclePerf() { const k = Object.keys(PERF); setPerf(k[(k.indexOf(perf()) + 1) % k.length]); return PERF[perf()]; }
 const saveSoon = debounce(() => P.save(), 400);
 export function setC(k, v) {
   const c = { ...(P.get('custom') || {}) };
@@ -57,7 +84,10 @@ export function setMany(obj, replace) {
 
 // se aplica después del tema: pisa solo lo que el usuario cambió
 export function applyCustom() {
-  const c = C(), r = document.documentElement.style, b = document.body.classList;
+  const c = E(), r = document.documentElement.style, b = document.body.classList;
+  b.toggle('perf-max', perf() === 'maximo');
+  b.toggle('perf-eq', perf() === 'equilibrado');
+  $$('[data-act="perf"]').forEach((x) => { x.dataset.perf = perf(); const t = x.querySelector('.pt'); if (t) t.textContent = PERF[perf()].icon; x.title = 'rendimiento: ' + PERF[perf()].name + ' (clic para cambiar)'; });
   r.setProperty('--font', `"${c.font}","JetBrains Mono","Cascadia Mono",Consolas,monospace`);
   r.setProperty('--side-w', c.sideW + 'px');
   r.setProperty('--gap', c.gap + 'px');
@@ -95,7 +125,7 @@ export function applyCustom() {
   $$('.ttl').forEach((el) => (el.textContent = t.toUpperCase().split('').join(' ')));
   bus.emit('custom');
 }
-function overrideFx(c = C()) {
+function overrideFx(c = E()) {
   if (c.petals !== 'theme') document.body.classList.toggle('petals', c.petals === 'on');
   if (c.scan !== 'theme') document.body.classList.toggle('scanlines', c.scan === 'on');
 }

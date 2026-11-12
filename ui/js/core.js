@@ -206,7 +206,7 @@ export function ctxMenu(x, y, items) {
       if (it.header) { el.insertAdjacentHTML('beforeend', `<div class="hd2">${esc(it.header)}</div>`); continue; }
       const b = document.createElement('button');
       if (it.danger) b.className = 'danger';
-      b.innerHTML = (it.icon ? icon(it.icon) : '<svg class="i"></svg>') + `<span>${esc(it.label)}</span>` + (it.sub ? '<span class="k">▸</span>' : it.key ? `<span class="k">${esc(it.key)}</span>` : '');
+      b.innerHTML = (it.icon ? icon(it.icon) : '<svg class="i"></svg>') + `<span${it.raw ? " data-raw" : ""}>${esc(it.label)}</span>` + (it.sub ? '<span class="k">▸</span>' : it.key ? `<span class="k">${esc(it.key)}</span>` : '');
       if (it.sub) {
         b.onmouseenter = b.onclick = (e) => {
           e.stopPropagation();
