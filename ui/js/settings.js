@@ -2,6 +2,7 @@
 import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2 } from './core.js';
 import { allThemes, setTheme, setDyn } from './theme.js';
 import { customizerHtml, bindCustomizer } from './custom.js';
+import { checkUpdate, openUpdate } from './update.js';
 import { MODES, setMode } from './viz.js';
 import { D } from './data.js';
 import { setDest } from './downloads.js';
@@ -64,7 +65,9 @@ export async function renderSettings() {
       <div class="m" id="cMem" style="margin-top:8px"></div>
     </div>
     <div class="cfgsec"><h3>❀ acerca de</h3>
-      <div class="m">petalwave 2.1 · ventana ${host.native ? 'nativa (WebView2)' : 'en navegador'} · datos en <code>petalwave\\data</code></div>
+      <div class="cfrow"><span>versión <b id="cVer">…</b><span class="m" id="cVerSub">buscando actualizaciones…</span></span><span><button class="cb" id="cUpd">buscar actualizaciones</button></span></div>
+      <label class="cfrow"><span>avisarme si hay versión nueva<span class="m">consulta GitHub al abrir (no manda datos tuyos)</span></span><input type="checkbox" id="cAutoUpd" ${p.autoUpdate !== false ? 'checked' : ''}></label>
+      <div class="m">ventana ${host.native ? 'nativa (WebView2)' : 'en navegador'} · datos en <code>petalwave\\data</code></div>
       <div class="m" style="margin-top:6px">usalo con música propia, libre o con permiso. No esquiva DRM ni restricciones de las plataformas.</div>
     </div>
   </div>`;
@@ -134,6 +137,16 @@ export async function renderSettings() {
   document.addEventListener('keydown', onKey, true);
   $('#cKeysReset').onclick = () => { P.set('shortcuts', { ...DEFAULT_SHORTCUTS }); renderSettings(); toast('atajos restaurados'); };
   api.get('/api/sys').then((s) => { const m = $('#cMem'); if (m) m.textContent = `servidor: ${s.appMem} MB de RAM · interfaz: ${performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB' : '—'}`; }).catch(() => {});
+  // actualizaciones
+  const paintVer = (i) => {
+    if (!i || !$('#cVer')) return;
+    $('#cVer').textContent = i.current || '?';
+    $('#cVerSub').textContent = i.error ? 'no se pudo consultar GitHub' : i.hasUpdate ? 'hay una nueva: ' + i.latest : 'estás al día';
+    $('#cUpd').textContent = i.hasUpdate ? 'actualizar a ' + i.latest : 'buscar actualizaciones';
+    $('#cUpd').onclick = i.hasUpdate ? openUpdate : () => checkUpdate(true, false).then(paintVer);
+  };
+  checkUpdate(false, true).then(paintVer);
+  $('#cAutoUpd').onchange = (e) => P.set('autoUpdate', e.target.checked);
   box.dataset.rec = '';
   box.isRecording = () => !!rec;
 }

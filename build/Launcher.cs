@@ -501,6 +501,8 @@ static class AppWindow
                             form.BeginInvoke((Action)(() => send("picked:" + id + ":" + PickFolder(form, title))));
                         }
                         else if (m == "login") form.BeginInvoke((Action)(() => ShowLogin(form, env, send)));
+                        // la interfaz pide cerrar (p. ej. para instalar una actualización): cierre normal
+                        else if (m == "quit") form.BeginInvoke((Action)(() => form.Close()));
                         else if (m == "mini:1" || m == "mini:0") setMini(m == "mini:1");
                         else if (m == "full:1" || m == "full:0") setFull(m == "full:1");
                         else if (m.StartsWith("notify:") && !form.ContainsFocus)

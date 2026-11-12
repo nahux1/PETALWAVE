@@ -12,6 +12,7 @@ const { Downloads, AUDIO_FORMATS, VIDEO_QUALITIES } = require('./src/downloads')
 const { Sync } = require('./src/sync');
 const { Stats } = require('./src/stats');
 const { Lyrics } = require('./src/lyrics');
+const { Updater } = require('./src/update');
 const { YTM } = require('./src/ytm');
 const { Streamer } = require('./src/stream');
 const { Spotify } = require('./src/spotify');
@@ -73,6 +74,7 @@ const callbackPage = (ok, msg) => `<!doctype html><meta charset="utf-8"><title>p
 <div style="font-size:42px">${ok ? '❀' : '✖'}</div><h2 style="color:${ok ? '#1db954' : '#f08a8f'}">${ok ? 'Spotify conectado' : 'no se pudo conectar'}</h2>
 <p>${msg}</p><p style="color:#9a8a8b">ya podés cerrar esta pestaña y volver a petalwave.</p></div></body>`;
 const lyrics = new Lyrics({ dataDir: DATA, library, ffprobe: FFPROBE, settings: getSettings, ytm });
+const updater = new Updater({ root: ROOT, dataDir: DATA, broadcast });
 
 // marca cada resultado de YouTube Music con la canción local si ya la tenés (por ID de YouTube o por artista + título)
 function annotate(list) {
@@ -200,11 +202,19 @@ async function route(req, res) {
   // estado general
   if (p === '/api/status') return U.json(res, 200, {
     ytdlp: !!YTDLP, ffmpeg: !!FFMPEG, ffprobe: !!FFPROBE, out: S.downloadDir, platform: process.platform,
-    cookiesTxt: fs.existsSync(COOKIES_TXT), cookieExpired, version: '2.0',
+    cookiesTxt: fs.existsSync(COOKIES_TXT), cookieExpired, version: updater.current,
     formats: { audio: AUDIO_FORMATS, video: VIDEO_QUALITIES },
   });
   if (p === '/api/sys') return U.json(res, 200, sysStats());
   // el programa de escritorio pide un cierre ordenado (guarda todo antes de salir)
+  // ---------- actualizaciones (GitHub Releases) ----------
+  if (p === '/api/update' && M === 'GET') {
+    try { return U.json(res, 200, await updater.check(u.searchParams.get('force') === '1')); }
+    catch (e) { return U.json(res, 200, { current: updater.current, error: 'no se pudo consultar GitHub: ' + e.message }); }
+  }
+  if (p === '/api/update/apply' && M === 'POST') {
+    try { return U.json(res, 200, await updater.apply()); } catch (e) { return U.json(res, 400, { error: e.message }); }
+  }
   if (p === '/api/quit' && M === 'POST') { U.json(res, 200, { ok: true }); setTimeout(shutdown, 50); return; }
   if (p === '/api/stream') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });

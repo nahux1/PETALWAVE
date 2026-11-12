@@ -70,7 +70,16 @@ function rowHtml(it, i) {
     <span class="al">${esc(it.album || '')}</span><span class="d">${it.duration ? fmtTime(it.duration) : ''}</span>${badge}
     <span class="acts">${local ? '' : `<button class="cb sm" data-pon="${i}" title="escuchar online, sin descargar">${icon('play')}</button><button class="cb sm" data-dl="${i}" title="descargar" ${dl ? 'disabled' : ''}>${icon('dl')}</button>`}<button class="cb sm" data-more="${i}" title="más">${icon('more')}</button></span></div>`;
 }
+// al redibujar, la caja de búsqueda se reemplaza: se conserva lo escrito, el foco y el cursor
+// (antes el foco quedaba en la ventana y las letras siguientes disparaban atajos: v, k, b…)
 function render() {
+  const old = $('#ytQ');
+  const keep = old ? { v: old.value, focus: document.activeElement === old, a: old.selectionStart, b: old.selectionEnd } : null;
+  renderBody(keep ? keep.v : lastQ);
+  const q = $('#ytQ');
+  if (q && keep && keep.focus) { q.focus(); try { q.setSelectionRange(keep.a, keep.b); } catch {} }
+}
+function renderBody(qv) {
   const box = $('#ytmBody');
   $('#ytmSync').hidden = tab !== 'sync';
   box.hidden = tab === 'sync';
@@ -79,7 +88,7 @@ function render() {
   if (tab === 'spotify') return renderSpotify(box);
   let top = '';
   if (tab === 'search') {
-    top = `<div class="ytm-search"><div class="search">${icon('search')}<input type="text" id="ytQ" placeholder="buscar en YouTube Music…" value="${esc(lastQ)}" spellcheck="false" autocomplete="off"></div>
+    top = `<div class="ytm-search"><div class="search">${icon('search')}<input type="text" id="ytQ" placeholder="buscar en YouTube Music…" value="${esc(qv)}" spellcheck="false" autocomplete="off"></div>
       <div class="seg">${[['songs', 'canciones'], ['videos', 'videos'], ['albums', 'álbumes'], ['playlists', 'playlists']].map(([k, l]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
   }
   if (!view) { box.innerHTML = top + `<div class="empty">${tab === 'search' ? 'buscá cualquier canción, artista o álbum de YouTube Music' : tab === 'radio' ? 'abrí la radio de una canción: clic derecho → "radio de YouTube Music", o el botón ◉ de abajo' : 'cargando…'}</div>`; bindTop(); return; }
@@ -162,7 +171,6 @@ async function search(q, soft) {
   if (soft && q === lastQ) return;
   lastQ = q;
   await load('search', () => api.get(`/api/ytm/search?q=${encodeURIComponent(q)}&filter=${filter}`));
-  if (soft) { const i = $('#ytQ'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
 }
 async function openItem(it) {
   const back = view;

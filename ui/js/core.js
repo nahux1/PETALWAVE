@@ -57,7 +57,7 @@ export const bus = {
 // eventos del servidor (una sola conexión para todo)
 export function connectStream() {
   const es = new EventSource('/api/stream');
-  for (const t of ['dl', 'dllog', 'dlfile', 'scan', 'library', 'sync', 'cookies', 'spotify']) {
+  for (const t of ['dl', 'dllog', 'dlfile', 'scan', 'library', 'sync', 'cookies', 'spotify', 'update']) {
     es.addEventListener(t, (e) => { try { bus.emit('sse:' + t, JSON.parse(e.data)); } catch {} });
   }
   es.onopen = () => bus.emit('sse:open');

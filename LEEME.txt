@@ -13,6 +13,19 @@ CÓMO ABRIRLO (no hay que instalar nada)
 Listo. Para tenerlo a mano: clic derecho en petalwave.exe → "Mostrar más opciones" →
 "Enviar a" → "Escritorio (crear acceso directo)".
 
+CÓMO ACTUALIZARLO
+-----------------
+• Desde la 2.4: cuando hay una versión nueva aparece un botón ⬆ arriba a la derecha.
+  Tocalo → "actualizar ahora". petalwave se cierra, se actualiza y se abre solo.
+  (También en Ajustes 5 → acerca de → "buscar actualizaciones".)
+• Si tenés la 2.3 o anterior (no tiene ese botón), una sola vez:
+  1. Cerrá petalwave: clic derecho en la flor ❀ al lado del reloj de Windows → Salir.
+  2. Bajá el zip nuevo y hacé clic derecho → "Extraer todo…".
+  3. En "Los archivos se extraerán en esta carpeta" elegí la MISMA carpeta donde ya tenías
+     petalwave (la que contiene la carpeta petalwave, no la de adentro) → Extraer.
+  4. Cuando pregunte, elegí "Reemplazar los archivos en el destino".
+  Tu música, playlists y ajustes no se pierden: el zip no trae esas carpetas.
+
 LO BÁSICO
 ---------
 • Música 1: tu biblioteca. Arrastrá canciones a la ventana para agregarlas.

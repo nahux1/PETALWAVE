@@ -19,6 +19,10 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 **Lo básico:** `1` música · `2` descargas (pegá un link y listo, sin cookies) · `3` YouTube Music y Spotify ·
 `5` ajustes (temas, diseño, fondos animados) · `espacio` play/pausa · `f` pantalla completa · `b` ver el fondo.
 
+### 🔄 Actualizar
+- **Desde la versión 2.4:** cuando sale una versión nueva aparece un botón **⬆** arriba a la derecha. Tocalo → **actualizar ahora**: petalwave baja solo lo nuevo, se cierra, se actualiza y se vuelve a abrir. Tu música y tus ajustes no se tocan.
+- **Si tenés la 2.3** (no trae ese botón), una sola vez: cerrá petalwave (clic derecho en la flor ❀ junto al reloj → *Salir*), bajá el zip nuevo, **extraelo en la misma carpeta** donde lo tenías y elegí **"Reemplazar los archivos en el destino"**. No se pierde nada: el zip no trae tus canciones ni tus ajustes.
+
 <details><summary>Problemas comunes</summary>
 
 - **"No se encontró Node.js"**: no se extrajo todo el zip. Extraelo de nuevo (no lo abras desde adentro del zip).

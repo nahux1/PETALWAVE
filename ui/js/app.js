@@ -15,6 +15,7 @@ import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } fro
 import { initYtm, likeCurrent } from './ytmui.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
+import { initUpdate } from './update.js';
 
 // ---------- workspaces (como Hyprland: 1..5) ----------
 const WS = ['music', 'dl', 'sync', 'stats', 'cfg'];
@@ -100,6 +101,8 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------- atajos de teclado (configurables) ----------
+let lastTyping = 0;
+const REPEATABLE = new Set(['fwd', 'back', 'fwdLong', 'backLong', 'volUp', 'volDown']);
 document.addEventListener('keydown', (e) => {
   if (isRecordingKey()) return;
   const tag = e.target.tagName;
@@ -111,10 +114,16 @@ document.addEventListener('keydown', (e) => {
     if (document.body.classList.contains('peek')) return togglePeek(false);
     closeCtx(); toggleVolPop(false); return;
   }
-  if (typing || !$('#modal').hidden) return;
+  if (typing) { lastTyping = Date.now(); return; }
+  if (!$('#modal').hidden) return;
+  // una letra suelta justo después de escribir (la caja se redibujó y perdió el foco) no es un atajo
+  const plain = e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey;
+  if (plain && Date.now() - lastTyping < 1200) { lastTyping = Date.now(); return; }
   const k = keyName(e); if (!k) return;
   const sc = P.get('shortcuts');
   const act = Object.keys(sc).find((a) => sc[a] === k);
+  // tecla mantenida (vvvvv): solo se repiten las acciones que tiene sentido repetir
+  if (e.repeat && !REPEATABLE.has(act)) { if (act) e.preventDefault(); return; }
   if (act && ACTIONS[act]) { e.preventDefault(); ACTIONS[act](); feedback(act); }
 });
 // ver el fondo: esconde las ventanas y saca el desenfoque para mirar el wallpaper / fondo animado nítido
@@ -239,6 +248,7 @@ async function boot() {
   initYtm();
   initViz();
   initBg();
+  initUpdate();
   try { setDeps(await api.get('/api/status')); } catch {}
   connectStream();
   await Promise.all([loadLibrary(), loadPlaylists(), loadAuto()]);

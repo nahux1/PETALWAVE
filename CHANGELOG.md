@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.4 — actualizaciones con un clic
+- Botón ⬆ en la barra cuando hay versión nueva en GitHub y "buscar actualizaciones" en ajustes → acerca de. Baja `petalwave-update.zip` (app + yt-dlp nuevo), espera a que se cierre la app, reemplaza los archivos con robocopy sin tocar `data/`, `descargas/`, cookies ni wallpaper, y la vuelve a abrir (`src/update.js`).
+- La ventana entiende la orden `quit` para cerrarse sola al instalar.
+- Escribir rápido o mantener una tecla (vvvv, kkkk, bbbb) ya no dispara atajos: el buscador de YouTube Music conserva foco y texto al redibujarse, las letras justo después de escribir se ignoran y solo se repiten adelantar/volumen.
+
 ## 2.3 — fondos animados
 - `ui/js/bgfx.js`: 6 efectos en canvas (aurora, ondas, estrellas, lluvia digital, bokeh, nebulosa) a baja resolución, con FPS limitado, colores del tema y graves del analizador. Se frena con la ventana oculta, en mini y sin animaciones.
 - Wallpaper de GIF y de video (mp4/webm, hasta 300 MB) servido con Range; `GET /api/wallpaper` informa el tipo. Video teñido con el tema, pausable con la música y con velocidad propia.
