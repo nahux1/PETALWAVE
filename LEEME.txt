@@ -1,0 +1,39 @@
+❀ petalwave — reproductor de música para Windows
+=================================================
+
+CÓMO ABRIRLO (no hay que instalar nada)
+---------------------------------------
+1. Si todavía no lo hiciste: clic derecho en "petalwave-windows.zip" → "Extraer todo..." → "Extraer".
+   (No lo abras desde adentro del zip: tiene que estar extraído.)
+2. Entrá a la carpeta "petalwave" y hacé doble clic en  petalwave.exe  (el ícono de la flor).
+3. Si Windows muestra un cartel azul "Windows protegió su PC":
+   tocá "Más información" → "Ejecutar de todas formas".
+   (Aparece porque el programa es nuevo y no está firmado; es normal.)
+
+Listo. Para tenerlo a mano: clic derecho en petalwave.exe → "Mostrar más opciones" →
+"Enviar a" → "Escritorio (crear acceso directo)".
+
+LO BÁSICO
+---------
+• Música 1: tu biblioteca. Arrastrá canciones a la ventana para agregarlas.
+• Descargas 2: pegá un link de YouTube, YouTube Music o Spotify y tocá descargar (mp3 o mp4).
+  No hace falta iniciar sesión ni cookies.
+• YouTube Music 3: buscá y escuchá online. Con "iniciar sesión" ves tus me gusta y playlists.
+• Ajustes 5: temas, colores, fondo animado, diseño y atajos de teclado.
+• Barra espaciadora = play/pausa · f = pantalla completa · b = ver el fondo · t = cambiar tema.
+
+Tus canciones descargadas quedan en la carpeta "descargas", adentro de la carpeta petalwave.
+
+PROBLEMAS COMUNES
+-----------------
+• "No se encontró Node.js": no extrajiste todo el zip. Volvé a extraerlo completo.
+• La ventana queda en blanco: instalá "Microsoft Edge WebView2" desde
+  https://developer.microsoft.com/microsoft-edge/webview2  (Windows 11 ya lo trae).
+• Una descarga falla con "not a bot": esperá unos minutos y reintentá, o iniciá sesión
+  en YouTube Music (workspace 3).
+
+Usalo con música propia, libre o con permiso del autor. petalwave no esquiva DRM:
+de Spotify solo lee los nombres de las canciones y las busca en YouTube Music.
+
+Incluye programas de terceros con sus licencias (carpeta "licencias"):
+Node.js (MIT), yt-dlp (Unlicense), FFmpeg (GPL), Python (PSF) y ytmusicapi (MIT).

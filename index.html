@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>petalwave</title>
+<link rel="icon" type="image/png" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui/app.css">
+</head>
+<body>
+<!-- íconos (trazo fino, estilo terminal) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5v14M19 5L9 12l10 7z" fill="currentColor"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z" fill="currentColor"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M11 7l-5 5 5 5M18 7l-5 5 5 5"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M13 7l5 5-5 5M6 7l5 5-5 5"/></symbol>
+    <symbol id="i-rep" viewBox="0 0 24 24"><path d="M17 3l3 3-3 3M4 11V9a3 3 0 013-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 01-3 3H4"/></symbol>
+    <symbol id="i-rep1" viewBox="0 0 24 24"><path d="M17 3l3 3-3 3M4 11V9a3 3 0 013-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 01-3 3H4M11.5 10.5l1-.8v4.6"/></symbol>
+    <symbol id="i-shuf" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol>
+    <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6"/></symbol>
+    <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6h12M4 11h12M4 16h7M17 14v7l4-3.5z"/></symbol>
+    <symbol id="i-hist" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 102.6-6.1L3.5 8.5M3.5 4v4.5H8M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-lyr" viewBox="0 0 24 24"><path d="M4 5h16M4 10h10M4 15h16M4 20h8"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.5-4.6L3 9M3 4v5h5M4 13a8 8 0 0014.5 4.6L21 15M21 20v-5h-5"/></symbol>
+    <symbol id="i-stats" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-cfg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+    <symbol id="i-full" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-mini" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5"/><rect x="12" y="12" width="7" height="5" fill="currentColor"/></symbol>
+    <symbol id="i-compact" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></symbol>
+    <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 010 8.4M7.8 16.2a6 6 0 010-8.4M19 5a10 10 0 010 14M5 19A10 10 0 015 5"/></symbol>
+    <symbol id="i-eq" viewBox="0 0 24 24"><path d="M5 21v-7M5 10V3M12 21v-9M12 8V3M19 21v-5M19 12V3M2 14h6M9 8h6M16 16h6"/></symbol>
+    <symbol id="i-viz" viewBox="0 0 24 24"><path d="M3 12h2M7 7v10M11 4v16M15 9v6M19 6v12M21 12h1"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-9.2-9.4A4.9 4.9 0 0112 6a4.9 4.9 0 019.2 4.6C19.5 15.4 12 20 12 20z"/></symbol>
+    <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 000-17z" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<div id="wp"><video id="wpVid" muted loop playsinline disablepictureinpicture hidden></video></div>
+<canvas id="bgfx" hidden></canvas>
+<div id="petals"></div>
+<div id="scan"></div>
+
+<!-- ======================= barra superior (waybar) ======================= -->
+<header class="top" id="top">
+  <nav class="mod ws-nav" id="wsNav">
+    <span class="logo">❀</span>
+    <button data-ws="music" class="on" title="música (1)"><svg class="i"><use href="#i-music"/></svg><b>1</b></button>
+    <button data-ws="dl" title="descargas (2)"><svg class="i"><use href="#i-dl"/></svg><b>2</b><i class="badge" id="dlBadge" hidden></i></button>
+    <button data-ws="sync" title="YouTube Music (3)"><svg class="i"><use href="#i-sync"/></svg><b>3</b><i class="sdot" id="syncDot"></i></button>
+    <button data-ws="stats" title="estadísticas (4)"><svg class="i"><use href="#i-stats"/></svg><b>4</b></button>
+    <button data-ws="cfg" title="ajustes (5)"><svg class="i"><use href="#i-cfg"/></svg><b>5</b></button>
+  </nav>
+  <i class="tsep"></i>
+  <span class="mod np-mini">
+    <button class="ico" data-act="prev" title="anterior"><svg class="i"><use href="#i-prev"/></svg></button>
+    <button class="ico" data-act="toggle" title="play/pausa"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
+    <button class="ico" data-act="next" title="siguiente"><svg class="i"><use href="#i-next"/></svg></button>
+    <span class="np-t" data-np="line">sin reproducir</span>
+  </span>
+  <span class="sp"></span>
+  <span class="tgrp hide-s"><span class="mod"><span class="k">cpu</span><span id="tCpu">--%</span></span><span class="mod"><span class="k">ram</span><span id="tRam">--%</span></span><span class="mod" id="tScan" hidden></span></span>
+  <i class="tsep hide-s"></i>
+  <span class="mod hide-m" id="tDeps">yt-dlp · ffmpeg</span>
+  <button class="mod ico hide-s" id="tTheme" title="tema (t) · clic derecho: colores de la carátula"><svg class="i"><use href="#i-theme"/></svg><span id="tThemeName">tema</span></button>
+  <button class="mod ico hide-m" id="tWp" title="wallpaper (o arrastrá una imagen) · shift+clic: por defecto"><svg class="i"><use href="#i-wall"/></svg></button>
+  <button class="mod ico hide-m" data-act="peek" title="ver el fondo sin ventanas ni desenfoque (b)"><svg class="i"><use href="#i-eye"/></svg></button>
+  <i class="tsep"></i>
+  <button class="mod ico" id="tVol" title="volumen y ecualizador (v)"><svg class="i"><use href="#i-vol"/></svg><span id="tVolTxt">80%</span></button>
+  <span class="mod pk" id="tClock">00:00</span>
+</header>
+
+<!-- ======================= escritorio ======================= -->
+<main class="shell" id="shell">
+  <section class="wsa" id="wsa">
+
+    <!-- ===== 1 · música ===== -->
+    <div class="ws w" data-ws="music">
+      <span class="lbl">~/música</span>
+      <div class="lib">
+        <nav class="lnav" id="lnav">
+          <div class="lgrp" data-grp="lib">
+            <div class="lsec" data-toggle><span><i class="chev">▾</i>biblioteca</span></div>
+            <div class="lgb">
+              <button data-view="songs" class="on"><svg class="i"><use href="#i-music"/></svg>canciones<span class="c" id="cSongs"></span></button>
+              <button data-view="artists"><svg class="i"><use href="#i-radio"/></svg>artistas<span class="c" id="cArtists"></span></button>
+              <button data-view="albums"><svg class="i"><use href="#i-folder"/></svg>álbumes<span class="c" id="cAlbums"></span></button>
+              <button data-view="genres"><svg class="i"><use href="#i-lyr"/></svg>géneros</button>
+              <button data-view="years"><svg class="i"><use href="#i-hist"/></svg>años</button>
+              <button data-view="recent"><svg class="i"><use href="#i-plus"/></svg>recientes</button>
+              <button data-view="dupes"><svg class="i"><use href="#i-queue"/></svg>duplicados<span class="c" id="cDupes"></span></button>
+            </div>
+          </div>
+          <div class="navflt"><svg class="i"><use href="#i-search"/></svg><input type="text" id="navFlt" placeholder="buscar playlist…" spellcheck="false" autocomplete="off"></div>
+          <div class="lgrp" data-grp="ytm">
+            <div class="lsec" data-toggle><span><i class="chev">▾</i>youtube music</span><button class="ico addpl" id="bYtmRefresh" title="actualizar desde tu cuenta"><svg class="i"><use href="#i-sync"/></svg></button></div>
+            <div class="lgb" id="navYtm"></div>
+          </div>
+          <div class="lgrp" data-grp="auto">
+            <div class="lsec" data-toggle><span><i class="chev">▾</i>para vos</span></div>
+            <div class="lgb" id="navAuto"></div>
+          </div>
+          <div class="lgrp" data-grp="pl">
+            <div class="lsec" data-toggle><span><i class="chev">▾</i>mis playlists</span><button class="ico addpl" id="bNewPl" title="nueva playlist"><svg class="i"><use href="#i-plus"/></svg></button></div>
+            <div class="lgb" id="navPl"></div>
+          </div>
+        </nav>
+        <div class="lmain">
+          <div class="lbar">
+            <div class="search"><svg class="i"><use href="#i-search"/></svg><input type="text" id="q" placeholder="buscar canción, artista, álbum, género…   ( / )" spellcheck="false" autocomplete="off"><kbd id="qCount"></kbd></div>
+            <select id="fExt" title="filtrar por formato"><option value="">todos los formatos</option></select>
+            <select id="fKind" title="audio / video"><option value="">audio + video</option><option value="audio">solo audio</option><option value="video">solo video</option></select>
+            <button class="cb" id="bRescan" title="reescanear carpetas"><svg class="i"><use href="#i-sync"/></svg></button>
+          </div>
+          <div class="lhead" id="lhead"></div>
+          <div class="lbody" id="lbody"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 2 · descargas (terminal estilo nvim) ===== -->
+    <div class="ws w term" data-ws="dl" hidden>
+      <span class="lbl">descargas.md — nvim</span>
+      <div class="ed">
+        <div class="gut" id="gut"></div>
+        <div class="buf" id="buf">
+          <div class="cm"># --// petalwave · descargas //--</div>
+          <div class="hd">## Descargar de YouTube / YouTube Music</div>
+          <form class="row-in" id="dlForm">
+            <span class="ps">❯ <em>petal</em></span>
+            <textarea id="dlUrl" rows="1" placeholder="pegá una o varias URLs (una por línea) y Enter…" spellcheck="false"></textarea>
+            <span class="src" id="dlSrc"></span>
+          </form>
+          <div class="opts">
+            <select id="dlFmt" title="formato">
+              <optgroup label="audio"><option value="mp3">♪ mp3</option><option value="m4a">♪ m4a (aac)</option><option value="opus">♪ opus</option></optgroup>
+              <optgroup label="video"><option value="mp4">▶ mp4</option></optgroup>
+            </select>
+            <select id="dlQ"></select>
+            <select id="dlCk" title="no hacen falta: petalwave descarga sin cookies y solo usa tu sesión si YouTube bloquea">
+              <option value="">cookies: no hacen falta</option><option value="txt" id="ckTxtOpt">cookies: archivo .txt</option>
+              <option value="firefox">cookies: firefox</option><option value="chrome">cookies: chrome</option><option value="edge">cookies: edge</option><option value="brave">cookies: brave</option>
+            </select>
+            <button type="button" class="cb" id="bCk" title="cargar cookies.txt (o arrastralo) · shift+clic lo borra">🍪 cargar cookies.txt</button>
+            <label class="ck"><input type="checkbox" id="dlPl"> playlist</label>
+            <button type="button" class="cb" id="bDest" title="carpeta de destino"><svg class="i"><use href="#i-folder"/></svg><span id="dlDest">descargas</span></button>
+            <button class="go" form="dlForm" type="submit">descargar ↵</button>
+          </div>
+          <div class="fmtinfo" id="dlInfo"></div>
+          <div class="h3">### Cola <span class="cm" id="qInfo"></span></div>
+          <div class="jobs" id="jobs"><div class="cm">&gt; vacía</div></div>
+          <div class="h3">### Historial <button class="cb sm" id="bClearHist">limpiar</button></div>
+          <div class="hist" id="hist"></div>
+          <div class="h3">### Log</div>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
+      <div class="sl"><span class="md" id="mode">NORMAL</span><span class="f">▤ descargas/</span><span class="cm">⎇ main</span><span class="r" id="slInfo">mp3 · 320k</span><span class="pc" id="slPct">0%</span></div>
+    </div>
+
+    <!-- ===== 3 · sync YouTube Music ===== -->
+    <div class="ws w" data-ws="sync" hidden>
+      <span class="lbl">~/youtube-music</span>
+      <div class="ytm-top">
+        <div class="ytm-acc" id="ytmAcc">conectando con YouTube Music…</div>
+        <div class="tabs" id="ytmTabs">
+          <button class="tab on" data-yt="search"><svg class="i"><use href="#i-search"/></svg>buscar</button>
+          <button class="tab" data-yt="liked"><svg class="i"><use href="#i-music"/></svg>me gusta</button>
+          <button class="tab" data-yt="playlists"><svg class="i"><use href="#i-lyr"/></svg>mis playlists</button>
+          <button class="tab" data-yt="history"><svg class="i"><use href="#i-hist"/></svg>historial</button>
+          <button class="tab" data-yt="radio"><svg class="i"><use href="#i-radio"/></svg>radio</button>
+          <button class="tab" data-yt="spotify"><span class="sp-dot">●</span>spotify</button>
+          <button class="tab" data-yt="sync"><svg class="i"><use href="#i-sync"/></svg>sync e importar</button>
+        </div>
+      </div>
+      <div class="pad scroll" id="ytmBody"></div>
+      <div class="pad scroll" id="ytmSync" hidden>
+        <div class="cols2">
+          <div>
+            <div class="hd">♫ Sincronizar mi cuenta</div>
+            <div class="sy-st" id="syStatus">—</div>
+            <div class="sy-ctl">
+              <button class="go" id="syRun">⟳ sincronizar ahora</button>
+              <select id="syAuto"><option value="0">auto: apagado</option><option value="30">auto: cada 30 min</option><option value="60">auto: cada 1 h</option><option value="180">auto: cada 3 h</option><option value="360">auto: cada 6 h</option></select>
+              <select id="syFmt"><option value="mp3|320">mp3 320k</option><option value="mp3|192">mp3 192k</option><option value="m4a|best">m4a</option><option value="opus|best">opus</option><option value="mp4|720">mp4 720p</option></select>
+            </div>
+            <div class="warn" id="syWarn" hidden></div>
+            <div class="list" id="sySources"></div>
+            <div class="sy-add">
+              <input type="text" id="syUrl" placeholder="link de una playlist o álbum para sincronizar…" spellcheck="false">
+              <button class="cb" id="syAdd">+ agregar</button>
+              <button class="cb" id="syDisc">📥 mis playlists</button>
+            </div>
+            <div class="list sy-disc" id="syDiscList" hidden></div>
+          </div>
+          <div>
+            <div class="hd">⇄ Importar playlist a la biblioteca</div>
+            <div class="m">Lee una playlist o álbum de YouTube Music, te muestra qué canciones <b>ya tenés</b> y te deja crear la playlist local o bajar solo las que faltan.</div>
+            <div class="sy-add"><input type="text" id="impUrl" placeholder="https://music.youtube.com/playlist?list=…" spellcheck="false"><button class="go" id="impGo">inspeccionar</button></div>
+            <div id="impOut"></div>
+            <details class="note"><summary>¿Qué se puede y qué no con YouTube Music?</summary>
+              <p>YouTube Music <b>no tiene una API pública oficial</b> para tu biblioteca personal (me gusta, playlists). petalwave usa <b>tu propia sesión</b> (cookies.txt) con yt-dlp para leer lo mismo que ves en tu cuenta: nombres, artistas, álbumes y portadas.</p>
+              <p>No esquiva DRM ni contenido restringido: si algo no está disponible para tu cuenta, no se descarga. La alternativa oficial sería la YouTube Data API v3 con OAuth, que exige registrar una app en Google Cloud y no da acceso a los "me gusta" de YouTube Music.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 4 · estadísticas ===== -->
+    <div class="ws w" data-ws="stats" hidden>
+      <span class="lbl">~/stats</span>
+      <div class="pad scroll" id="statsBody"></div>
+    </div>
+
+    <!-- ===== 5 · ajustes ===== -->
+    <div class="ws w" data-ws="cfg" hidden>
+      <span class="lbl">~/.config/petalwave</span>
+      <div class="pad scroll" id="cfgBody"></div>
+    </div>
+  </section>
+
+  <!-- ======================= columna derecha ======================= -->
+  <aside class="side" id="side">
+    <section class="w np" id="np">
+      <span class="lbl">now playing</span>
+      <div class="np-top">
+        <div class="cover" id="cover"><div class="ph">♪</div><img alt="" id="coverImg" hidden><div class="vidslot" id="vidSlot"></div></div>
+        <div class="info">
+          <div class="ttl">P E T A L W A V E</div>
+          <div class="rule"></div>
+          <div class="kv">
+            <b>track</b><span data-np="title">nada sonando</span>
+            <b>artist</b><span data-np="artist">—</span>
+            <b>album</b><span data-np="album">—</span>
+            <b>format</b><span data-np="fmt">—</span>
+            <b>queue</b><span data-np="queue">0 / 0</span>
+            <b>plays</b><span data-np="plays">—</span>
+          </div>
+          <div class="dots"><i style="background:var(--ac)"></i><i style="background:var(--ac2)"></i><i style="background:var(--ac3)"></i><i style="background:var(--sec)"></i><i style="background:var(--sec2)"></i><i style="background:var(--g3)"></i></div>
+        </div>
+      </div>
+      <div class="seek" data-seek><span class="t0" data-np="pos">0:00</span><div class="tr"><div class="buf" data-np="buffered"></div><div class="fi" data-np="fill"></div><div class="kn" data-np="knob"></div><div class="tip" data-np="tip">0:00</div></div><span class="t1" data-np="dur">0:00</span></div>
+      <div class="ctl">
+        <button class="ib" data-act="shuffle" title="aleatorio (s)"><svg class="i"><use href="#i-shuf"/></svg></button>
+        <button class="ib" data-act="back" title="-10 s (←)"><svg class="i"><use href="#i-back"/></svg></button>
+        <button class="ib" data-act="prev" title="anterior (p)"><svg class="i"><use href="#i-prev"/></svg></button>
+        <button class="ib big" data-act="toggle" title="play/pausa (espacio)"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
+        <button class="ib" data-act="next" title="siguiente (n)"><svg class="i"><use href="#i-next"/></svg></button>
+        <button class="ib" data-act="fwd" title="+10 s (→)"><svg class="i"><use href="#i-fwd"/></svg></button>
+        <button class="ib" data-act="repeat" title="repetir: off / todo / una (r)"><svg class="i" data-np="repicon"><use href="#i-rep"/></svg></button>
+      </div>
+      <div class="ctl2">
+        <button class="ib sm" data-act="mute" title="silenciar (m)"><svg class="i" data-np="volicon"><use href="#i-vol"/></svg></button>
+        <input type="range" class="vol" data-vol min="0" max="150" step="1" value="80" title="volumen (↑/↓)">
+        <span class="sp"></span>
+        <button class="ib sm" data-act="like" id="bLike" title="me gusta en YouTube Music" hidden><svg class="i"><use href="#i-heart"/></svg></button>
+        <button class="ib sm" data-act="radio" title="radio: canciones similares de tu biblioteca"><svg class="i"><use href="#i-radio"/></svg></button>
+        <button class="ib sm" data-act="sleep" title="temporizador para dormir"><svg class="i"><use href="#i-moon"/></svg></button><span class="sleept" data-np="sleep" hidden></span>
+        <button class="ib sm" data-act="eq" title="ecualizador (e)"><svg class="i"><use href="#i-eq"/></svg></button>
+        <button class="ib sm" data-act="compact" title="modo compacto (k)"><svg class="i"><use href="#i-compact"/></svg></button>
+        <button class="ib sm" data-act="mini" title="mini reproductor (shift+m)"><svg class="i"><use href="#i-mini"/></svg></button>
+        <button class="ib sm" data-act="full" title="pantalla completa (f)"><svg class="i"><use href="#i-full"/></svg></button>
+      </div>
+    </section>
+
+    <section class="w viz" id="vizWin">
+      <span class="lbl" id="vizLbl">spectrum</span>
+      <div class="vizmodes" id="vizModes"></div>
+      <canvas id="cv"></canvas>
+    </section>
+
+    <section class="w sidetabs" id="sideTabs">
+      <div class="tabs">
+        <button class="tab on" data-side="queue"><svg class="i"><use href="#i-queue"/></svg>cola <span class="c" id="cQueue"></span></button>
+        <button class="tab" data-side="hist"><svg class="i"><use href="#i-hist"/></svg>historial</button>
+        <button class="tab" data-side="lyrics"><svg class="i"><use href="#i-lyr"/></svg>letra</button>
+      </div>
+      <div class="sidebody" id="sbQueue"></div>
+      <div class="sidebody" id="sbHist" hidden></div>
+      <div class="sidebody lyr" id="sbLyrics" hidden></div>
+    </section>
+  </aside>
+</main>
+
+<!-- ======================= mini reproductor ======================= -->
+<div class="miniui" id="miniUi">
+  <div class="mcover"><img alt="" data-np="coverimg"></div>
+  <div class="mmain">
+    <div class="mt" data-np="title">nada sonando</div>
+    <div class="ma" data-np="artist">—</div>
+    <div class="seek" data-seek><div class="tr"><div class="fi" data-np="fill"></div><div class="kn" data-np="knob"></div></div></div>
+    <div class="mctl">
+      <button class="ib sm" data-act="prev"><svg class="i"><use href="#i-prev"/></svg></button>
+      <button class="ib" data-act="toggle"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
+      <button class="ib sm" data-act="next"><svg class="i"><use href="#i-next"/></svg></button>
+      <canvas id="cvMini"></canvas>
+      <button class="ib sm" data-act="mini" title="volver"><svg class="i"><use href="#i-full"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= reproducción a pantalla completa ======================= -->
+<div class="full" id="full" hidden>
+  <div class="fbg" id="fbg"></div>
+  <canvas id="cvFull"></canvas>
+  <button class="ib fclose" data-act="full" title="salir (esc)"><svg class="i"><use href="#i-x"/></svg></button>
+  <button class="ib fcfg" data-act="fullcfg" title="fondo y visualizador de la pantalla completa"><svg class="i"><use href="#i-cfg"/></svg></button>
+  <div class="fmain">
+    <div class="fleft">
+      <div class="fcover"><img alt="" data-np="coverimg"></div>
+      <div class="ft" data-np="title">nada sonando</div>
+      <div class="fa"><span data-np="artist">—</span> · <span data-np="album">—</span></div>
+      <div class="seek" data-seek><span class="t0" data-np="pos">0:00</span><div class="tr"><div class="fi" data-np="fill"></div><div class="kn" data-np="knob"></div><div class="tip" data-np="tip"></div></div><span class="t1" data-np="dur">0:00</span></div>
+      <div class="ctl">
+        <button class="ib" data-act="shuffle"><svg class="i"><use href="#i-shuf"/></svg></button>
+        <button class="ib" data-act="prev"><svg class="i"><use href="#i-prev"/></svg></button>
+        <button class="ib big" data-act="toggle"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
+        <button class="ib" data-act="next"><svg class="i"><use href="#i-next"/></svg></button>
+        <button class="ib" data-act="repeat"><svg class="i" data-np="repicon"><use href="#i-rep"/></svg></button>
+      </div>
+    </div>
+    <div class="fright lyr" id="fLyrics"></div>
+  </div>
+</div>
+
+<!-- paneles flotantes -->
+<div class="pop" id="volPop" hidden></div>
+<div class="ctx" id="ctx" hidden></div>
+<div class="modal" id="modal" hidden><div class="mbox" id="mbox"></div></div>
+<div id="drop">soltá música para importarla · una imagen para el wallpaper · cookies.txt · un .lrc para la letra ❀</div>
+<div id="toasts"></div>
+<div id="osd"><svg class="i"><use href="#i-play"/></svg><span></span><i class="osdbar"><b></b></i></div>
+<input type="file" id="filePick" hidden>
+
+<script type="module" src="/ui/js/app.js"></script>
+</body>
+</html>
