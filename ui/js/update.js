@@ -67,6 +67,8 @@ async function install(box) {
   } catch (e) {
     off();
     set(0, 'no se pudo actualizar: ' + e.message);
+    // salida manual: el mismo paquete desde la página de GitHub
+    if (info && info.page && !box.querySelector('.upd-manual')) box.querySelector('.upd-bar').insertAdjacentHTML('afterend', `<p class="m upd-manual">Si sigue fallando, actualizá a mano: <a href="${esc(info.page)}" target="_blank">abrí la página de descargas</a>, bajá <b>petalwave-windows.zip</b> y extraelo encima de tu carpeta de petalwave (elegí "Reemplazar"). No se pierde nada.</p>`);
     box.querySelectorAll('.mact button').forEach((b) => (b.disabled = false));
     return false;
   }

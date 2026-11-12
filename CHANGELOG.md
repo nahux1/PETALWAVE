@@ -1,5 +1,9 @@
 # petalwave — registro de cambios
 
+## 2.5.2 — actualizaciones sin error 403
+- El actualizador ya no depende de la API de GitHub (60 consultas/hora por IP, que devolvía 403 en conexiones compartidas): lee `releases/latest/download/latest.json`, una descarga común publicada en cada Release con la versión, las notas y el tamaño y SHA-256 del paquete. La API queda de respaldo.
+- La descarga se reintenta hasta 3 veces, se verifica el SHA-256 antes de instalar y, si falla, la ventana explica cómo actualizar a mano.
+
 ## 2.5.1 — carátulas livianas
 - Opción **carátulas livianas en las listas** (ajustes → rendimiento, activada por defecto): las filas y tarjetas piden `/cover/:id?s=t|m` (128 / 256 px), que el servidor genera una vez con ffmpeg y guarda en `data/covers/thumbs`; las de YouTube Music se piden a Google en 120 px. El reproductor y la pantalla completa siguen en calidad completa. Medido: unos 35 MB menos con 26 canciones, y más con bibliotecas grandes.
 

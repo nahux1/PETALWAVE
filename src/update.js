@@ -8,9 +8,11 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { spawn, spawnSync } = require('child_process');
+const crypto = require('crypto');
 
 const REPO = 'nahux1/PETALWAVE';
 const ASSET = 'petalwave-update.zip';
+const MANIFEST = `https://github.com/${REPO}/releases/latest/download/latest.json`;
 const ALLOWED_HOSTS = /(^|\.)github\.com$|(^|\.)githubusercontent\.com$/;
 
 const cmpVer = (a, b) => {
@@ -20,17 +22,23 @@ const cmpVer = (a, b) => {
   return 0;
 };
 
-function get(url, { json, file, onProgress, redirects = 6 } = {}) {
+function get(url, { json, file, onProgress, redirects = 6, accept } = {}) {
   return new Promise((ok, fail) => {
     const u = new URL(url);
     if (u.protocol !== 'https:' || !ALLOWED_HOSTS.test(u.hostname)) return fail(new Error('dirección de descarga no permitida: ' + u.hostname));
-    const req = https.get(u, { headers: { 'User-Agent': 'petalwave-updater', Accept: json ? 'application/vnd.github+json' : 'application/octet-stream' }, timeout: 30000 }, (res) => {
+    const req = https.get(u, { headers: { 'User-Agent': 'petalwave-updater', Accept: accept || (json ? 'application/vnd.github+json' : 'application/octet-stream') }, timeout: 30000 }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
         if (!redirects) return fail(new Error('demasiadas redirecciones'));
-        return ok(get(new URL(res.headers.location, u).toString(), { json, file, onProgress, redirects: redirects - 1 }));
+        return ok(get(new URL(res.headers.location, u).toString(), { json, file, onProgress, accept, redirects: redirects - 1 }));
       }
       if (res.statusCode === 404) { res.resume(); return fail(new Error('no encontrado (404)')); }
+      if (res.statusCode === 403 || res.statusCode === 429) {
+        res.resume();
+        const limited = res.headers['x-ratelimit-remaining'] === '0';
+        const e = new Error(limited ? 'GitHub limitó las consultas desde tu conexión por un rato (403). Probá de nuevo en unos minutos.' : 'GitHub rechazó la descarga (' + res.statusCode + '). Probá de nuevo en unos minutos.');
+        e.code = 'GH403'; return fail(e);
+      }
       if (res.statusCode !== 200) { res.resume(); return fail(new Error('GitHub respondió ' + res.statusCode)); }
       const total = +res.headers['content-length'] || 0;
       let got = 0;
@@ -67,6 +75,11 @@ class Updater {
   async check(force) {
     if (!force && this.last && Date.now() - this.lastAt < 30 * 60e3) return this.last;
     // PW_UPDATE_LOCAL = ruta a un JSON con el mismo formato que la API de GitHub (solo para probar sin publicar)
+    if (!process.env.PW_UPDATE_LOCAL) {
+      const mf = process.env.PW_UPDATE_MANIFEST;   // para probar sin publicar: ruta a un latest.json local
+      try { return this.fromManifest(mf && !/^https:/.test(mf) ? JSON.parse(fs.readFileSync(mf, 'utf8').replace(/^\uFEFF/, '')) : await get(mf || MANIFEST, { json: true, accept: 'application/json, */*' })); }
+      catch (e) { if (process.env.PW_UPDATE_MANIFEST) throw e; }   // versiones viejas sin latest.json: se usa la API
+    }
     const r = process.env.PW_UPDATE_LOCAL ? JSON.parse(fs.readFileSync(process.env.PW_UPDATE_LOCAL, 'utf8').replace(/^\uFEFF/, '')) : await get(`https://api.github.com/repos/${REPO}/releases/latest`, { json: true });
     const latest = String(r.tag_name || '').replace(/^v/, '');
     const asset = (r.assets || []).find((a) => a.name === ASSET);
@@ -81,6 +94,22 @@ class Updater {
     return this.last;
   }
 
+  // latest.json: { version, title, date, page, notes, update: { url, size, sha256 }, full: { url, size } }
+  fromManifest(m) {
+    const latest = String(m.version || '').replace(/^v/, '');
+    if (!latest) throw new Error('latest.json sin versión');
+    const ok = (u) => { try { const x = new URL(u); return (x.protocol === 'https:' && ALLOWED_HOSTS.test(x.hostname)) || (x.protocol === 'file:' && !!process.env.PW_UPDATE_MANIFEST); } catch { return false; } };
+    const upd = m.update && ok(m.update.url) ? m.update : null;
+    this.last = {
+      current: this.current, latest, hasUpdate: cmpVer(latest, this.current) > 0,
+      canAuto: !!upd, size: upd ? upd.size : 0, url: upd ? upd.url : null, sha256: upd && /^[a-f0-9]{64}$/.test(upd.sha256 || '') ? upd.sha256 : null,
+      fullUrl: m.full && ok(m.full.url) ? m.full.url : m.page, page: ok(m.page) ? m.page : `https://github.com/${REPO}/releases/latest`,
+      title: m.title || 'petalwave ' + latest, notes: String(m.notes || '').slice(0, 4000), date: m.date, via: 'manifest',
+    };
+    this.lastAt = Date.now();
+    return this.last;
+  }
+
   emit(state, extra) { this.broadcast('update', { state, ...extra }); }
 
   // baja, verifica y prepara; devuelve cuando el script de instalación ya está esperando a que se cierre la app
@@ -89,7 +118,8 @@ class Updater {
     if (process.platform !== 'win32') throw new Error('la actualización automática es solo para Windows');
     this.busy = true;
     try {
-      const info = await this.check(true);
+      // la consulta de hace un rato alcanza (cada consulta cuenta para el límite de GitHub)
+      const info = this.last && Date.now() - this.lastAt < 10 * 60e3 ? this.last : await this.check(true);
       if (!info.hasUpdate) throw new Error('ya tenés la última versión (' + info.current + ')');
       if (!info.url) throw new Error('esta versión no trae actualización automática: bajá el zip completo');
       fs.rmSync(this.dir, { recursive: true, force: true });
@@ -97,10 +127,21 @@ class Updater {
       const zip = path.join(this.dir, ASSET);
       this.emit('downloading', { pct: 0 });
       let lastPct = -1;
-      const local = process.env.PW_UPDATE_LOCAL && /^file:/.test(info.url);
+      const local = (process.env.PW_UPDATE_LOCAL || process.env.PW_UPDATE_MANIFEST) && /^file:/.test(info.url);
       if (local) fs.copyFileSync(new URL(info.url), zip);
-      const r = local ? { size: fs.statSync(zip).size } : await get(info.url, { file: zip, onProgress: (g, t) => { const pct = t ? Math.floor((g / t) * 100) : 0; if (pct !== lastPct) { lastPct = pct; this.emit('downloading', { pct, got: g, total: t }); } } });
-      if (info.size && r.size !== info.size) throw new Error('la descarga quedó incompleta, probá de nuevo');
+      const onProgress = (g, t) => { const pct = t ? Math.floor((g / t) * 100) : 0; if (pct !== lastPct) { lastPct = pct; this.emit('downloading', { pct, got: g, total: t }); } };
+      let r = null;
+      if (local) r = { size: fs.statSync(zip).size };
+      else for (let i = 0; i < 3 && !r; i++) {
+        try { r = await get(info.url, { file: zip, onProgress }); if (info.size && r.size !== info.size) r = null; }
+        catch (e) { if (i === 2) throw e; }
+        if (!r) await new Promise((w) => setTimeout(w, 2000 * (i + 1)));
+      }
+      if (!r) throw new Error('la descarga quedó incompleta, probá de nuevo');
+      if (info.sha256) {
+        const h = crypto.createHash('sha256').update(fs.readFileSync(zip)).digest('hex');
+        if (h !== info.sha256) throw new Error('el paquete descargado no coincide con el publicado (verificación SHA-256): no se instaló nada');
+      }
       this.emit('extracting');
       const out = path.join(this.dir, 'new');
       fs.mkdirSync(out, { recursive: true });
