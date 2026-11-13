@@ -4,6 +4,7 @@ import { allThemes, setTheme, setDyn } from './theme.js';
 import { customizerHtml, bindCustomizer, PERF, perf, setPerf } from './custom.js';
 import { checkUpdate, openUpdate } from './update.js';
 import { setCaps } from './caps.js';
+import { resetLayout } from './layout.js';
 import { loadStatus, login, logout } from './ytmui.js';
 import { MODES, setMode } from './viz.js';
 import { D } from './data.js';
@@ -30,6 +31,7 @@ export async function renderSettings() {
       <div class="themes">${Object.entries(allThemes()).map(([k, t]) => `<button class="th-card ${p.theme === k ? 'on' : ''}" data-theme="${k}" title="${esc(t.desc)}">${sw(t)}<b>${t.mine ? '✎ ' : ''}${esc(t.name)}</b><div class="m">${esc(t.desc)}</div></button>`).join('')}</div>
       ${chk('dyn', 'colores de la carátula', 'usa los colores de la portada · tecla c', 'Mientras suena algo, los colores del tema se reemplazan por los de la portada de la canción. Elegir un tema lo apaga.')}
       <label class="cfrow"><span>teñir el wallpaper<span class="m">tu imagen toma los colores del tema</span></span><input type="checkbox" id="cWpTint" ${p.wpTint !== false ? 'checked' : ''}></label>
+      <div class="cfrow"><span>ventanas${tip('Mantené apretada una ventana medio segundo y arrastrala: al costado para cambiar el orden, a cualquier otro lugar para dejarla flotando, o la principal al otro lado para cambiar el panel de lado. Doble clic en el título de una flotante la devuelve.')}<span class="m">mantené apretado y arrastrá para moverlas</span></span><span><label class="m" style="margin-right:8px"><input type="checkbox" id="cLock" ${p.layoutLock ? 'checked' : ''}> bloquear</label><button class="cb" id="cLayReset">restablecer</button></span></div>
       <label class="cfrow"><span>mayúscula inicial${tip('Los textos de la interfaz empiezan con mayúscula (Reproducir, Cola, Ajustes…). Tus canciones, artistas, playlists y letras se muestran siempre tal cual.')}<span class="m">botones, menús y títulos de la interfaz</span></span><input type="checkbox" id="cCaps" ${p.caps !== false ? 'checked' : ''}></label>
       <div class="cfrow"><span>wallpaper<span class="m">o arrastrá una imagen a la ventana</span></span><span><button class="cb" id="cWp">elegir</button> <button class="cb" id="cWpDel">quitar</button></span></div>
     </div>
@@ -116,6 +118,8 @@ export async function renderSettings() {
   $('#cDlSes').onchange = (e) => { P.set('dlSession', e.target.checked); const d = P.get('dl'); d.cookies = e.target.checked ? 'txt' : ''; P.save(); bus.emit('dl:prefs'); };
   $('#cSpot').onclick = () => { bus.emit('ws', 'sync'); document.querySelector('[data-yt="spotify"]')?.click(); };
   $('#cThumbs').onchange = (e) => { P.set('thumbs', e.target.checked); bus.emit('prefs', 'thumbs'); toast(e.target.checked ? 'carátulas livianas activadas' : 'carátulas en tamaño completo', { ms: 1600 }); };
+  $('#cLayReset').onclick = resetLayout;
+  $('#cLock').onchange = (e) => { P.set('layoutLock', e.target.checked); toast(e.target.checked ? 'ventanas bloqueadas' : 'ya podés mover las ventanas', { ms: 1500 }); };
   $('#cCaps').onchange = (e) => setCaps(e.target.checked);
   $('#cWpTint').onchange = (e) => { P.set('wpTint', e.target.checked); document.body.classList.toggle('wptint', e.target.checked); };
   $('#cXf').oninput = (e) => { P.set('crossfade', +e.target.value); $('#cXfV').textContent = e.target.value + ' s'; };

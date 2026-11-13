@@ -17,6 +17,7 @@ import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js'
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
 import { applyCaps } from './caps.js';
+import { initLayout } from './layout.js';
 
 // ---------- workspaces (como Hyprland: 1..5) ----------
 const WS = ['music', 'dl', 'sync', 'stats', 'cfg'];
@@ -252,6 +253,7 @@ async function boot() {
   initBg();
   initUpdate();
   applyCaps();
+  initLayout();
   try { setDeps(await api.get('/api/status')); } catch {}
   connectStream();
   await Promise.all([loadLibrary(), loadPlaylists(), loadAuto()]);

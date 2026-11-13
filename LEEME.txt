@@ -37,6 +37,13 @@ LO BÁSICO
 
 Tus canciones descargadas quedan en la carpeta "descargas", adentro de la carpeta petalwave.
 
+MOVER LAS VENTANAS
+------------------
+Mantené apretada una ventana medio segundo (por ejemplo desde su título) y arrastrala:
+al costado para cambiar el orden, o a cualquier lugar para dejarla flotando.
+Doble clic en el título de una ventana flotante la devuelve a su lugar.
+Ajustes (5) → Tema → Ventanas: restablecer o bloquear.
+
 SI TU PC VA LENTA
 -----------------
 Tocá el botón ✦ de la barra de arriba hasta que diga "⚡ máximo rendimiento".

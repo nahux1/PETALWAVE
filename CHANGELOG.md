@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.6 — mover ventanas
+- Mantené apretada una ventana medio segundo y arrastrala (`ui/js/layout.js`): al costado cambia el orden, en cualquier otro lugar queda **flotando** (se agranda desde la esquina), y la ventana principal arrastrada al otro lado cambia el panel de lado. Doble clic en el título de una flotante la devuelve. Si quedan todas flotando, la lista ocupa todo el ancho.
+- Se guarda en las preferencias; ajustes → tema → ventanas: **restablecer** y **bloquear** (para no moverlas sin querer).
+- La ventana de cola y letra tiene título para poder agarrarla.
+
 ## 2.5.2 — actualizaciones sin error 403
 - El actualizador ya no depende de la API de GitHub (60 consultas/hora por IP, que devolvía 403 en conexiones compartidas): lee `releases/latest/download/latest.json`, una descarga común publicada en cada Release con la versión, las notas y el tamaño y SHA-256 del paquete. La API queda de respaldo.
 - La descarga se reintenta hasta 3 veces, se verifica el SHA-256 antes de instalar y, si falla, la ventana explica cómo actualizar a mano.

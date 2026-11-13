@@ -720,3 +720,27 @@ body.perf-max .w{background:color-mix(in srgb,var(--deep) 88%,transparent)}
 .acc-card img,.acc-card .av{width:38px;height:38px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:var(--hl);font-style:normal;color:var(--ac2);flex:0 0 auto}
 .acc-card > div{display:flex;flex-direction:column;min-width:0}
 .acc-card .sp{flex:1}
+
+/* ---------- mover ventanas (mantener apretado y arrastrar) ---------- */
+.w > .lbl{cursor:grab}
+.w.w-hold{transition:transform .45s ease,box-shadow .45s ease;transform:scale(.985);box-shadow:0 0 0 1px var(--ac),0 0 26px color-mix(in srgb,var(--ac) 35%,transparent)}
+.w.w-dragging{opacity:.35}
+body.win-drag,body.win-drag *{cursor:grabbing!important;user-select:none!important}
+.w-ghost{position:fixed;z-index:90;pointer-events:none;border:2px dashed var(--ac);border-radius:var(--r);background:color-mix(in srgb,var(--deep) 70%,transparent);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);transition:border-color .15s}
+.w-ghost b{color:var(--ac2);font-size:14px}
+.w-ghost span{color:var(--dim);font-size:11.5px;max-width:280px}
+.w-ghost[data-t="dock"]{border-style:solid}
+.w-ghost[data-t="float"]{border-color:var(--sec)}
+.w-ghost[data-t="swap"]{border-color:var(--ok)}
+.w-place{flex:0 0 auto;border:2px dashed var(--ac);border-radius:var(--r);background:var(--hl2);animation:fadeIn .15s}
+#shell[data-swap="1"]{outline:2px dashed var(--ok);outline-offset:-6px;border-radius:var(--r)}
+#floatLayer{position:fixed;inset:0;z-index:25;pointer-events:none}
+#floatLayer > .w{pointer-events:auto}
+.w.floating{position:fixed;resize:both;overflow:hidden;min-width:240px;min-height:120px;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px var(--bd-on);display:flex;flex-direction:column}
+.w.floating > .lbl{cursor:grab;right:auto;left:12px}
+.w.floating.np{overflow:auto}
+.w.floating.viz canvas{flex:1;min-height:0}
+body.side-empty .shell{grid-template-columns:minmax(0,1fr)!important}
+body.side-empty .side{display:none}
+body.mini #floatLayer,body.full-on #floatLayer{display:none}
+body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
