@@ -13,6 +13,11 @@ const SKIP = [
 // elementos que "cortan" una frase: lo que empieza adentro es el comienzo de un texto
 const BLOCK = /^(BUTTON|LABEL|H1|H2|H3|H4|LI|OPTION|TD|TH|P|DIV|SECTION|HEADER|NAV|ASIDE|MAIN)$/;
 const LOWER = /^(\s*[^\p{L}\p{N}]{0,3}\s*)(\p{Ll})/u;
+// el nombre del programa va siempre con mayúscula, salvo dentro de rutas o nombres de archivo
+const BRAND = /(?<![\p{L}\p{N}_\/\\.~-])petalwave(?![\p{L}\p{N}_.\\\/-])/gu;
+const brand = (v) => v.replace(BRAND, 'Petalwave');
+const PATHLIKE = /^\s*([~./\\]|[a-z]:\\)/i;
+const upFirst = (v) => v.replace(LOWER, (_, pre, ch) => pre + ch.toLocaleUpperCase('es'));
 
 let on = true, busy = false;
 const done = new WeakSet();
@@ -37,22 +42,27 @@ function startsBlock(node) {
 function fixText(t) {
   if (done.has(t)) return;
   const v = t.nodeValue;
-  if (!v || !LOWER.test(v)) return;
+  if (!v) return;
   const el = t.parentElement;
   if (!el || el.closest(SKIP)) return;
-  if (!startsBlock(t)) return;
+  let n = brand(v);
+  // las rutas (~/.config/…, C:\…, /algo) no llevan mayúscula
+  if (on && LOWER.test(n) && !PATHLIKE.test(n) && startsBlock(t)) n = upFirst(n);
+  if (n === v) return;
   done.add(t);
   t.__orig = v;
-  t.nodeValue = v.replace(LOWER, (_, pre, ch) => pre + ch.toLocaleUpperCase('es'));
+  t.nodeValue = n;
 }
 function fixAttr(el) {
   for (const a of ['placeholder', 'title', 'aria-label']) {
     const v = el.getAttribute && el.getAttribute(a);
-    if (v && LOWER.test(v) && !el.closest('[data-raw]') && !el.dataset['orig' + a.replace('-', '')]) { el.dataset['orig' + a.replace('-', '')] = v; el.setAttribute(a, v.replace(LOWER, (_, pre, ch) => pre + ch.toLocaleUpperCase('es'))); }
+    if (!v || el.closest('[data-raw]') || el.dataset['orig' + a.replace('-', '')]) continue;
+    let n = brand(v); if (on && LOWER.test(n)) n = upFirst(n);
+    if (n !== v) { el.dataset['orig' + a.replace('-', '')] = v; el.setAttribute(a, n); }
   }
 }
 function walk(root) {
-  if (!on || !root) return;
+  if (!root) return;
   if (root.nodeType === 3) return fixText(root);
   if (root.nodeType !== 1 || root.closest(SKIP)) return;
   fixAttr(root);
@@ -67,12 +77,13 @@ function walk(root) {
 let pending = new Set(), timer = 0;
 const flush = () => { timer = 0; busy = true; for (const n of pending) if (n.isConnected) walk(n); pending.clear(); busy = false; };
 const mo = new MutationObserver((list) => {
-  if (!on || busy) return;
+  if (busy) return;
   for (const m of list) {
     if (m.type === 'characterData') { done.delete(m.target); pending.add(m.target); }
     else for (const n of m.addedNodes) pending.add(n);
   }
-  if (!timer) timer = requestAnimationFrame(flush);
+  // en el momento (antes de que se vea), no en el próximo cuadro: con la ventana oculta los cuadros se frenan
+  if (!timer) { timer = 1; flush(); }
 });
 
 // apagar: devolver todo a como estaba
@@ -87,7 +98,9 @@ function undo() {
 export function applyCaps() {
   on = P.get('caps') !== false;
   document.body.classList.toggle('caps', on);
-  if (on) { walk(document.body); mo.observe(document.body, { childList: true, subtree: true, characterData: true }); }
-  else { mo.disconnect(); undo(); }
+  // apagar la mayúscula inicial: se vuelve todo atrás y se aplica solo el nombre con mayúscula
+  if (!on) undo();
+  walk(document.body);
+  mo.observe(document.body, { childList: true, subtree: true, characterData: true });
 }
 export function setCaps(v) { P.set('caps', !!v); applyCaps(); bus.emit('caps', !!v); }

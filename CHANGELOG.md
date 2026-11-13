@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.6.3 — arreglos
+- `modal()`: los botones sin acción ("Ahora no", "Cancelar") cierran siempre; antes `value: false` dejaba la ventana abierta.
+- "Petalwave" con mayúscula en el título, la bandeja, los avisos y la interfaz (`caps.js` lo aplica siempre, salvo en rutas y nombres de archivo).
+- `caps.js` procesa los textos nuevos en el momento (antes esperaba un cuadro de pantalla, que se frena con la ventana oculta) y no capitaliza rutas.
+
 ## 2.6.2 — la ✕ minimiza a la bandeja
 - `Launcher.cs`: la ✕ (o Alt+F4) esconde la ventana en la bandeja y la música sigue; "Salir" de la bandeja, actualizar o apagar Windows cierran de verdad. Clic en la flor la muestra. Aviso la primera vez.
 - Una sola instancia (`Mutex` + evento con nombre): abrir petalwave.exe otra vez muestra la ventana que ya estaba.

@@ -15,15 +15,15 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-[assembly: AssemblyTitle("petalwave")]
-[assembly: AssemblyProduct("petalwave")]
+[assembly: AssemblyTitle("Petalwave")]
+[assembly: AssemblyProduct("Petalwave")]
 [assembly: AssemblyDescription("Descargador y reproductor de YouTube / YouTube Music")]
 [assembly: AssemblyVersion("2.0.0.0")]
 
 static class Launcher
 {
     public const string Url = "http://127.0.0.1:3737";
-    public const string Title = "petalwave";
+    public const string Title = "Petalwave";
 
     public static string AppDir { get { return AppDomain.CurrentDomain.BaseDirectory; } }
     public static string LibDir { get { return Path.Combine(AppDir, "lib"); } }
@@ -450,7 +450,7 @@ static class AppWindow
                 if (!trayTipShown)
                 {
                     trayTipShown = true;
-                    tray.ShowBalloonTip(4000, "petalwave sigue sonando acá", "Está en la bandeja (al lado del reloj). Clic en la flor para abrirlo, o clic derecho → Salir para cerrarlo.", ToolTipIcon.None);
+                    tray.ShowBalloonTip(4000, "Petalwave sigue sonando acá", "Está en la bandeja (al lado del reloj). Clic en la flor para abrirlo, o clic derecho → Salir para cerrarlo.", ToolTipIcon.None);
                 }
                 return;
             }
@@ -459,7 +459,7 @@ static class AppWindow
         };
 
         // ---- ícono en la bandeja: controles rápidos y notificaciones ----
-        tray = new NotifyIcon { Icon = form.Icon, Text = "petalwave", Visible = true };
+        tray = new NotifyIcon { Icon = form.Icon, Text = "Petalwave", Visible = true };
         var menu = new ContextMenuStrip();
         EventHandler show = (s, e) =>
         {
@@ -542,7 +542,7 @@ static class AppWindow
                         {
                             var parts = m.Substring(7).Split('\n');
                             var t = parts[0].Length > 60 ? parts[0].Substring(0, 60) + "…" : parts[0];
-                            tray.ShowBalloonTip(3500, t, parts.Length > 1 && parts[1].Length > 0 ? parts[1] : "petalwave", ToolTipIcon.None);
+                            tray.ShowBalloonTip(3500, t, parts.Length > 1 && parts[1].Length > 0 ? parts[1] : "Petalwave", ToolTipIcon.None);
                         }
                     }
                     catch { }

@@ -327,7 +327,7 @@ export function renderNP() {
   setText('queue', `${S.qi + 1 > 0 ? S.qi + 1 : 0} / ${S.queue.length}`);
   setText('plays', t ? String(D.plays[t.id] || 0) : '—');
   setText('line', t ? trackLabel(t) : 'sin reproducir');
-  document.title = t ? '♪ ' + trackLabel(t) : 'petalwave';
+  document.title = t ? '♪ ' + trackLabel(t) : 'Petalwave';
   const cover = $('#cover'), img = $('#coverImg');
   cover.classList.toggle('video', !!(t && t.video));
   const src = t ? coverUrl(t.id) : '';

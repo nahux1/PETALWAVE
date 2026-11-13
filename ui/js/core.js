@@ -180,7 +180,10 @@ export function modal({ title, html, actions = [], onOpen, wide }) {
     document.addEventListener('keydown', key, true);
     box.querySelectorAll('.mact button').forEach((b) => (b.onclick = async () => {
       const a = actions[+b.dataset.i];
-      const v = a.fn ? await a.fn(box) : a.value;
+      // un botón sin acción ("ahora no", "cancelar") siempre cierra y devuelve su valor;
+      // uno con acción puede devolver false para que la ventana quede abierta (p. ej. mientras actualiza)
+      if (!a.fn) return close(a.value === undefined ? true : a.value);
+      const v = await a.fn(box);
       if (v !== false) close(v === undefined ? true : v);
     }));
     m.onclick = (e) => { if (e.target === m) close(null); };
