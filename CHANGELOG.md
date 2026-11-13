@@ -1,5 +1,9 @@
 # petalwave — registro de cambios
 
+## 2.6.1 — ordenar ajustes
+- Las secciones de ajustes se ordenan manteniendo apretado su título y arrastrando (`ui/js/cfgsort.js`), con desplazamiento automático en los bordes. Se guarda en `P.cfgOrder` y se restablece junto con las ventanas; respeta el bloqueo.
+- Las preferencias pendientes se mandan con `sendBeacon` al cerrar o recargar, así no se pierde el último cambio.
+
 ## 2.6 — mover ventanas
 - Mantené apretada una ventana medio segundo y arrastrala (`ui/js/layout.js`): al costado cambia el orden, en cualquier otro lugar queda **flotando** (se agranda desde la esquina), y la ventana principal arrastrada al otro lado cambia el panel de lado. Doble clic en el título de una flotante la devuelve. Si quedan todas flotando, la lista ocupa todo el ancho.
 - Se guarda en las preferencias; ajustes → tema → ventanas: **restablecer** y **bloquear** (para no moverlas sin querer).

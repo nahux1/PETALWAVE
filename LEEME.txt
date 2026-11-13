@@ -42,6 +42,7 @@ MOVER LAS VENTANAS
 Mantené apretada una ventana medio segundo (por ejemplo desde su título) y arrastrala:
 al costado para cambiar el orden, o a cualquier lugar para dejarla flotando.
 Doble clic en el título de una ventana flotante la devuelve a su lugar.
+En Ajustes (5) también podés ordenar las secciones: mantené apretado el título de una y arrastrala.
 Ajustes (5) → Tema → Ventanas: restablecer o bloquear.
 
 SI TU PC VA LENTA

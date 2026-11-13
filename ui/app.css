@@ -744,3 +744,9 @@ body.side-empty .shell{grid-template-columns:minmax(0,1fr)!important}
 body.side-empty .side{display:none}
 body.mini #floatLayer,body.full-on #floatLayer{display:none}
 body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
+/* ordenar secciones de ajustes */
+.cfgsec > h3{cursor:grab}
+.cfgsec.w-hold{transition:transform .45s ease,box-shadow .45s ease;transform:scale(.985);box-shadow:0 0 0 1px var(--ac),0 0 26px color-mix(in srgb,var(--ac) 35%,transparent)}
+.cfgsec.cfg-dragging{display:none}
+.cfgsec-place{border-radius:var(--r);min-height:80px}
+.cfgsec-place.wide{grid-column:1/-1}

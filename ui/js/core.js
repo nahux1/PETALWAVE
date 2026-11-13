@@ -100,6 +100,8 @@ const DEFAULT_PREFS = {
 };
 let prefs = structuredClone(DEFAULT_PREFS);
 const pushPrefs = debounce(() => api.post('/api/settings', { ui: prefs }).catch(() => {}), 800);
+// al cerrar la ventana (o recargar) se manda lo pendiente en el momento, así no se pierde el último cambio
+addEventListener('pagehide', () => { try { navigator.sendBeacon('/api/settings', new Blob([JSON.stringify({ ui: prefs })], { type: 'application/json' })); } catch {} });
 export const P = {
   async load(server) {
     const saved = (server && server.ui && Object.keys(server.ui).length ? server.ui : null) || local.get('pw-prefs') || {};
