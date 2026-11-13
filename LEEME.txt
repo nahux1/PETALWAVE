@@ -42,6 +42,7 @@ LO BÁSICO
 • Barra espaciadora = play/pausa · f = pantalla completa · b = ver el fondo · t = cambiar tema.
 
 Tus canciones descargadas quedan en la carpeta "descargas", adentro de la carpeta petalwave.
+Los videos (mp4) van a tu carpeta Descargas de Windows (se cambia en Ajustes 5 → Descargas).
 
 MOVER LAS VENTANAS
 ------------------

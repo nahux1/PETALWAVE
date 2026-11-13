@@ -60,6 +60,7 @@ export async function renderSettings() {
     </div>
     <div class="cfgsec"><h3>⇣ descargas</h3>
       <div class="cfrow"><span>carpeta de destino<span class="m" style="word-break:break-all">${esc(server.downloadDir || '')}</span></span><button class="cb" id="cDest">cambiar</button></div>
+      <label class="cfrow"><span>videos (mp4) a la carpeta Descargas${tip('Los videos se guardan en la carpeta Descargas de Windows, así los encontrás fácil y los podés pasar al celular o a WhatsApp. Siguen apareciendo en la biblioteca de Petalwave. La música sigue yendo a la carpeta de destino.')}<span class="m" style="word-break:break-all">${esc(server.videoDir || '')}</span></span><span><input type="checkbox" id="cVidDl" ${server.videoToDownloads !== false ? 'checked' : ''}> <button class="cb sm" id="cVidDir">cambiar</button> <button class="cb sm" data-open="${esc(server.videoDir || '')}">abrir</button></span></label>
       <div class="cfrow"><span>simultáneas${tip('Más de 2 a la vez aumenta el riesgo de que YouTube bloquee las descargas por un rato.')}<span class="m">recomendado: 2</span></span><select id="cConc">${[1, 2, 3, 4].map((n) => `<option ${server.concurrency == n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
     </div>
     <div class="cfgsec"><h3>≡ letras ${tip('Orden de búsqueda: archivo .lrc o .txt con el mismo nombre del audio → letra guardada dentro del archivo → YouTube Music → LRCLIB.')}</h3>
@@ -149,6 +150,13 @@ export async function renderSettings() {
     const f = await host.pickFolder('Carpeta donde guardar las descargas');
     if (!f) return;
     try { const s = await api.post('/api/settings', { downloadDir: f }); setDest(s.downloadDir); renderSettings(); toast('las descargas van a ' + s.downloadDir); } catch (e) { toast(e.message, { kind: 'err' }); }
+  };
+  $('#cVidDl').onchange = (e) => api.post('/api/settings', { videoToDownloads: e.target.checked }).then(() => toast(e.target.checked ? 'los videos van a la carpeta Descargas' : 'los videos van a la carpeta de destino', { ms: 1800 }));
+  $('#cVidDir').onclick = async (e) => {
+    e.preventDefault();
+    const f = await host.pickFolder('Carpeta donde guardar los videos (mp4)');
+    if (!f) return;
+    try { await api.post('/api/settings', { videoDir: f, videoToDownloads: true }); renderSettings(); toast('los videos van a ' + f); } catch (err) { toast(err.message, { kind: 'err' }); }
   };
   $('#cConc').onchange = (e) => api.post('/api/settings', { concurrency: +e.target.value });
   $('#cLrcY').onchange = (e) => api.post('/api/settings', { lyricsYtm: e.target.checked }).then(() => toast(e.target.checked ? 'letras de YouTube Music activadas' : 'letras de YouTube Music desactivadas'));

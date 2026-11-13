@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.6.4 — mp4 que se abren en todos lados
+- mp4: `-S vcodec:h264,res,acodec:m4a` para preferir H.264 + AAC; antes YouTube entregaba AV1, que muchos reproductores no abren. En 1440p/4K, donde no hay H.264, se usa el mejor disponible.
+- Videos a la carpeta Descargas de Windows (`videoToDownloads` / `videoDir`, detectada del registro), con opción en ajustes → descargas.
+- La biblioteca recuerda archivos sueltos fuera de sus carpetas (`store.data.extra`), así los videos bajados a Descargas siguen apareciendo aunque se reescanee; si se borran, desaparecen solos.
+
 ## 2.6.3 — arreglos
 - `modal()`: los botones sin acción ("Ahora no", "Cancelar") cierran siempre; antes `value: false` dejaba la ventana abierta.
 - "Petalwave" con mayúscula en el título, la bandeja, los avisos y la interfaz (`caps.js` lo aplica siempre, salvo en rutas y nombres de archivo).

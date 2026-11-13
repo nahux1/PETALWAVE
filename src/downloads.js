@@ -118,7 +118,10 @@ class Downloads {
       '--ppa', `ThumbnailsConvertor+FFmpeg_o:-c:v mjpeg -vf crop="'if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'"`];
     if (job.format === 'mp4') {
       const h = VIDEO_QUALITIES.includes(job.quality) ? job.quality : '1080';
-      a.push('-f', `bv*[height<=${h}][ext=mp4]+ba[ext=m4a]/bv*[height<=${h}]+ba/b[height<=${h}]/b`,
+      // H.264 + AAC primero: YouTube prefiere AV1/VP9, que muchos reproductores de Windows, TVs y celulares no abren.
+      // Hasta 1080p siempre hay H.264; en 1440p/4K YouTube solo da VP9/AV1, y ahí se usa el mejor que haya.
+      a.push('-f', `bv*[height<=${h}]+ba/b[height<=${h}]/bv*+ba/b`,
+        '-S', 'vcodec:h264,res,acodec:m4a',
         '--merge-output-format', 'mp4', '--embed-metadata', '--embed-thumbnail');
     } else if (job.format === 'm4a') {
       // 141 = AAC 256 kbps, disponible con YouTube Music Premium (si no, el mejor m4a)

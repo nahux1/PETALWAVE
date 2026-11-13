@@ -58,6 +58,11 @@ class Library {
       const folders = this.getFolders();
       const found = [];
       for (const f of folders) await this.walk(f, found);
+      // archivos sueltos fuera de las carpetas (p. ej. videos bajados a Descargas de Windows): se mantienen mientras existan
+      const extra = (this.store.data.extra || []).filter((f) => fs.existsSync(f));
+      this.store.data.extra = extra;
+      const seenF = new Set(found.map((f) => path.resolve(f).toLowerCase()));
+      for (const f of extra) if (!seenF.has(path.resolve(f).toLowerCase())) found.push(f);
       const seen = new Set();
       const todo = [];
       for (const file of found) {
@@ -96,8 +101,10 @@ class Library {
   }
 
   // agrega/actualiza un archivo puntual (después de una descarga o importación)
-  async addFile(file) {
+  async addFile(file, { keep } = {}) {
     let st; try { st = await fsp.stat(file); } catch { return null; }
+    // keep: recordar el archivo aunque no esté dentro de las carpetas de la biblioteca
+    if (keep) { const ex = this.store.data.extra || (this.store.data.extra = []); const k = path.resolve(file); if (!ex.some((x) => path.resolve(x).toLowerCase() === k.toLowerCase())) ex.push(k); }
     const id = sha(path.resolve(file).toLowerCase());
     const meta = await this.probeQ.run(() => this.probe(file));
     const t = this.build(id, file, st, meta, this.tracks.get(id));

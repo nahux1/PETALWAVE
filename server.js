@@ -44,6 +44,17 @@ const settings = new U.JsonStore(path.join(DATA, 'settings.json'), () => ({}));
 const S = settings.data;
 if (!Array.isArray(S.folders) || !S.folders.length) S.folders = [OUT];
 if (!S.downloadDir) S.downloadDir = OUT;
+// videos (mp4): por defecto a la carpeta Descargas de Windows, así se encuentran fácil (ajustes → descargas)
+function windowsDownloads() {
+  try {
+    const out = require('child_process').execFileSync('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders', '/v', '{374DE290-123F-4565-9164-39C4925E467B}'], { encoding: 'utf8', windowsHide: true });
+    const m = /REG_SZ\s+(.+)/.exec(out); if (m && fs.existsSync(m[1].trim())) return m[1].trim();
+  } catch {}
+  const d = path.join(require('os').homedir(), 'Downloads');
+  return fs.existsSync(d) ? d : null;
+}
+if (typeof S.videoToDownloads !== 'boolean') S.videoToDownloads = true;
+if (!S.videoDir || !fs.existsSync(S.videoDir)) S.videoDir = windowsDownloads() || S.downloadDir;
 if (!S.concurrency) S.concurrency = 2;
 // letras online activadas por defecto (2.2): así funcionan sin archivos .lrc
 if (typeof S.lyricsOnline !== 'boolean' || !S.lyricsV2) { S.lyricsOnline = true; S.lyricsV2 = true; }
@@ -59,7 +70,8 @@ const downloads = new Downloads({
   ytdlp: YTDLP, ffmpeg: FFMPEG, dataDir: DATA, cookiesTxt: COOKIES_TXT, archive: SYNC_ARCHIVE, settings: getSettings, broadcast,
   onFile: (f) => {
     // si la carpeta de descargas no está en la biblioteca, igual se agrega el archivo puntual
-    library.addFile(f);
+    // los videos que van a Descargas de Windows quedan fuera de las carpetas de música: se recuerdan igual
+    library.addFile(f, { keep: true });
   },
   onCookieExpired: () => { cookieExpired = true; broadcast('cookies', { has: fs.existsSync(COOKIES_TXT), expired: true }); },
 });
@@ -253,6 +265,12 @@ async function route(req, res) {
     if (typeof b.lyricsOnline === 'boolean') S.lyricsOnline = b.lyricsOnline;
     if (typeof b.lyricsYtm === 'boolean') S.lyricsYtm = b.lyricsYtm;
     if (b.concurrency) { S.concurrency = Math.max(1, Math.min(4, b.concurrency | 0)); downloads.pump(); }
+    if (typeof b.videoToDownloads === 'boolean') S.videoToDownloads = b.videoToDownloads;
+    if (b.videoDir) {
+      const d = path.resolve(String(b.videoDir));
+      try { fs.mkdirSync(d, { recursive: true }); } catch { return U.json(res, 400, { error: 'No puedo usar esa carpeta' }); }
+      S.videoDir = d;
+    }
     if (b.downloadDir) {
       const d = path.resolve(String(b.downloadDir));
       try { fs.mkdirSync(d, { recursive: true }); } catch { return U.json(res, 400, { error: 'No puedo usar esa carpeta' }); }
@@ -338,7 +356,7 @@ async function route(req, res) {
   }
   if (p === '/api/open' && M === 'POST') {
     const b = await body();
-    U.openInExplorer(b.path && S.folders.concat(S.downloadDir).includes(b.path) ? b.path : S.downloadDir);
+    U.openInExplorer(b.path && S.folders.concat(S.downloadDir, S.videoDir || []).includes(b.path) ? b.path : S.downloadDir);
     return U.json(res, 200, { ok: true });
   }
 
@@ -364,7 +382,7 @@ async function route(req, res) {
     const format = ['mp3', 'm4a', 'opus', 'mp4'].includes(b.format) ? b.format : 'mp3';
     if (!FFMPEG) return U.json(res, 500, { error: 'ffmpeg no encontrado (necesario para convertir)' });
     if (b.cookies === 'txt' && !fs.existsSync(COOKIES_TXT)) return U.json(res, 400, { error: 'Elegiste cookies .txt pero no hay ninguno cargado (botón 🍪).' });
-    const ids = urls.slice(0, 200).map((url) => downloads.add({ url, format, quality: String(b.quality || ''), playlist: !!b.playlist, cookies: String(b.cookies || ''), dest: b.dest || S.downloadDir }).id);
+    const ids = urls.slice(0, 200).map((url) => downloads.add({ url, format, quality: String(b.quality || ''), playlist: !!b.playlist, cookies: String(b.cookies || ''), dest: b.dest || (format === 'mp4' && S.videoToDownloads && S.videoDir ? S.videoDir : S.downloadDir) }).id);
     return U.json(res, 200, { ids });
   }
   if ((mm = m(/^\/api\/downloads\/(\d+)\/cancel$/)) && M === 'POST') {
