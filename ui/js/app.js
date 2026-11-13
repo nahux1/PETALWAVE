@@ -254,6 +254,7 @@ async function boot() {
   initUpdate();
   applyCaps();
   initLayout();
+  host.send('tray:' + (P.get('closeToTray') !== false ? 1 : 0));   // la ✕ minimiza a la bandeja (ajustes → reproducción)
   try { setDeps(await api.get('/api/status')); } catch {}
   connectStream();
   await Promise.all([loadLibrary(), loadPlaylists(), loadAuto()]);

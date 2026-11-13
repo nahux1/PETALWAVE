@@ -79,8 +79,20 @@ static class Launcher
         return null;
     }
 
+    // una sola ventana de petalwave: si ya está abierto (aunque esté escondido en la bandeja), se muestra ese
+    public static Mutex Single;
+    public static EventWaitHandle ShowSignal;
+
     static int Run()
     {
+        bool first;
+        Single = new Mutex(true, "Local\\petalwave-ventana", out first);
+        if (!first)
+        {
+            try { using (var ev = EventWaitHandle.OpenExisting("Local\\petalwave-mostrar")) ev.Set(); } catch { }
+            return 0;
+        }
+        ShowSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\petalwave-mostrar");
         string data = DataDir();
         if (!File.Exists(Path.Combine(AppDir, "server.js")))
         {
@@ -426,20 +438,38 @@ static class AppWindow
             else restore();
             mini = on;
         };
+        bool quitting = false, toTray = true, trayTipShown = false;
+        NotifyIcon tray = null;
         form.FormClosing += (s, e) =>
         {
+            // la ✕ (o Alt+F4) esconde en la bandeja; "Salir", actualizar o apagar Windows cierran de verdad
+            if (!quitting && toTray && e.CloseReason == CloseReason.UserClosing && tray != null)
+            {
+                e.Cancel = true;
+                form.Hide();
+                if (!trayTipShown)
+                {
+                    trayTipShown = true;
+                    tray.ShowBalloonTip(4000, "petalwave sigue sonando acá", "Está en la bandeja (al lado del reloj). Clic en la flor para abrirlo, o clic derecho → Salir para cerrarlo.", ToolTipIcon.None);
+                }
+                return;
+            }
             if (mini || full) SaveBounds(normal, normalState == FormWindowState.Maximized, data);
             else SaveBounds(form.WindowState == FormWindowState.Normal ? form.Bounds : form.RestoreBounds, form.WindowState == FormWindowState.Maximized, data);
         };
 
         // ---- ícono en la bandeja: controles rápidos y notificaciones ----
-        var tray = new NotifyIcon { Icon = form.Icon, Text = "petalwave", Visible = true };
+        tray = new NotifyIcon { Icon = form.Icon, Text = "petalwave", Visible = true };
         var menu = new ContextMenuStrip();
         EventHandler show = (s, e) =>
         {
+            form.Show();
             if (form.WindowState == FormWindowState.Minimized) form.WindowState = FormWindowState.Normal;
-            form.Show(); form.Activate();
+            form.Activate(); form.BringToFront();
         };
+        // otra copia de petalwave.exe pidió mostrar la ventana
+        var waiter = new Thread(() => { while (true) { Launcher.ShowSignal.WaitOne(); try { form.BeginInvoke(show, form, EventArgs.Empty); } catch { return; } } }) { IsBackground = true };
+        waiter.Start();
         menu.Items.Add("Mostrar petalwave", null, show);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Play / pausa", null, (s, e) => send("cmd:toggle"));
@@ -447,9 +477,11 @@ static class AppWindow
         menu.Items.Add("Anterior", null, (s, e) => send("cmd:prev"));
         menu.Items.Add("Mini reproductor", null, (s, e) => send("cmd:mini"));
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Salir", null, (s, e) => form.Close());
+        menu.Items.Add("Salir", null, (s, e) => { quitting = true; form.Close(); });
         tray.ContextMenuStrip = menu;
         tray.DoubleClick += show;
+        // un clic en la flor también abre (lo más natural cuando está escondido en la bandeja)
+        tray.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) show(s, e); };
         tray.BalloonTipClicked += show;
         form.FormClosed += (s, e) => { tray.Visible = false; tray.Dispose(); };
 
@@ -502,7 +534,8 @@ static class AppWindow
                         }
                         else if (m == "login") form.BeginInvoke((Action)(() => ShowLogin(form, env, send)));
                         // la interfaz pide cerrar (p. ej. para instalar una actualización): cierre normal
-                        else if (m == "quit") form.BeginInvoke((Action)(() => form.Close()));
+                        else if (m == "quit") form.BeginInvoke((Action)(() => { quitting = true; form.Close(); }));
+                        else if (m == "tray:1" || m == "tray:0") toTray = m == "tray:1";
                         else if (m == "mini:1" || m == "mini:0") setMini(m == "mini:1");
                         else if (m == "full:1" || m == "full:0") setFull(m == "full:1");
                         else if (m.StartsWith("notify:") && !form.ContainsFocus)

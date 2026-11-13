@@ -13,6 +13,12 @@ CÓMO ABRIRLO (no hay que instalar nada)
 Listo. Para tenerlo a mano: clic derecho en petalwave.exe → "Mostrar más opciones" →
 "Enviar a" → "Escritorio (crear acceso directo)".
 
+CERRAR Y MINIMIZAR
+------------------
+La ✕ esconde petalwave al lado del reloj (la flor ❀) y la música sigue sonando.
+Clic en la flor para abrirlo · clic derecho en la flor → Salir para cerrarlo del todo.
+(Se cambia en Ajustes 5 → Reproducción.)
+
 CÓMO ACTUALIZARLO
 -----------------
 • Desde la 2.4: cuando hay una versión nueva aparece un botón ⬆ arriba a la derecha.

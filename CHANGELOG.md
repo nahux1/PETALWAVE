@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.6.2 — la ✕ minimiza a la bandeja
+- `Launcher.cs`: la ✕ (o Alt+F4) esconde la ventana en la bandeja y la música sigue; "Salir" de la bandeja, actualizar o apagar Windows cierran de verdad. Clic en la flor la muestra. Aviso la primera vez.
+- Una sola instancia (`Mutex` + evento con nombre): abrir petalwave.exe otra vez muestra la ventana que ya estaba.
+- Opción en ajustes → reproducción (`closeToTray`, activada por defecto); la interfaz se la avisa a la ventana con `tray:1|0`.
+
 ## 2.6.1 — ordenar ajustes
 - Las secciones de ajustes se ordenan manteniendo apretado su título y arrastrando (`ui/js/cfgsort.js`), con desplazamiento automático en los bordes. Se guarda en `P.cfgOrder` y se restablece junto con las ventanas; respeta el bloqueo.
 - Las preferencias pendientes se mandan con `sendBeacon` al cerrar o recargar, así no se pierde el último cambio.

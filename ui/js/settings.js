@@ -45,6 +45,7 @@ export async function renderSettings() {
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
       ${chk('resume', 'reanudar al abrir', 'vuelve a donde quedaste')}
+      <label class="cfrow"><span>la ✕ minimiza a la bandeja${tip('Al tocar la cruz, petalwave se esconde al lado del reloj de Windows y la música sigue sonando. Para cerrarlo del todo: clic derecho en la flor de la bandeja → Salir.')}<span class="m">la música sigue sonando · se cierra desde la bandeja</span></span><input type="checkbox" id="cTray" ${p.closeToTray !== false ? 'checked' : ''}></label>
       ${chk('notifyToast', 'aviso al cambiar de canción', 'en la esquina de la ventana')}
       ${chk('notify', 'notificación de Windows', 'si petalwave está en segundo plano')}
     </div>
@@ -124,6 +125,7 @@ export async function renderSettings() {
   $('#cThumbs').onchange = (e) => { P.set('thumbs', e.target.checked); bus.emit('prefs', 'thumbs'); toast(e.target.checked ? 'carátulas livianas activadas' : 'carátulas en tamaño completo', { ms: 1600 }); };
   $('#cLayReset').onclick = () => { resetLayout(); resetCfgOrder(); const y = box.scrollTop; renderSettings().then(() => (box.scrollTop = y)); };
   $('#cLock').onchange = (e) => { P.set('layoutLock', e.target.checked); toast(e.target.checked ? 'ventanas bloqueadas' : 'ya podés mover las ventanas', { ms: 1500 }); };
+  $('#cTray').onchange = (e) => { P.set('closeToTray', e.target.checked); host.send('tray:' + (e.target.checked ? 1 : 0)); };
   $('#cCaps').onchange = (e) => setCaps(e.target.checked);
   $('#cWpTint').onchange = (e) => { P.set('wpTint', e.target.checked); document.body.classList.toggle('wptint', e.target.checked); };
   $('#cXf').oninput = (e) => { P.set('crossfade', +e.target.value); $('#cXfV').textContent = e.target.value + ' s'; };
