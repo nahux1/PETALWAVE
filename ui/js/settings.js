@@ -114,7 +114,7 @@ export async function renderSettings() {
       el.innerHTML = `${st.account && st.account.photo ? `<img src="${esc(st.account.photo)}" referrerpolicy="no-referrer">` : '<i class="av">♪</i>'}<div><b data-raw>${esc((st.account && st.account.name) || 'cuenta de Google')}</b><span class="m">conectada a YouTube y YouTube Music</span></div><span class="sp"></span><button class="cb sm" id="cAccSw">cambiar cuenta</button><button class="cb sm danger" id="cAccOut">cerrar sesión</button>`;
       $('#cAccSw').onclick = login; $('#cAccOut').onclick = logout;
     } else {
-      el.innerHTML = `<i class="av">◌</i><div><b>sin sesión</b><span class="m">${host.native ? 'iniciá sesión para tus me gusta, playlists e historial y descargas en mejor calidad' : 'abrí petalwave.exe para iniciar sesión (en el navegador no se puede)'}</span></div><span class="sp"></span>${host.native ? '<button class="go" id="cAccIn">iniciar sesión con Google</button>' : ''}`;
+      el.innerHTML = `<i class="av">◌</i><div><b>sin sesión</b><span class="m">${host.canLogin ? 'iniciá sesión para tus me gusta, playlists e historial y descargas en mejor calidad' : 'abrí petalwave.exe para iniciar sesión (en el navegador no se puede)'}</span></div><span class="sp"></span>${host.canLogin ? '<button class="go" id="cAccIn">iniciar sesión con Google</button>' : ''}`;
       const b = $('#cAccIn'); if (b) b.onclick = login;
     }
   };

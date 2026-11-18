@@ -12,7 +12,8 @@ import { initSync } from './syncui.js';
 import { renderStats } from './statsui.js';
 import { renderSettings, keyName, isRecordingKey } from './settings.js';
 import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } from './viz.js';
-import { initYtm, likeCurrent } from './ytmui.js';
+import { initYtm } from './ytmui.js';
+import { initLikes, likeCurrent } from './likes.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
@@ -286,6 +287,7 @@ async function boot() {
   initDownloads();
   initSync();
   initYtm();
+  initLikes();
   initViz();
   initBg();
   initUpdate();

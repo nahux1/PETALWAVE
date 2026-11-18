@@ -1,5 +1,12 @@
 # petalwave — registro de cambios
 
+## 2.7.0 — me gusta, sesión en Android y fuentes incluidas
+- **Me gusta propio** (`ui/js/likes.js`): el ♥ funciona siempre, en Windows y Android, con o sin cuenta. Guarda la canción en la playlist fija *Me gusta* (id `liked`, primera en la biblioteca, no se borra) y la vuelve a tocar para quitarla. Con sesión de YouTube Music también se marca allá (`LIKE` / `INDIFFERENT`). Tecla `h`, en el menú de cada canción, corazón en la lista, en la barra del celular y en la pantalla completa.
+- **Android 1.2.0:** iniciar sesión con Google (`LoginActivity`): la página de Google dentro de la app; se guardan solo las cookies de youtube.com y se borran las del WebView. Sirve para tus me gusta, playlists e historial de YouTube Music y para descargar con tu cuenta.
+- **Fuentes incluidas** (`ui/fonts`, licencia OFL): JetBrains Mono, Quicksand, Outfit y Fira Code andan sin internet y en Android. Ya no se carga nada de Google Fonts.
+- Diseños nuevos: **pétalo** (suave y redondeado, Quicksand) y **moderno** (Outfit).
+- Celular: la barra del reproductor muestra la carátula y una línea de progreso; las canciones usan todo el ancho.
+
 ## 2.6.5 — fondos en Android y la ✕ de descargas
 - **Android 1.1.1:** elegir un fondo ya no da "failed to fetch". La interfaz lee el archivo completo antes de mandarlo (el WebView fallaba al mandar archivos `content://` directo), adivina el tipo por la extensión y reintenta una vez; el servidor reconoce el formato por el contenido (JPG, PNG, WEBP, GIF, MP4, WEBM) aunque el selector no mande el tipo, y explica si la foto es HEIC.
 - La ✕ para cancelar una descarga responde al tocarla (`pointerdown`), aunque la lista se esté actualizando con el progreso. También en Windows.

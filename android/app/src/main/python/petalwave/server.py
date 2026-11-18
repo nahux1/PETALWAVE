@@ -32,7 +32,7 @@ MIME = {".mp3": "audio/mpeg", ".flac": "audio/flac", ".wav": "audio/wav", ".ogg"
         ".m4a": "audio/mp4", ".aac": "audio/aac", ".weba": "audio/webm", ".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm",
         ".3gp": "video/3gpp", ".mkv": "video/x-matroska", ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
         ".css": "text/css; charset=utf-8", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8"}
+        ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8", ".woff2": "font/woff2"}
 YT_CATEGORIES = {"music", "people & blogs", "entertainment", "film & animation", "gaming", "comedy", "education", "howto & style", "news & politics",
                  "nonprofits & activism", "pets & animals", "science & technology", "sports", "travel & events", "autos & vehicles"}
 
@@ -436,9 +436,26 @@ def playlist_op(b):
         items.append(p)
         PL.save()
         return p
+    # "me gusta" propio de petalwave: una playlist fija (id "liked") que funciona sin cuenta
+    if b.get("like"):
+        lk = next((x for x in items if x["id"] == "liked"), None)
+        if not lk:
+            lk = {"id": "liked", "name": "Me gusta", "liked": True, "tracks": [], "created": now, "updated": now}
+            items.insert(0, lk)
+        i = str(b["like"].get("id") or "")
+        if not ok(i):
+            raise ValueError("Esa canción no se puede marcar")
+        lk["tracks"] = [x for x in lk["tracks"] if x != i]
+        if b["like"].get("on", True) is not False:
+            lk["tracks"].insert(0, i)
+        lk["updated"] = now
+        PL.save()
+        return lk
     p = next((x for x in items if x["id"] == b.get("id")), None)
     if not p:
         raise ValueError("No existe esa playlist")
+    if p["id"] == "liked" and (b.get("delete") or b.get("rename")):
+        raise ValueError('"Me gusta" no se puede borrar ni renombrar')
     if b.get("rename"):
         p["name"] = str(b["rename"])[:80]
     for i in ([b["add"]] if isinstance(b.get("add"), str) else b.get("add") or []):

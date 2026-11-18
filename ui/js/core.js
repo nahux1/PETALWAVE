@@ -80,14 +80,14 @@ export const local = {
 export const DEFAULT_SHORTCUTS = {
   toggle: 'Space', next: 'n', prev: 'p', fwd: 'ArrowRight', back: 'ArrowLeft', fwdLong: 'Shift+ArrowRight', backLong: 'Shift+ArrowLeft',
   volUp: 'ArrowUp', volDown: 'ArrowDown', mute: 'm', repeat: 'r', shuffle: 's', search: '/', vol: 'v', eq: 'e',
-  full: 'f', mini: 'Shift+M', compact: 'k', theme: 't', dyn: 'c', viz: 'z', lyrics: 'l', queue: 'q', radio: 'Shift+R', peek: 'b',
+  full: 'f', mini: 'Shift+M', compact: 'k', theme: 't', dyn: 'c', viz: 'z', lyrics: 'l', queue: 'q', radio: 'Shift+R', peek: 'b', like: 'h',
   ws1: '1', ws2: '2', ws3: '3', ws4: '4', ws5: '5',
 };
 export const SHORTCUT_LABELS = {
   toggle: 'play / pausa', next: 'siguiente', prev: 'anterior', fwd: 'adelantar 10 s', back: 'retroceder 10 s', fwdLong: 'adelantar 30 s', backLong: 'retroceder 30 s',
   volUp: 'subir volumen', volDown: 'bajar volumen', mute: 'silenciar', repeat: 'repetir', shuffle: 'aleatorio', search: 'buscar', vol: 'panel de volumen', eq: 'ecualizador',
   full: 'pantalla completa', mini: 'mini reproductor', compact: 'modo compacto', theme: 'cambiar tema', dyn: 'colores de la carátula', viz: 'cambiar visualizador',
-  lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
+  lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', like: 'me gusta', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
 };
 const DEFAULT_PREFS = {
   theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true,
@@ -122,8 +122,9 @@ export const P = {
 const wv = window.chrome && window.chrome.webview;
 const pending = new Map();
 let reqN = 0;
-if (wv) wv.addEventListener('message', (e) => {
-  const m = String(e.data || '');
+const nat = window.PetalwaveNative;   // app de Android
+function hostMsg(m) {
+  m = String(m || '');
   if (m.startsWith('picked:')) {
     const rest = m.slice(7), i = rest.indexOf(':');
     const id = rest.slice(0, i), p = rest.slice(i + 1);
@@ -131,10 +132,17 @@ if (wv) wv.addEventListener('message', (e) => {
   } else if (m.startsWith('cmd:')) bus.emit('host:cmd', m.slice(4));
   else if (m.startsWith('login:')) bus.emit('host:login', m.slice(6));
   else if (m.startsWith('win:')) bus.emit('host:win', m.slice(4));
-});
+}
+if (wv) wv.addEventListener('message', (e) => hostMsg(e.data));
+window.__pwHost = hostMsg;   // Android manda los mensajes por acá
 export const host = {
   native: !!wv,
-  send(msg) { if (wv) wv.postMessage(msg); },
+  // iniciar sesión con Google: ventana de petalwave.exe (WebView2) o de la app de Android
+  canLogin: !!wv || !!(nat && nat.login),
+  send(msg) {
+    if (wv) wv.postMessage(msg);
+    else if (nat && msg === 'login' && nat.login) nat.login();
+  },
   async pickFolder(title = 'Elegí una carpeta') {
     if (wv) return new Promise((ok) => { const id = String(++reqN); pending.set(id, ok); wv.postMessage(`pick:${id}:${title}`); });
     const p = await prompt2('Carpeta', 'Escribí la ruta completa de la carpeta:', '');

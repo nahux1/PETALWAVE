@@ -165,7 +165,20 @@ function playlistOp(b) {
     playlists.save();
     return p;
   }
+  // "me gusta" propio de petalwave: una playlist fija (id "liked") que funciona sin cuenta
+  if (b.like) {
+    let l = items.find((x) => x.id === 'liked');
+    if (!l) { l = { id: 'liked', name: 'Me gusta', liked: true, tracks: [], created: now, updated: now }; items.unshift(l); }
+    const id = String(b.like.id || '');
+    if (!okId(id)) throw new Error('Esa canción no se puede marcar');
+    l.tracks = l.tracks.filter((x) => x !== id);
+    if (b.like.on !== false) l.tracks.unshift(id);
+    l.updated = now;
+    playlists.save();
+    return l;
+  }
   const p = find(b.id);
+  if (p.id === 'liked' && (b.delete || b.rename)) throw new Error('"Me gusta" no se puede borrar ni renombrar');
   if (b.rename) p.name = String(b.rename).slice(0, 80);
   if (b.add) for (const id of [].concat(b.add)) if (okId(id) && !p.tracks.includes(id)) p.tracks.push(id);
   if (b.remove) { const r = new Set([].concat(b.remove)); p.tracks = p.tracks.filter((id) => !r.has(id)); }

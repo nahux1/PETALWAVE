@@ -1,0 +1,9 @@
+Fuentes incluidas en Petalwave (archivos .woff2 de Fontsource, sin modificar):
+
+- JetBrains Mono — Copyright 2020 The JetBrains Mono Project Authors
+- Quicksand — Copyright 2011 The Quicksand Project Authors
+- Outfit — Copyright 2021 The Outfit Project Authors
+- Fira Code — Copyright 2014-2020 The Fira Code Project Authors
+
+Todas se distribuyen bajo la SIL Open Font License 1.1: https://openfontlicense.org
+Se pueden usar, copiar y redistribuir libremente junto con cualquier programa; no se pueden vender solas.

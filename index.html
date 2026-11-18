@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Petalwave</title>
 <link rel="icon" type="image/png" href="/icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="/ui/fonts/jetbrains-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/ui/app.css">
 </head>
 <body>
@@ -68,10 +67,13 @@
   </nav>
   <i class="tsep"></i>
   <span class="mod np-mini">
+    <img class="mini-cover mob-only" alt="" data-np="coverimg">
+    <i class="mini-prog mob-only"><i data-np="fill"></i></i>
     <button class="ico" data-act="prev" title="anterior"><svg class="i"><use href="#i-prev"/></svg></button>
     <button class="ico" data-act="toggle" title="play/pausa"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
     <button class="ico" data-act="next" title="siguiente"><svg class="i"><use href="#i-next"/></svg></button>
     <span class="np-t" data-np="line">sin reproducir</span>
+    <button class="ico likeb mob-only" data-act="like" title="me gusta" hidden><svg class="i"><use href="#i-heart"/></svg></button>
   </span>
   <span class="sp"></span>
   <span class="tgrp hide-s"><span class="mod"><span class="k">cpu</span><span id="tCpu">--%</span></span><span class="mod"><span class="k">ram</span><span id="tRam">--%</span></span><span class="mod" id="tScan" hidden></span></span>
@@ -272,7 +274,7 @@
         <button class="ib sm" data-act="mute" title="silenciar (m)"><svg class="i" data-np="volicon"><use href="#i-vol"/></svg></button>
         <input type="range" class="vol" data-vol min="0" max="150" step="1" value="80" title="volumen (↑/↓)">
         <span class="sp"></span>
-        <button class="ib sm" data-act="like" id="bLike" title="me gusta en YouTube Music" hidden><svg class="i"><use href="#i-heart"/></svg></button>
+        <button class="ib sm likeb" data-act="like" id="bLike" title="me gusta (h)" hidden><svg class="i"><use href="#i-heart"/></svg></button>
         <button class="ib sm" data-act="radio" title="radio: canciones similares de tu biblioteca"><svg class="i"><use href="#i-radio"/></svg></button>
         <button class="ib sm" data-act="sleep" title="temporizador para dormir"><svg class="i"><use href="#i-moon"/></svg></button><span class="sleept" data-np="sleep" hidden></span>
         <button class="ib sm" data-act="eq" title="ecualizador (e)"><svg class="i"><use href="#i-eq"/></svg></button>
@@ -337,6 +339,7 @@
         <button class="ib big" data-act="toggle"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
         <button class="ib" data-act="next"><svg class="i"><use href="#i-next"/></svg></button>
         <button class="ib" data-act="repeat"><svg class="i" data-np="repicon"><use href="#i-rep"/></svg></button>
+        <button class="ib likeb" data-act="like" title="me gusta (h)" hidden><svg class="i"><use href="#i-heart"/></svg></button>
       </div>
     </div>
     <div class="fright lyr" id="fLyrics"></div>

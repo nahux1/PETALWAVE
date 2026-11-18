@@ -16,7 +16,6 @@ export async function loadStatus() {
   try { status = await api.get('/api/ytm/status'); } catch (e) { status = { auth: false, error: e.message }; }
   bus.emit('ytm:status', status);   // el workspace 1 muestra tus listas de YouTube Music si hay sesión
   renderAcc();
-  updateLike();
   return status;
 }
 function renderAcc() {
@@ -27,14 +26,14 @@ function renderAcc() {
     el.innerHTML = `${status.account.photo ? `<img src="${esc(status.account.photo)}" referrerpolicy="no-referrer">` : ''}<span>conectado como <b>${esc(status.account.name || '')}</b> ${esc(status.account.handle || '')}</span><span class="m">· ytmusicapi ${esc(status.version)} (no oficial)</span><span class="sp"></span><button class="cb sm" id="ytmLogout">cerrar sesión</button>`;
     $('#ytmLogout').onclick = logout;
   } else {
-    el.innerHTML = `<span class="bad">◌ sin sesión</span>${host.native ? '<button class="go" id="ytmLogin">iniciar sesión con Google</button>' : ''}<span class="m">${esc(status.missing && status.missing.length && !/no hay cookies/.test(status.error || '') ? 'la sesión guardada está incompleta o vencida.' : 'iniciá sesión para ver tus me gusta, playlists e historial y bajar con calidad Premium.')}</span><button class="cb sm" id="ytmHelp">${host.native ? 'o cargar cookies.txt' : 'cómo exportar cookies'}</button><span class="m">· búsqueda, radio y letras funcionan sin sesión</span>`;
+    el.innerHTML = `<span class="bad">◌ sin sesión</span>${host.canLogin ? '<button class="go" id="ytmLogin">iniciar sesión con Google</button>' : ''}<span class="m">${esc(status.missing && status.missing.length && !/no hay cookies/.test(status.error || '') ? 'la sesión guardada está incompleta o vencida.' : 'iniciá sesión para ver tus me gusta, playlists e historial y bajar con calidad Premium.')}</span><button class="cb sm" id="ytmHelp">${host.native ? 'o cargar cookies.txt' : 'cómo exportar cookies'}</button><span class="m">· búsqueda, radio y letras funcionan sin sesión</span>`;
     const li = $('#ytmLogin'); if (li) li.onclick = login;
     $('#ytmHelp').onclick = () => { cookieHelp('Cómo exportar cookies con la sesión completa:'); bus.emit('ws', 'dl'); };
   }
 }
 // ventana de Google dentro de petalwave: el usuario escribe su contraseña ahí (petalwave no la ve ni la guarda)
 export function login() {
-  if (!host.native) return toast('el inicio de sesión necesita la ventana de petalwave (petalwave.exe)', { kind: 'warn' });
+  if (!host.canLogin) return toast('el inicio de sesión necesita la ventana de petalwave (petalwave.exe)', { kind: 'warn' });
   host.send('login');
   $('#ytmAcc').innerHTML = '<span class="m">⟳ se abrió la ventana de Google: iniciá sesión con tu cuenta de Google (sirve para YouTube y YouTube Music)…</span>';
 }
@@ -211,24 +210,10 @@ function setTab(t) {
   render();
 }
 
-// ---------- "me gusta" de la canción que suena ----------
-function updateLike() {
-  const b = $('#bLike'); if (!b) return;
-  const t = current();
-  b.hidden = !(status && status.auth && t && t.ytId);
-}
-export async function likeCurrent() {
-  const t = current();
-  if (!t || !t.ytId) return toast('esta canción no viene de YouTube', { kind: 'warn' });
-  if (!status || !status.auth) return toast('necesitás la sesión de YouTube (cookies.txt)', { kind: 'warn' });
-  await rate(t.ytId, 'LIKE');
-  $('#bLike').classList.add('on');
-}
 
 export function initYtm() {
   $('#ytmTabs').onclick = (e) => { const b = e.target.closest('[data-yt]'); if (b) setTab(b.dataset.yt); };
   bus.on('lib:loaded', refreshLocal);
-  bus.on('np', () => { updateLike(); $('#bLike') && $('#bLike').classList.remove('on'); });
   bus.on('sse:cookies', () => setTimeout(loadStatus, 800));
   bus.on('host:login', async (r) => {
     if (r.startsWith('ok')) {

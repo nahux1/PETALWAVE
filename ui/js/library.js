@@ -4,6 +4,7 @@ import { $, $$, bus, P, api, esc, fmtTime, fmtSize, norm, icon, coverUrl, toast,
 import { D, T, loadLibrary, loadPlaylists, loadAuto, plOp, trackLabel, ytm, loadYtmList, loadYtmPlaylists } from './data.js';
 import { playList, playNext, addQueue, radio, S as PS, current } from './player.js';
 import { openRadio } from './ytmui.js';
+import { isLiked, toggleLike } from './likes.js';
 import { C } from './custom.js';
 
 const ROW_H = () => (document.body.classList.contains('compact') ? 38 : C().rowH);
@@ -49,7 +50,9 @@ function renderNav() {
     : `<button data-ytm="liked">${icon('heart')}me gusta<span class="c">${cnt('liked')}</span></button>` +
       (ytm.playlists || []).filter((p) => p.playlistId && p.playlistId !== 'LM' && p.playlistId !== 'SE').map((p) => `<button data-ytm="${esc(p.playlistId)}" title="${esc(p.title)}">${icon('sync')}${esc(p.title)}<span class="c">${cnt(p.playlistId) || p.count || ''}</span></button>`).join('');
   $$('#lnav [data-ytm]').forEach((b) => b.classList.toggle('on', view.type === 'ytm' && b.dataset.ytm === view.key));
-  $('#navPl').innerHTML = D.playlists.map((p) => `<button data-pl="${esc(p.id)}">${icon('lyr')}${esc(p.name)}<span class="c">${p.tracks.length}</span></button>`).join('') || '<div class="m" style="padding:2px 8px">sin playlists todavía</div>';
+  const pls = [...D.playlists].sort((a, b) => (b.id === 'liked') - (a.id === 'liked'));
+  if (!pls.some((p) => p.id === 'liked')) pls.unshift({ id: 'liked', name: 'Me gusta', tracks: [] });
+  $('#navPl').innerHTML = pls.map((p) => `<button data-pl="${esc(p.id)}"${p.id === 'liked' ? ' class="pl-liked"' : ''}>${icon(p.id === 'liked' ? 'heart' : 'lyr')}${esc(p.name)}<span class="c">${p.tracks.length || ''}</span></button>`).join('');
   // re-marcar la vista activa
   $$('#lnav [data-pl]').forEach((b) => b.classList.toggle('on', view.type === 'pl' && b.dataset.pl === view.key));
   $$('#lnav [data-auto]').forEach((b) => b.classList.toggle('on', view.type === 'auto' && b.dataset.auto === view.key));
@@ -97,7 +100,7 @@ function viewTracksRaw() {
     case 'album': return filtered(all.filter((t) => t.album === view.key.album && (t.albumArtist || t.artist) === view.key.artist)).sort((a, b) => (a.discNo || 0) - (b.discNo || 0) || (a.trackNo || 0) - (b.trackNo || 0) || a.title.localeCompare(b.title));
     case 'genre': return sorted(filtered(all.filter((t) => (t.genre || '—') === view.key)), P.get('libSort'));
     case 'year': return sorted(filtered(all.filter((t) => String(t.year || '—') === view.key)), { key: 'artist', dir: 1 });
-    case 'pl': { const p = D.playlists.find((x) => x.id === view.key); return p ? filtered(p.tracks.map(T)) : []; }
+    case 'pl': { const p = D.playlists.find((x) => x.id === view.key); return p ? filtered(p.tracks.map(T).filter(Boolean)) : []; }
     case 'auto': { const a = D.auto.find((x) => x.id === view.key); return a ? filtered(a.tracks.map(T)) : []; }
     case 'ytm': {
       const l = ytm.lists.get(view.key);
@@ -135,7 +138,9 @@ function headerHtml(list) {
     case 'album': return big(view.key.album, firstCover(list), 'álbum · ' + view.key.artist);
     case 'genre': return big(view.key, null, 'género');
     case 'year': return big(view.key, null, 'año');
-    case 'pl': { const p = D.playlists.find((x) => x.id === view.key); return p ? big(p.name, firstCover(list), 'playlist · arrastrá para ordenar', `<button class="cb" data-h="rename">renombrar</button><button class="cb danger" data-h="delpl">borrar</button>`) : ''; }
+    case 'pl': { const p = D.playlists.find((x) => x.id === view.key) || (view.key === 'liked' ? { id: 'liked', name: 'Me gusta', tracks: [] } : null);
+      if (p && p.id === 'liked') return big('Me gusta', firstCover(list), p.tracks.length ? `${p.tracks.length} ${p.tracks.length === 1 ? 'canción' : 'canciones'} · tocá ♥ en el reproductor para sumar más` : 'todavía vacía: tocá ♥ mientras suena una canción', '');
+      return p ? big(p.name, firstCover(list), 'playlist · arrastrá para ordenar', `<button class="cb" data-h="rename">renombrar</button><button class="cb danger" data-h="delpl">borrar</button>`) : ''; }
     case 'auto': { const a = D.auto.find((x) => x.id === view.key); return a ? big(a.name, firstCover(list), a.desc, `<button class="cb" data-h="savepl">guardar como playlist</button>`) : ''; }
     case 'ytm': {
       const l = ytm.lists.get(view.key) || {};
@@ -219,7 +224,7 @@ function renderTable(body) {
       const t = T(ids[i]); if (!t) continue;
       html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}" draggable="true">
         <span class="ix"><span class="num">${t.id === cur ? '♪' : view.type === 'album' && t.trackNo ? t.trackNo : i + 1}</span><span class="pi" data-play>${icon('play')}</span></span>
-        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></span></span>
+        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></span></span>
         <span class="c2">${esc(t.album || '')}</span>
         <span class="num2">${fmtTime(t.duration)}</span>
         <span class="num2">${D.plays[t.id] || ''}</span>
@@ -271,12 +276,13 @@ export function trackMenu(x, y, idsArg) {
       { label: 'reproducir (online)', icon: 'play', fn: () => (chosen.length > 1 ? playList(chosen, 0) : playList(ids, ids.indexOf(chosen[0]))) },
       { label: 'reproducir después', icon: 'next', fn: () => playNext(chosen) },
       { label: 'agregar a la cola', icon: 'queue', fn: () => addQueue(chosen) },
+      { label: chosen.every(isLiked) ? 'quitar de Me gusta' : 'me gusta', icon: 'heart', fn: async () => { const on = !chosen.every(isLiked); for (const id of chosen) await toggleLike(id, on); render(); } },
       yt && { label: 'radio de YouTube Music', icon: 'radio', fn: () => openRadio(yt, one.title) },
       { sep: true },
       { label: 'agregar a playlist', icon: 'plus', sub: () => [
         { label: 'nueva playlist…', icon: 'plus', fn: () => newPlaylist(chosen) },
         D.playlists.length && { sep: true },
-        ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
+        ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: p.id === 'liked' ? 'heart' : 'lyr', fn: () => addToPl(p.id, chosen) })),
       ] },
       plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
       { label: remote.length > 1 ? `descargar ${remote.length} a mi PC` : 'descargar a mi PC', icon: 'dl', fn: async () => {
@@ -284,7 +290,6 @@ export function trackMenu(x, y, idsArg) {
         try { const r = await api.post('/api/downloads', { urls: remote.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' }); toast(`${r.ids.length} en cola ⇣`); }
         catch (e) { toast(e.message, { kind: 'err' }); }
       } },
-      yt && ytm.status && ytm.status.auth && { label: 'me gusta en YouTube Music', icon: 'heart', fn: () => api.post('/api/ytm/rate', { videoId: yt, rating: 'LIKE' }).then(() => toast('me gusta ♥')).catch((e) => toast(e.message, { kind: 'err' })) },
       yt && { label: 'copiar link', icon: 'plus', fn: () => navigator.clipboard.writeText(`https://music.youtube.com/watch?v=${yt}`).then(() => toast('link copiado')) },
     ]);
   }
@@ -293,6 +298,7 @@ export function trackMenu(x, y, idsArg) {
     { label: 'reproducir', icon: 'play', key: 'enter', fn: () => (chosen.length > 1 ? playList(chosen, 0) : playList(ids, ids.indexOf(chosen[0]))) },
     { label: 'reproducir después', icon: 'next', fn: () => playNext(chosen) },
     { label: 'agregar a la cola', icon: 'queue', fn: () => addQueue(chosen) },
+    { label: chosen.every(isLiked) ? 'quitar de Me gusta' : 'me gusta', icon: 'heart', fn: async () => { const on = !chosen.every(isLiked); for (const id of chosen) await toggleLike(id, on); render(); } },
     one && { label: 'radio (similares de tu biblioteca)', icon: 'radio', fn: () => radio(one.id) },
     one && one.ytId && { label: 'radio de YouTube Music', icon: 'radio', fn: () => openRadio(one.ytId, one.title) },
     { sep: true },
@@ -534,7 +540,7 @@ export function initLibrary() {
     $('#fExt').value = exts.includes(cur) ? cur : '';
     renderNav(); render();
   });
-  bus.on('pl:loaded', () => { renderNav(); if (view.type === 'pl') render(); });
+  bus.on('pl:loaded', () => { renderNav(); render(); });
   bus.on('auto:loaded', renderNav);
   bus.on('np', repaint);
   view = { type: P.get('libView') || 'songs' };

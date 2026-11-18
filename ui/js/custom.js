@@ -27,11 +27,13 @@ export const DEF = {
   fullBg: 'cover', fullBlur: 50, fullDim: 32, fullViz: 'spectrum', fullVizH: 30, fullVizOp: 38, fullCover: 46,
   bgFx: 'none', bgSpeed: 1, bgOpacity: 90, bgReact: true, bgCalm: false, bgFps: 30, wpVidSync: false, wpRate: 1,
 };
-export const FONTS = ['JetBrains Mono', 'Cascadia Mono', 'Cascadia Code', 'Consolas', 'Fira Code', 'Source Code Pro', 'Courier New', 'Segoe UI', 'Bahnschrift', 'Georgia', 'system-ui'];
+export const FONTS = ['JetBrains Mono', 'Quicksand', 'Outfit', 'Cascadia Mono', 'Cascadia Code', 'Consolas', 'Fira Code', 'Source Code Pro', 'Courier New', 'Segoe UI', 'Bahnschrift', 'Georgia', 'system-ui'];
 
 // presets de diseño listos para usar (parten siempre del diseño original)
 export const LAYOUTS = {
   default: { name: 'petalwave', desc: 'el diseño original', v: {} },
+  petalo: { name: 'pétalo', desc: 'suave y redondeado, letra Quicksand', v: { font: 'Quicksand', radius: 18, gap: 14, blur: 26, rowH: 58, coverShape: 'rounded', cover: 190, fscale: 1.04 } },
+  moderno: { name: 'moderno', desc: 'limpio, letra Outfit', v: { font: 'Outfit', radius: 12, gap: 12, blur: 22, rowH: 54, fscale: 1.02, showDeps: false } },
   minimal: { name: 'minimal', desc: 'sin visualizador ni ruido', v: { showViz: false, showSys: false, showDeps: false, gap: 16, radius: 14, blur: 26, rowH: 50, cover: 150, petals: 'off', scan: 'off' } },
   terminal: { name: 'terminal', desc: 'cuadrado y denso, como una tty', v: { radius: 0, gap: 6, blur: 0, winAlpha: 92, rowH: 40, font: 'Consolas', coverShape: 'square', cover: 132, vizReflect: false } },
   vinilo: { name: 'vinilo', desc: 'carátula redonda que gira', v: { coverShape: 'circle', vinyl: true, cover: 200, radius: 14 } },
@@ -191,7 +193,7 @@ export function customizerHtml() {
     ${rng('blur', 'desenfoque', 'efecto vidrio detrás de las ventanas', 0, 40, 1, 'px')}
     ${rng('winAlpha', 'opacidad de las ventanas', 'tema = la que trae el tema', 0, 100, 1, '%', 'Más alto = ventanas más sólidas, se ve menos el fondo.')}
     ${rng('fscale', 'tamaño de la interfaz', 'escala todo (texto, botones, paneles)', 0.8, 1.3, 0.01, 'x')}
-    ${sel('font', 'fuente', '', FONTS.map((f) => [f, f]), 'Si la fuente no está instalada en tu PC se usa JetBrains Mono / Consolas.')}
+    ${sel('font', 'fuente', '', FONTS.map((f) => [f, f]), 'JetBrains Mono, Quicksand, Outfit y Fira Code vienen incluidas (andan en cualquier PC y en Android); las demás tienen que estar instaladas.')}
     ${rng('rowH', 'altura de las filas', 'en la lista de canciones', 36, 72, 2, 'px')}
   </div>
   <div class="cfgsec"><h3>◉ reproductor</h3>

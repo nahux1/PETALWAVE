@@ -139,6 +139,10 @@ class MainActivity : Activity() {
     // la música sigue con la app en segundo plano: no se pausa el WebView
     override fun onPause() { super.onPause() }
 
+    private fun hostMsg(m: String) {
+        if (::web.isInitialized) runOnUiThread { web.evaluateJavascript("window.__pwHost&&window.__pwHost(" + JSONObject.quote(m) + ")", null) }
+    }
+
     private fun openExternal(url: String) {
         try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) { }
     }
@@ -147,6 +151,11 @@ class MainActivity : Activity() {
         @JavascriptInterface fun open(url: String) = runOnUiThread { openExternal(url) }
         @JavascriptInterface fun platform(): String = "android"
         @JavascriptInterface fun media(json: String) = PlayerService.update(json)
+        // iniciar sesión con Google (ver LoginActivity); el resultado vuelve a la interfaz como "login:ok|err|cancel"
+        @JavascriptInterface fun login() = runOnUiThread {
+            LoginActivity.onResult = { r -> hostMsg("login:" + r) }
+            startActivity(Intent(this@MainActivity, LoginActivity::class.java))
+        }
     }
 
     override fun onDestroy() {

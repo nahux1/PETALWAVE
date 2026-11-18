@@ -1,3 +1,9 @@
+/* fuentes incluidas en petalwave (licencia SIL OFL, ver ui/fonts/LICENCIA.txt): andan sin internet, también en Android */
+@font-face{font-family:"JetBrains Mono";src:url(/ui/fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"JetBrains Mono";src:url(/ui/fonts/jetbrains-mono-latin-ext-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Quicksand";src:url(/ui/fonts/quicksand-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Outfit";src:url(/ui/fonts/outfit-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Fira Code";src:url(/ui/fonts/fira-code-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* =====================================================================
    petalwave 2 — estética terminal / rice de Hyprland
    Los colores son tokens animables: cambian por tema o con la carátula.
@@ -752,6 +758,15 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
 .cfgsec-place.wide{grid-column:1/-1}
 
 /* ---------- celular (Android y pantallas angostas) ---------- */
+/* ---------- me gusta ---------- */
+.mob-only{display:none!important}
+.likeb[hidden]{display:none!important}
+.likeb.liked{color:var(--ac)!important}
+.likeb.liked svg.i{fill:currentColor;stroke:currentColor}
+.likeb.liked svg.i{animation:likePop .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes likePop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.row .t .lk{color:var(--ac);font-weight:400;margin-right:6px;font-size:.92em}
+.lnav .pl-liked svg.i{color:var(--ac);fill:color-mix(in srgb,var(--ac) 55%,transparent)}
 @media (max-width:700px){
   html,body{font-size:14px}
   body{overflow:hidden}
@@ -789,7 +804,8 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
   .lmain{min-width:0}
   #fExt,#fKind,#bRescan{display:none}
   .lmain .search{flex:1}
-  .row{grid-template-columns:36px minmax(0,1fr) 46px 32px!important;gap:8px}
+  .row{grid-template-columns:minmax(0,1fr) 42px 30px!important;gap:6px;padding-left:4px}
+  .row > .ix,.thead > :first-child{display:none}
   .row > :nth-child(3),.row > :nth-child(5),.row > :nth-child(6),.thead > :nth-child(3),.thead > :nth-child(5),.thead > :nth-child(6){display:none}
   .cfg{grid-template-columns:1fr}
   .cfgsec{padding:14px}
@@ -801,4 +817,14 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
   .fright{display:block;height:auto;max-height:42vh;font-size:16px}
   .ft{font-size:20px}
   #toasts{bottom:80px}
+  .np-mini .mob-only{display:inline-flex!important}
+  /* barra del celular: carátula, título y una línea de progreso arriba, como en las apps de música */
+  .np-mini{padding:0 10px 0 8px!important;gap:10px!important;overflow:hidden}
+  .np-mini .mini-cover{order:-2;display:block!important;width:40px;height:40px;border-radius:calc(var(--r) - 2px);object-fit:cover;background:var(--hl);flex:0 0 auto}
+  .np-mini .mini-cover:not([src]){visibility:hidden}
+  .np-mini .mini-prog{display:block!important;position:absolute;left:10px;right:10px;top:0;height:2px;background:color-mix(in srgb,var(--fg) 10%,transparent);border-radius:2px;overflow:hidden}
+  .np-mini .mini-prog > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .25s linear}
+  .np-mini [data-act="prev"]{display:none}
+  body.hide-topnp .np-mini{display:flex!important}
+  .np-mini .mob-only[hidden]{display:none!important}
 }
