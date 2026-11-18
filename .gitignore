@@ -18,3 +18,13 @@ petalwave-new.exe
 # cachés de Python
 __pycache__/
 *.pyc
+
+# Android: compilados, cachés y copias que arma Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/keystore.properties
+android/keystore/
+android/app/src/main/python/petalwave/www/
+android/app/src/main/python/petalwave/ytm_bridge.py

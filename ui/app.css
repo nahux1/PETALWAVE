@@ -750,3 +750,55 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
 .cfgsec.cfg-dragging{display:none}
 .cfgsec-place{border-radius:var(--r);min-height:80px}
 .cfgsec-place.wide{grid-column:1/-1}
+
+/* ---------- celular (Android y pantallas angostas) ---------- */
+@media (max-width:700px){
+  html,body{font-size:14px}
+  body{overflow:hidden}
+  .top{margin:6px 6px 0;height:auto;padding:5px 6px;overflow-x:auto;scrollbar-width:none;gap:4px;backdrop-filter:none;background:color-mix(in srgb,var(--deep) 94%,transparent)}
+  .top::-webkit-scrollbar{display:none}
+  .top .tgrp,.top .tsep,#tDeps,#tTheme,#tWp,.perfb .pn,#tClock,#tVolTxt{display:none!important}
+  /* que se vea el fondo (wallpaper, video o fondo animado) detrás de la biblioteca y los ajustes */
+  .w{background:color-mix(in srgb,var(--deep) 42%,transparent)!important}
+  .cfgsec{background:color-mix(in srgb,var(--deep) 38%,transparent)}
+  #wp::after{background:color-mix(in srgb,var(--deep) 12%,transparent)}
+  .row:not(.cur):not(.sel):not(:hover){background:transparent}
+  body.peek .np-mini{opacity:.35}
+  .w{backdrop-filter:blur(3px) saturate(1.1)!important}
+  .top [data-act="peek"]{display:inline-flex!important}
+  .ws-nav button{padding:6px 10px}
+  .ws-nav button b{display:none}
+  /* barra fija abajo con la canción: tocá el título para abrir el reproductor completo */
+  .np-mini{position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:40;height:56px;padding:0 14px;gap:14px;
+    background:color-mix(in srgb,var(--deep) 92%,transparent);border:1px solid var(--bd-on);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.55);backdrop-filter:blur(14px)}
+  .np-mini .ico svg{width:22px;height:22px}
+  .np-mini [data-act="toggle"] svg{width:26px;height:26px}
+  .np-t{order:-1;flex:1;max-width:none!important;font-size:13px;cursor:pointer}
+  .shell{display:block;height:calc(100% - 50px);padding:6px 6px 72px;overflow:hidden}
+  .wsa{height:100%;min-height:0}
+  .side{display:none}
+  .lib{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .lnav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--bd);padding:6px;gap:4px;scrollbar-width:none}
+  .lnav::-webkit-scrollbar{display:none}
+  .lnav .lsec,.lnav .navflt,.lnav .lgrp-h{display:none}
+  .lnav button{flex:0 0 auto;width:auto;border:1px solid var(--bd);border-radius:999px;padding:6px 12px}
+  .lnav .lgrp,.lnav .lgb{display:contents}
+  .lnav .ytm-hint,.lnav .m{display:none}
+  .lnav button .c{display:none}
+  .lnav button svg{display:none}
+  .lmain{min-width:0}
+  #fExt,#fKind,#bRescan{display:none}
+  .lmain .search{flex:1}
+  .row{grid-template-columns:36px minmax(0,1fr) 46px 32px!important;gap:8px}
+  .row > :nth-child(3),.row > :nth-child(5),.row > :nth-child(6),.thead > :nth-child(3),.thead > :nth-child(5),.thead > :nth-child(6){display:none}
+  .cfg{grid-template-columns:1fr}
+  .cfgsec{padding:14px}
+  .yrow{grid-template-columns:40px minmax(0,1fr) auto!important}
+  .yrow > .ix,.yrow > .al,.yrow > .d,.yrow > .ybadge{display:none}
+  /* reproductor completo: carátula, controles y letra uno abajo del otro */
+  .fmain{grid-template-columns:1fr;padding:56px 18px 24px;overflow:auto;align-items:start;gap:16px}
+  .fcover{width:min(78vw,46vh)}
+  .fright{display:block;height:auto;max-height:42vh;font-size:16px}
+  .ft{font-size:20px}
+  #toasts{bottom:80px}
+}

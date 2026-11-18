@@ -1,5 +1,11 @@
 # petalwave — registro de cambios
 
+## 2.6.5 — fondos en Android y la ✕ de descargas
+- **Android 1.1.1:** elegir un fondo ya no da "failed to fetch". La interfaz lee el archivo completo antes de mandarlo (el WebView fallaba al mandar archivos `content://` directo), adivina el tipo por la extensión y reintenta una vez; el servidor reconoce el formato por el contenido (JPG, PNG, WEBP, GIF, MP4, WEBM) aunque el selector no mande el tipo, y explica si la foto es HEIC.
+- La ✕ para cancelar una descarga responde al tocarla (`pointerdown`), aunque la lista se esté actualizando con el progreso. También en Windows.
+- Diseño para celular: barra del reproductor fija abajo, ventanas translúcidas para que se vea el fondo y pantalla completa con la letra.
+- Android: controles en la notificación y la pantalla bloqueada (anterior, play/pausa, siguiente, barra de tiempo y salir).
+
 ## 2.6.4 — mp4 que se abren en todos lados
 - mp4: `-S vcodec:h264,res,acodec:m4a` para preferir H.264 + AAC; antes YouTube entregaba AV1, que muchos reproductores no abren. En 1440p/4K, donde no hay H.264, se usa el mejor disponible.
 - Videos a la carpeta Descargas de Windows (`videoToDownloads` / `videoDir`, detectada del registro), con opción en ajustes → descargas.

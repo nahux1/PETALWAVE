@@ -10,13 +10,21 @@ import traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib", "py"))
-sys.stdout.reconfigure(encoding="utf-8")
-sys.stdin.reconfigure(encoding="utf-8")
+if __name__ == "__main__":   # como proceso aparte (Windows); importado desde Android no se toca la consola
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stdin.reconfigure(encoding="utf-8")
 
 from ytmusicapi import YTMusic  # noqa: E402
 from ytmusicapi.helpers import initialize_headers  # noqa: E402
 
-COOKIES = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "cookies.txt")
+COOKIES = sys.argv[1] if __name__ == "__main__" and len(sys.argv) > 1 else os.path.join(ROOT, "cookies.txt")
+
+
+def set_cookies(path):
+    """Android: dónde está el cookies.txt de la sesión"""
+    global COOKIES
+    COOKIES = path
+    _state.update(yt=None, mtime=None, auth=False, err="")
 _state = {"yt": None, "anon": None, "mtime": None, "auth": False, "err": ""}
 
 
@@ -249,24 +257,25 @@ def m_song(p):
 
 METHODS = {k[2:]: v for k, v in globals().items() if k.startswith("m_")}
 
-for raw in sys.stdin:
-    raw = raw.strip().lstrip("﻿")
-    if not raw:
-        continue
-    rid = None
-    try:
-        req = json.loads(raw)
-        rid = req.get("id")
-        fn = METHODS.get(req.get("method"))
-        if not fn:
-            raise ValueError("método desconocido: " + str(req.get("method")))
-        t0 = time.time()
-        res = fn(req.get("params") or {})
-        out = {"id": rid, "result": res, "ms": int((time.time() - t0) * 1000)}
-    except PermissionError as e:
-        out = {"id": rid, "error": str(e), "auth": True}
-    except Exception as e:  # noqa: BLE001
-        msg = str(e) or e.__class__.__name__
-        out = {"id": rid, "error": msg[:600], "trace": traceback.format_exc()[-800:]}
-    sys.stdout.write(json.dumps(out, ensure_ascii=False, default=str) + "\n")
-    sys.stdout.flush()
+if __name__ == "__main__":
+    for raw in sys.stdin:
+        raw = raw.strip().lstrip("﻿")
+        if not raw:
+            continue
+        rid = None
+        try:
+            req = json.loads(raw)
+            rid = req.get("id")
+            fn = METHODS.get(req.get("method"))
+            if not fn:
+                raise ValueError("método desconocido: " + str(req.get("method")))
+            t0 = time.time()
+            res = fn(req.get("params") or {})
+            out = {"id": rid, "result": res, "ms": int((time.time() - t0) * 1000)}
+        except PermissionError as e:
+            out = {"id": rid, "error": str(e), "auth": True}
+        except Exception as e:  # noqa: BLE001
+            msg = str(e) or e.__class__.__name__
+            out = {"id": rid, "error": msg[:600], "trace": traceback.format_exc()[-800:]}
+        sys.stdout.write(json.dumps(out, ensure_ascii=False, default=str) + "\n")
+        sys.stdout.flush()

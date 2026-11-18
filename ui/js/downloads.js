@@ -197,7 +197,16 @@ export function initDownloads() {
     catch (e) { toast(e.message, { kind: 'err' }); }
   };
   $('#bClearHist').onclick = async () => { const j = await api.del('/api/downloads/history'); hist = j.history; renderHist(); };
-  $('#jobs').addEventListener('click', (e) => { const b = e.target.closest('[data-cancel]'); if (b) { b.disabled = true; api.post(`/api/downloads/${b.dataset.cancel}/cancel`); } });
+  // la lista se redibuja varias veces por segundo con el progreso: el ✕ reacciona al apoyar el dedo/mouse,
+  // no al soltar (si no, el botón se reemplaza en el medio y el toque se pierde, sobre todo en el celular)
+  const cancelled = new Set();
+  $('#jobs').addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('[data-cancel]'); if (!b) return;
+    e.preventDefault();
+    const id = b.dataset.cancel; if (cancelled.has(id)) return;
+    cancelled.add(id); b.disabled = true;
+    api.post(`/api/downloads/${id}/cancel`).then(() => toast('descarga cancelada', { ms: 1400 })).catch(() => cancelled.delete(id));
+  });
   $('#hist').addEventListener('click', async (e) => {
     const r = e.target.closest('[data-retry]'), x = e.target.closest('[data-hdel]'), pl = e.target.closest('[data-hplay]');
     if (r) { try { await api.post(`/api/downloads/${r.dataset.retry}/retry`); toast('reintentando ↻', { ms: 1400 }); } catch (err) { toast(err.message, { kind: 'err' }); } }

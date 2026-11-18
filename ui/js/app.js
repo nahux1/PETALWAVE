@@ -1,5 +1,5 @@
 // arranque de petalwave: une todos los módulos, workspaces, atajos, arrastrar y soltar, modos de ventana
-import { $, $$, bus, P, api, toast, host, connectStream, closeCtx, debounce, osd, ctxMenu } from './core.js';
+import { $, $$, bus, P, api, toast, host, connectStream, closeCtx, debounce, osd, ctxMenu, coverUrl } from './core.js';
 import { applyTheme, cycleTheme, setDyn } from './theme.js';
 import { engine } from './audio.js';
 import { D, loadLibrary, loadPlaylists, loadAuto, T } from './data.js';
@@ -129,6 +129,31 @@ document.addEventListener('keydown', (e) => {
   if (e.repeat && !REPEATABLE.has(act)) { if (act) e.preventDefault(); return; }
   if (act && ACTIONS[act]) { e.preventDefault(); ACTIONS[act](); feedback(act); }
 });
+// ---------- Android: controles en la notificación y la pantalla bloqueada ----------
+// la interfaz le avisa a la app qué suena; los botones de la notificación vuelven como evento "pw-cmd"
+(() => {
+  const nat = window.PetalwaveNative;
+  if (!nat || !nat.media) return;
+  const send = () => {
+    const t = player.current();
+    try {
+      nat.media(JSON.stringify({
+        title: t ? t.title : '', artist: t ? (t.artist || '') : '', album: t ? (t.album || '') : '',
+        cover: t ? location.origin + coverUrl(t.id) : '', playing: !engine.paused,
+        pos: engine.time, dur: engine.duration || 0,
+      }));
+    } catch {}
+  };
+  bus.on('np', () => { send(); setTimeout(send, 1500); });
+  bus.on('eng:state', send);
+  bus.on('eng:seek', send);
+  document.addEventListener('pw-cmd', (e) => {
+    const c = String(e.detail || '');
+    if (c.startsWith('seek:')) engine.seek(+c.slice(5));
+    else if (ACTIONS[c]) ACTIONS[c]();
+  });
+})();
+
 // ver el fondo: esconde las ventanas y saca el desenfoque para mirar el wallpaper / fondo animado nítido
 function togglePeek(force) {
   const on = document.body.classList.toggle('peek', force);
@@ -186,13 +211,22 @@ addEventListener('drop', async (e) => {
 
 // ---------- wallpaper ----------
 // imagen, GIF animado o video (mp4/webm) en loop: lo dibuja bgfx.js
+const WP_TYPES = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm' };
 async function uploadWallpaper(file) {
-  const video = /^video\//.test(file.type);
+  // en Android el selector a veces da el archivo sin tipo: se adivina por la extensión (y el servidor mira el contenido)
+  const type = file.type || WP_TYPES[(file.name.split('.').pop() || '').toLowerCase()] || 'application/octet-stream';
+  const video = /^video\//.test(type);
   try {
     if (video) toast('subiendo video de fondo…', { ms: 1800 });
-    await api.raw('/api/wallpaper', file, { 'Content-Type': file.type });
+    // leer el archivo entero antes de mandarlo: el WebView de Android falla ("failed to fetch") al mandar archivos content:// directo
+    let blob;
+    try { blob = new Blob([await file.arrayBuffer()], { type }); }
+    catch { throw new Error('No se pudo leer el archivo: probá copiarlo a la galería o a Descargas y elegirlo de nuevo'); }
+    const send = () => api.raw('/api/wallpaper', blob, { 'Content-Type': type, 'x-filename': encodeURIComponent(file.name || '') });
+    try { await send(); }
+    catch (e) { if (!/fetch|network/i.test(e.message)) throw e; await new Promise(r => setTimeout(r, 600)); await send(); }
     await loadWallpaper();
-    toast(video ? 'fondo animado activado ❀' : file.type === 'image/gif' ? 'GIF de fondo activado ❀' : 'wallpaper actualizado ❀', { sub: video ? 'sin sonido, en loop · ajustes → fondo para pausarlo con la música' : '' });
+    toast(video ? 'fondo animado activado ❀' : type === 'image/gif' ? 'GIF de fondo activado ❀' : 'wallpaper actualizado ❀', { sub: video ? 'sin sonido, en loop · ajustes → fondo para pausarlo con la música' : '' });
   } catch (e) { toast(e.message, { kind: 'err' }); }
 }
 export function pickWallpaper() {
@@ -207,6 +241,9 @@ $('#tTheme').onclick = () => ACTIONS.theme();
 $('#tTheme').oncontextmenu = (e) => { e.preventDefault(); ACTIONS.dyn(); };
 $('#tVol').onclick = (e) => { e.stopPropagation(); toggleVolPop(); };
 $('#cover').onclick = () => toggleFull(true);
+// en el celular la barra de abajo muestra la canción: tocarla abre el reproductor completo
+$$('.np-mini .np-t').forEach((el) => (el.onclick = () => { if (matchMedia('(max-width:700px)').matches) toggleFull(true); }));
+if (/PetalwaveAndroid/.test(navigator.userAgent)) document.body.classList.add('android');
 $$('#wsNav [data-ws]').forEach((b) => (b.onclick = () => setWs(b.dataset.ws)));
 
 // ---------- barra superior: reloj, cpu, ram, escaneo ----------
