@@ -305,7 +305,10 @@ async function route(req, res) {
       if (!fs.existsSync(d) || !fs.statSync(d).isDirectory()) return U.json(res, 400, { error: 'Esa carpeta no existe' });
       if (!S.folders.some((f) => path.resolve(f).toLowerCase() === d.toLowerCase())) S.folders.push(d);
     }
-    if (b.remove) S.folders = S.folders.filter((f) => f !== b.remove);
+    if (b.remove) {
+      if (path.resolve(String(b.remove)).toLowerCase() === path.resolve(OUT).toLowerCase() && S.folders.length <= 1) return U.json(res, 400, { error: 'Es la única carpeta y ahí se guardan tus descargas: agregá otra antes de quitarla' });
+      S.folders = S.folders.filter((f) => path.resolve(f).toLowerCase() !== path.resolve(String(b.remove)).toLowerCase());
+    }
     if (!S.folders.length) S.folders = [OUT];
     settings.save();
     library.watch();

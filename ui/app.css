@@ -512,6 +512,11 @@ label.ck input{accent-color:var(--ac)}
 .keys button.rec{border-color:var(--warn);color:var(--warn)}
 .folders .fr{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12px}
 .folders .fr span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+/* que una ruta larga no ensanche la sección (en el celular dejaba el botón "quitar" fuera de la pantalla) */
+.cfg > .cfgsec{min-width:0}
+.folders .fr span{min-width:0;direction:rtl;text-align:left}
+.folders .fr .cb,.folders .fr .m{flex:0 0 auto}
+.cfrow .m{overflow-wrap:anywhere}
 
 /* ---------- paneles flotantes ---------- */
 .pop{position:fixed;z-index:60;width:360px;max-width:calc(100vw - 16px);max-height:calc(100vh - 70px);overflow:auto;padding:14px 16px;border:1.5px solid var(--bd-on);border-radius:var(--r);
@@ -537,6 +542,7 @@ label.ck input{accent-color:var(--ac)}
 .modal{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);animation:fadeIn .15s}
 .mbox{width:min(520px,calc(100vw - 30px));max-height:calc(100vh - 40px);overflow:auto;border:1.5px solid var(--bd-on);border-radius:var(--r);background:color-mix(in srgb,var(--deep) 96%,transparent);padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:popIn .16s ease-out}
 .mbox h3{margin:0 0 12px;color:var(--ac)}
+.mbox{overflow-wrap:anywhere}
 .mbox .fl{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center}
 .mbox .fl label{color:var(--dim);font-size:12px}
 .mbox .mact{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}

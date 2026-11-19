@@ -1,5 +1,7 @@
 // workspace de ajustes: temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento
 import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2 } from './core.js';
+const isAndroid = !!window.PetalwaveNative;
+const niceAndroid = (f) => f.replace(/^\/storage\/emulated\/0\/?/, 'Teléfono › ').replace(/^\/storage\/([\w-]+)\/?/, 'Tarjeta SD › ').replace(/\//g, ' › ');
 import { allThemes, setTheme, setDyn } from './theme.js';
 import { customizerHtml, bindCustomizer, PERF, perf, setPerf } from './custom.js';
 import { checkUpdate, openUpdate } from './update.js';
@@ -55,8 +57,8 @@ export async function renderSettings() {
       <div class="cfrow"><span>partículas<span class="m">cantidad en el modo particles</span></span><span><input type="range" min="40" max="400" step="20" value="${p.particles}" id="cPart"> <b id="cPartV">${p.particles}</b></span></div>
     </div>
     <div class="cfgsec"><h3>♫ biblioteca ${tip('petalwave escanea estas carpetas con sus subcarpetas. Formatos: mp3, flac, wav, ogg, opus, m4a, aac, mp4, webm.')}</h3>
-      <div class="folders" id="cFolders">${(server.folders || []).map((f) => `<div class="fr"><span title="${esc(f)}">${esc(f)}</span><button class="cb sm" data-open="${esc(f)}">abrir</button><button class="cb sm danger" data-rmf="${esc(f)}">quitar</button></div>`).join('')}</div>
-      <div class="cfrow"><span>${D.tracks.length} canciones<span class="m">en tu PC</span></span><span><button class="cb" id="cAddF">+ carpeta</button> <button class="cb" id="cScan">reescanear</button></span></div>
+      <div class="folders" id="cFolders">${(server.folders || []).map((f) => `<div class="fr"><span title="${esc(f)}">&lrm;${esc(isAndroid ? niceAndroid(f) : f)}&lrm;</span>${isAndroid ? '' : `<button class="cb sm" data-open="${esc(f)}">abrir</button>`}${isAndroid && f === server.downloadDir ? '<span class="m" title="ahí se guardan tus descargas">descargas</span>' : `<button class="cb sm danger" data-rmf="${esc(f)}">quitar</button>`}</div>`).join('')}</div>
+      <div class="cfrow"><span>${D.tracks.length} canciones<span class="m">${isAndroid ? 'en tu celular' : 'en tu PC'}</span></span><span><button class="cb" id="cAddF">+ carpeta</button> <button class="cb" id="cScan">reescanear</button></span></div>
     </div>
     <div class="cfgsec"><h3>⇣ descargas</h3>
       <div class="cfrow"><span>carpeta de destino<span class="m" style="word-break:break-all">${esc(server.downloadDir || '')}</span></span><button class="cb" id="cDest">cambiar</button></div>
@@ -143,10 +145,12 @@ export async function renderSettings() {
   $('#cScan').onclick = () => { api.post('/api/library/rescan'); toast('reescaneando…', { ms: 1400 }); };
   box.querySelectorAll('[data-rmf]').forEach((b) => (b.onclick = async () => {
     if (!(await confirm2('Quitar carpeta', `¿Dejar de escanear <b>${esc(b.dataset.rmf)}</b>? Los archivos no se borran.`, 'quitar'))) return;
-    await api.post('/api/library/folders', { remove: b.dataset.rmf }); renderSettings();
+    try { await api.post('/api/library/folders', { remove: b.dataset.rmf }); toast('carpeta quitada', { ms: 1500 }); renderSettings(); }
+    catch (e) { toast(e.message, { kind: 'err' }); }
   }));
   box.querySelectorAll('[data-open]').forEach((b) => (b.onclick = () => api.post('/api/open', { path: b.dataset.open })));
   $('#cDest').onclick = async () => {
+    if (isAndroid) return toast('En Android las descargas van siempre a Música/Petalwave (y los videos a Descargas/Petalwave)', { kind: 'warn' });
     const f = await host.pickFolder('Carpeta donde guardar las descargas');
     if (!f) return;
     try { const s = await api.post('/api/settings', { downloadDir: f }); setDest(s.downloadDir); renderSettings(); toast('las descargas van a ' + s.downloadDir); } catch (e) { toast(e.message, { kind: 'err' }); }
@@ -154,6 +158,7 @@ export async function renderSettings() {
   $('#cVidDl').onchange = (e) => api.post('/api/settings', { videoToDownloads: e.target.checked }).then(() => toast(e.target.checked ? 'los videos van a la carpeta Descargas' : 'los videos van a la carpeta de destino', { ms: 1800 }));
   $('#cVidDir').onclick = async (e) => {
     e.preventDefault();
+    if (isAndroid) return toast('En Android los videos van siempre a Descargas/Petalwave', { kind: 'warn' });
     const f = await host.pickFolder('Carpeta donde guardar los videos (mp4)');
     if (!f) return;
     try { await api.post('/api/settings', { videoDir: f, videoToDownloads: true }); renderSettings(); toast('los videos van a ' + f); } catch (err) { toast(err.message, { kind: 'err' }); }

@@ -27,7 +27,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 
 ## 📱 Android (APK)
 
-1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.2.0.apk`** (en "Assets").
+1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.2.1.apk`** (en "Assets").
 2. Abrí el archivo descargado. Si el teléfono pregunta, tocá **Ajustes** → activá **Permitir de esta fuente** → volvé atrás → **Instalar**.
 3. Si aparece **Play Protect** ("app no verificada"): tocá **Más detalles** → **Instalar de todas formas**. Sale porque la app no está en Play Store; es normal.
 4. Abrí **Petalwave** y aceptá los permisos de música y notificaciones.
@@ -35,6 +35,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 Funciona en **Android 7 o más nuevo** (probado en un Samsung A52). La música sigue sonando con la pantalla apagada
 y se controla desde la notificación. Para bajar algo: en YouTube o YouTube Music tocá **Compartir** → **Petalwave**.
 Las canciones quedan en **Música/Petalwave** (m4a) y los videos en **Descargas/Petalwave**.
+Para sumar música de otra carpeta: ajustes (5) → *biblioteca* → **+ carpeta** y elegila en el explorador del teléfono.
 Para actualizar, instalá el APK nuevo encima: no se pierde nada.
 **Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*. La contraseña se escribe en la página de Google; Petalwave no la ve.
 Por ahora en Android no hay Spotify ni sync.

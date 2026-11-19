@@ -1,5 +1,11 @@
 # petalwave — registro de cambios
 
+## 2.7.1 — carpetas de la biblioteca
+- **Android 1.2.1:** se pueden agregar y quitar carpetas de la biblioteca (antes el servidor de Android no lo permitía y las volvía a armar al abrir la app). **+ carpeta** abre el explorador de archivos del teléfono (`ACTION_OPEN_DOCUMENT_TREE`); sirve la memoria interna y la tarjeta SD. Las carpetas se recuerdan (`foldersExtra` / `foldersHidden`). Las rutas se muestran como *Teléfono › Music*.
+- La carpeta donde se guardan las descargas no se quita en silencio: en Android queda fija y en Windows avisa si es la única.
+- En el celular, una ruta larga ya no empuja el botón **quitar** fuera de la pantalla.
+- Android: "cambiar" la carpeta de destino explica que las descargas van siempre a Música/Petalwave.
+
 ## 2.7.0 — me gusta, sesión en Android y fuentes incluidas
 - **Me gusta propio** (`ui/js/likes.js`): el ♥ funciona siempre, en Windows y Android, con o sin cuenta. Guarda la canción en la playlist fija *Me gusta* (id `liked`, primera en la biblioteca, no se borra) y la vuelve a tocar para quitarla. Con sesión de YouTube Music también se marca allá (`LIKE` / `INDIFFERENT`). Tecla `h`, en el menú de cada canción, corazón en la lista, en la barra del celular y en la pantalla completa.
 - **Android 1.2.0:** iniciar sesión con Google (`LoginActivity`): la página de Google dentro de la app; se guardan solo las cookies de youtube.com y se borran las del WebView. Sirve para tus me gusta, playlists e historial de YouTube Music y para descargar con tu cuenta.

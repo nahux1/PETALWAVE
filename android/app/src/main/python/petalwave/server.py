@@ -1119,6 +1119,29 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/library/rescan":
             LIB.scan()
             return self.send_json(200, {"ok": True})
+        if p == "/api/library/folders" and M == "POST":
+            b = self.body()
+            norm = lambda x: os.path.normpath(str(x)).rstrip("/")  # noqa: E731
+            if b.get("add"):
+                d = norm(b["add"])
+                if not os.path.isdir(d):
+                    return self.send_json(400, {"error": "No se puede leer esa carpeta (" + d + "). Dale permiso a Petalwave para la música o elegí otra."})
+                S.data["foldersHidden"] = [x for x in S.data.get("foldersHidden", []) if norm(x) != d]
+                if not any(norm(x) == d for x in S.data["folders"]):
+                    S.data["folders"].append(d)
+                    if d not in S.data.setdefault("foldersExtra", []):
+                        S.data["foldersExtra"].append(d)
+            if b.get("remove"):
+                d = norm(b["remove"])
+                if d == norm(D["music"]):
+                    return self.send_json(400, {"error": "Es la carpeta donde se guardan tus descargas: no se puede quitar"})
+                S.data["folders"] = [x for x in S.data["folders"] if norm(x) != d]
+                S.data["foldersExtra"] = [x for x in S.data.get("foldersExtra", []) if norm(x) != d]
+                if d not in S.data.setdefault("foldersHidden", []):
+                    S.data["foldersHidden"].append(d)
+            S.save(True)
+            LIB.scan()
+            return self.send_json(200, {"folders": S.data["folders"]})
         if p == "/api/library/folders":
             return self.send_json(200, {"folders": S.data.get("folders", [])})
         if p == "/api/library/duplicates":
@@ -1390,7 +1413,10 @@ def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs
     S.data.setdefault("lyricsYtm", True)
     S.data.setdefault("videoToDownloads", True)
     S.data["downloadDir"], S.data["videoDir"] = music_dir, video_dir
-    S.data["folders"] = [d for d in ([music_dir] + list(scan_dirs or [])) if d and os.path.isdir(d)]
+    # carpetas: la de descargas siempre + Música y Descargas del teléfono (salvo que las quites) + las que agregues
+    hidden = set(S.data.get("foldersHidden", []))
+    base = [music_dir] + [d for d in list(scan_dirs or []) if d not in hidden] + list(S.data.get("foldersExtra", []))
+    S.data["folders"] = list(dict.fromkeys(d for d in base if d and os.path.isdir(d)))
     S.save()
     LIB, ST, DL = Library(), Stats(), Downloads()
     PL = JsonStore(os.path.join(data_dir, "playlists.json"), lambda: {"items": []})

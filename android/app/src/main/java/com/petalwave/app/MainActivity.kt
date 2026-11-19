@@ -33,6 +33,7 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingShare: String? = null
+    private var pickId: String? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,6 +114,13 @@ class MainActivity : Activity() {
             fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
             fileCallback = null
         }
+        if (requestCode == 43) {
+            val id = pickId ?: return
+            pickId = null
+            val path = if (resultCode == RESULT_OK) data?.data?.let { treeToPath(it) } else null
+            if (data?.data != null && path == null) runOnUiThread { android.widget.Toast.makeText(this, "Esa carpeta no se puede usar: elegí una de la memoria del teléfono o de la tarjeta SD", android.widget.Toast.LENGTH_LONG).show() }
+            hostMsg("picked:$id:" + (path ?: ""))
+        }
     }
 
     // compartir un link desde YouTube / YouTube Music / el navegador → va a la pantalla de descargas
@@ -139,6 +147,20 @@ class MainActivity : Activity() {
     // la música sigue con la app en segundo plano: no se pausa el WebView
     override fun onPause() { super.onPause() }
 
+    // carpeta elegida en el explorador del teléfono (content://…/tree/primary:Music/Rock) → ruta de archivo
+    private fun treeToPath(uri: Uri): String? {
+        return try {
+            val doc = android.provider.DocumentsContract.getTreeDocumentId(uri)   // "primary:Music/Rock" o "1A2B-3C4D:Musica"
+            if (uri.authority != "com.android.externalstorage.documents") return null
+            val i = doc.indexOf(':')
+            val vol = if (i >= 0) doc.substring(0, i) else doc
+            val rel = if (i >= 0) doc.substring(i + 1) else ""
+            val base = if (vol.equals("primary", true)) android.os.Environment.getExternalStorageDirectory().absolutePath else "/storage/$vol"
+            val f = File(if (rel.isEmpty()) base else "$base/$rel")
+            if (f.isDirectory) f.absolutePath else null
+        } catch (_: Exception) { null }
+    }
+
     private fun hostMsg(m: String) {
         if (::web.isInitialized) runOnUiThread { web.evaluateJavascript("window.__pwHost&&window.__pwHost(" + JSONObject.quote(m) + ")", null) }
     }
@@ -152,6 +174,13 @@ class MainActivity : Activity() {
         @JavascriptInterface fun platform(): String = "android"
         @JavascriptInterface fun media(json: String) = PlayerService.update(json)
         // iniciar sesión con Google (ver LoginActivity); el resultado vuelve a la interfaz como "login:ok|err|cancel"
+        // elegir carpeta con el explorador de archivos del teléfono; la ruta vuelve como "picked:<id>:<ruta>"
+        @JavascriptInterface fun pickFolder(id: String) = runOnUiThread {
+            pickId?.let { hostMsg("picked:$it:") }
+            pickId = id
+            try { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), 43) }
+            catch (e: Exception) { pickId = null; hostMsg("picked:$id:") }
+        }
         @JavascriptInterface fun login() = runOnUiThread {
             LoginActivity.onResult = { r -> hostMsg("login:" + r) }
             startActivity(Intent(this@MainActivity, LoginActivity::class.java))

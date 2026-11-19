@@ -145,6 +145,8 @@ export const host = {
   },
   async pickFolder(title = 'Elegí una carpeta') {
     if (wv) return new Promise((ok) => { const id = String(++reqN); pending.set(id, ok); wv.postMessage(`pick:${id}:${title}`); });
+    // Android: se abre el explorador de archivos del teléfono para elegir la carpeta
+    if (nat && nat.pickFolder) return new Promise((ok) => { const id = String(++reqN); pending.set(id, ok); nat.pickFolder(id); });
     const p = await prompt2('Carpeta', 'Escribí la ruta completa de la carpeta:', '');
     return p || null;
   },
