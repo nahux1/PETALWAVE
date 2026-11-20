@@ -82,7 +82,7 @@ class MainActivity : Activity() {
         Thread {
             App.ctx.startServer()
             runOnUiThread {
-                if (App.serverReady) { setContentView(web); web.loadUrl("http://127.0.0.1:${App.PORT}/") }
+                if (App.serverReady) { setContentView(web); App.setTokenCookie { web.loadUrl("http://127.0.0.1:${App.PORT}/") } }
                 else loading.text = "No se pudo iniciar Petalwave:\n\n" + (App.serverError ?: "error desconocido")
             }
         }.start()

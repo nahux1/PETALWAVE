@@ -497,6 +497,7 @@ async function route(req, res) {
     if (!valid.length) return U.json(res, 400, { error: 'No parece un cookies.txt (formato Netscape). Exportalo con una extensión tipo "Get cookies.txt LOCALLY".' });
     if (!valid.some((l) => /youtube\.com/i.test(l.split('\t')[0]))) return U.json(res, 400, { error: 'El archivo no tiene cookies de youtube.com. Exportalo estando en youtube.com con la sesión iniciada.' });
     fs.writeFileSync(COOKIES_TXT, txt.startsWith('# Netscape') ? txt : '# Netscape HTTP Cookie File\n' + txt);
+    U.privatize(COOKIES_TXT);   // solo tu usuario de Windows puede leer tu sesión
     cookieExpired = false;
     broadcast('cookies', { has: true, expired: false });
     return U.json(res, 200, { ok: true, count: valid.length });
@@ -536,7 +537,30 @@ async function route(req, res) {
   res.writeHead(404); res.end('404');
 }
 
+// ---------- seguridad del servidor local ----------
+// Solo responde a la ventana de petalwave (o a tu navegador abierto en esta misma dirección).
+// - Host: frena el "DNS rebinding" (una página que se hace pasar por 127.0.0.1 con su propio dominio).
+// - Sec-Fetch-Site / Origin: frena que otra página web abierta en tu navegador mande pedidos al servidor
+//   (cambiar ajustes, empezar descargas, actualizar…).
+const OK_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`, `[::1]:${PORT}`]);
+const OK_ORIGINS = new Set([...OK_HOSTS].map((h) => 'http://' + h));
+function allowed(req) {
+  if (!OK_HOSTS.has(String(req.headers.host || '').toLowerCase())) return 'host';
+  // la vuelta del inicio de sesión de Spotify llega desde accounts.spotify.com; la protegen el "state" y PKCE
+  if (req.method === 'GET' && /^\/spotify\/callback(\?|$)/.test(req.url || '')) return null;
+  const site = req.headers['sec-fetch-site'];
+  if (site && site !== 'same-origin' && site !== 'none') return 'sitio';
+  const origin = req.headers.origin;
+  if (origin && !OK_ORIGINS.has(origin.toLowerCase())) return 'origen';
+  return null;
+}
+
 const server = http.createServer((req, res) => {
+  const why = allowed(req);
+  if (why) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('petalwave: pedido rechazado (' + why + ')');
+  }
   route(req, res).catch((e) => {
     console.error('error en', req.url, e);
     U.json(res, 500, { error: e.message });
@@ -549,6 +573,9 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`  yt-dlp : ${YTDLP || 'NO ENCONTRADO'}`);
   console.log(`  ffmpeg : ${FFMPEG || 'NO ENCONTRADO'}  ffprobe: ${FFPROBE || 'NO ENCONTRADO'}`);
   console.log(`  carpetas: ${S.folders.join(' | ')}\n`);
+  // la sesión de YouTube (cookies.txt) y la de Spotify (data\spotify.json): solo tu usuario de Windows
+  U.privatize(DATA, true, path.join(DATA, 'settings.json'));
+  U.privatize(COOKIES_TXT);
   library.scan();
   library.watch();
   if (!process.argv.includes('--no-open')) {

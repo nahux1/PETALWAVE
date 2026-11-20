@@ -109,7 +109,7 @@ class PlayerService : Service() {
             if (cover != artUrl) {
                 artUrl = cover; art = null
                 if (cover.isNotEmpty()) Thread {
-                    art = try { URL(cover).openStream().use { BitmapFactory.decodeStream(it) } } catch (_: Exception) { null }
+                    art = try { App.conn(cover).inputStream.use { BitmapFactory.decodeStream(it) } } catch (_: Exception) { null }
                     publish()
                 }.start()
             }

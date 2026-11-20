@@ -3,6 +3,7 @@
 # en Python. No hay ffmpeg: el audio se baja en m4a (AAC) tal cual viene de YouTube y los videos
 # se arman uniendo video H.264 + audio AAC con MediaMuxer de Android (Muxer.kt).
 import hashlib
+import hmac
 import http.client
 import json
 import os
@@ -28,6 +29,8 @@ except Exception:  # noqa: BLE001
 
 AUDIO_EXT = {".mp3", ".flac", ".wav", ".ogg", ".oga", ".opus", ".m4a", ".aac", ".weba"}
 VIDEO_EXT = {".mp4", ".m4v", ".webm", ".3gp", ".mkv"}
+TOKEN = ""   # clave del servidor interno (la elige la app de Android al arrancar)
+
 MIME = {".mp3": "audio/mpeg", ".flac": "audio/flac", ".wav": "audio/wav", ".ogg": "audio/ogg", ".oga": "audio/ogg", ".opus": "audio/ogg",
         ".m4a": "audio/mp4", ".aac": "audio/aac", ".weba": "audio/webm", ".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm",
         ".3gp": "video/3gpp", ".mkv": "video/x-matroska", ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -1033,11 +1036,48 @@ class H(BaseHTTPRequestHandler):
     def do_DELETE(self):
         self.route("DELETE")
 
+    # ---------- seguridad del servidor interno ----------
+    # Solo responde a la ventana de Petalwave:
+    # - clave secreta (TOKEN) que la app le pasa a su WebView como cookie y a sus propios pedidos como encabezado:
+    #   otras apps del teléfono no la conocen, así que no pueden usar el servidor;
+    # - Host / Sec-Fetch-Site / Origin: frenan páginas web abiertas en el navegador del teléfono.
+    def denied(self):
+        port = self.server.server_address[1]
+        hosts = {"127.0.0.1:%d" % port, "localhost:%d" % port}
+        if (self.headers.get("Host") or "").lower() not in hosts:
+            return "host"
+        site = self.headers.get("Sec-Fetch-Site")
+        if site and site not in ("same-origin", "none"):
+            return "sitio"
+        origin = (self.headers.get("Origin") or "").lower()
+        if origin and origin not in {"http://" + h for h in hosts}:
+            return "origen"
+        # la clave se pide en todo /api (ajustes, sesión, descargas…); la música y las carátulas no la necesitan
+        if TOKEN and self.path.startswith("/api/"):
+            got = self.headers.get("X-Petalwave-Token") or ""
+            if not got:
+                for part in (self.headers.get("Cookie") or "").split(";"):
+                    k, _, v = part.strip().partition("=")
+                    if k == "pwt":
+                        got = v
+            if not hmac.compare_digest(got.encode(), TOKEN.encode()):
+                return "clave"
+        return None
+
     def route(self, M):
         # se lee el pedido completo siempre: si una ruta no usa los datos y quedan sin leer,
         # arruinan el pedido siguiente que llega por la misma conexión
         n = int(self.headers.get("Content-Length") or 0)
         self._raw = self.rfile.read(n) if n else b""
+        why = self.denied()
+        if why:
+            b = ("petalwave: pedido rechazado (" + why + ")").encode("utf-8")
+            self.send_response(403)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(b)))
+            self.end_headers()
+            self.wfile.write(b)
+            return
         try:
             self._route(M)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
@@ -1397,12 +1437,13 @@ def sys_stats():
 httpd = None
 
 
-def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs=None):
+def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs=None, token=""):
     """la llama MainActivity (Kotlin) al abrir la app; devuelve cuando el servidor ya escucha"""
-    global S, LIB, ST, PL, DL, httpd, APP_VERSION
+    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN
     if httpd:
         return port
     APP_VERSION = version
+    TOKEN = str(token or "")
     D.update(data=data_dir, music=music_dir, video=video_dir, cookies=os.path.join(data_dir, "cookies.txt"))
     for d in (data_dir, music_dir, video_dir):
         os.makedirs(d, exist_ok=True)
@@ -1430,7 +1471,7 @@ def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs
 if __name__ == "__main__":   # para probar en la PC: python -m petalwave.server
     import sys
     base = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "petalwave-android-test")
-    start(os.path.join(base, "data"), os.path.join(base, "Music"), os.path.join(base, "Movies"), "0.0.0-pc", int(os.environ.get("PORT", "37373")))
+    start(os.path.join(base, "data"), os.path.join(base, "Music"), os.path.join(base, "Movies"), "0.0.0-pc", int(os.environ.get("PORT", "37373")), token=os.environ.get("PW_TOKEN", ""))
     print("Petalwave Android (prueba) en http://127.0.0.1:%s" % os.environ.get("PORT", "37373"), flush=True)
     while True:
         time.sleep(3600)

@@ -27,7 +27,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 
 ## 📱 Android (APK)
 
-1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.2.1.apk`** (en "Assets").
+1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.2.2.apk`** (en "Assets").
 2. Abrí el archivo descargado. Si el teléfono pregunta, tocá **Ajustes** → activá **Permitir de esta fuente** → volvé atrás → **Instalar**.
 3. Si aparece **Play Protect** ("app no verificada"): tocá **Más detalles** → **Instalar de todas formas**. Sale porque la app no está en Play Store; es normal.
 4. Abrí **Petalwave** y aceptá los permisos de música y notificaciones.
@@ -177,6 +177,11 @@ Todos se cambian en ajustes → atajos. Por defecto: `espacio` play, `n`/`p` sig
 - `%LOCALAPPDATA%\petalwave`: perfil de la ventana y logs.
 
 Usá petalwave con música propia, libre o con permiso del autor.
+
+## Seguridad y privacidad
+- Petalwave funciona con un servidor que solo escucha en tu propia PC o celular (`127.0.0.1`) y solo le responde a su ventana: las páginas web y (en Android) las otras apps no pueden usarlo.
+- Tu contraseña de Google la escribís en la página de Google; Petalwave no la ve. Se guarda solo la sesión de YouTube (`cookies.txt`), y en Windows únicamente tu usuario puede leerla. **No compartas** `cookies.txt` ni la carpeta `data`: tienen tu sesión. Para borrarla: ajustes → cuentas → cerrar sesión.
+- Las actualizaciones se bajan de GitHub y se instalan solo si su huella SHA-256 coincide con la publicada.
 
 ## Licencia
 Código bajo **Apache 2.0** (ver `LICENSE`). El zip de la Release incluye Node.js (MIT), yt-dlp (Unlicense), FFmpeg (GPL), Python (PSF) y ytmusicapi (MIT), con sus licencias en la carpeta `licencias`.

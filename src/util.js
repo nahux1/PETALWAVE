@@ -131,6 +131,29 @@ const MIME = {
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
 };
 
+// archivos con tu sesión (cookies.txt, data\spotify.json…): en Windows, que solo tu usuario (y el sistema) puedan leerlos,
+// aunque la carpeta de petalwave esté en un lugar compartido con otras cuentas de la PC
+// Pasos seguros: 1) dar permiso explícito a tu usuario y al sistema, 2) recién ahí cortar los permisos heredados.
+// En una carpeta se aplica solo a la carpeta (sin /T): Windows se lo hereda a los archivos de adentro.
+// Al final se comprueba que petalwave siga pudiendo leer y escribir; si no, se restablecen los permisos normales.
+function privatize(target, dir = false, probe = null) {
+  if (!IS_WIN || !process.env.USERNAME || !fs.existsSync(target)) return;
+  const { spawnSync } = require('child_process');
+  const icacls = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'icacls.exe');
+  const who = (process.env.USERDOMAIN ? process.env.USERDOMAIN + '\\' : '') + process.env.USERNAME;
+  const inh = dir ? '(OI)(CI)' : '';
+  const run = (args) => { try { return spawnSync(icacls, [target, ...args, '/Q'], { windowsHide: true, timeout: 15000 }).status === 0; } catch { return false; } };
+  if (!run(['/grant:r', `${who}:${inh}F`, '/grant:r', `*S-1-5-18:${inh}F`])) return;   // si no se pudo dar el permiso, no se toca nada más
+  run(['/inheritance:r']);
+  try {
+    const f = probe || target;
+    fs.accessSync(f, fs.constants.R_OK | fs.constants.W_OK);
+    if (dir) { const t = path.join(target, '.pw-permisos'); fs.writeFileSync(t, 'ok'); fs.readFileSync(t); fs.unlinkSync(t); }
+  } catch {
+    spawnSync(icacls, [target, '/reset', ...(dir ? ['/T'] : []), '/C', '/Q'], { windowsHide: true, timeout: 30000 });   // volver a como estaba
+  }
+}
+
 // sirve un archivo con soporte de Range correcto (incluye "bytes=-N" y rangos inválidos → 416)
 function serveRange(req, res, file, type) {
   let st;
@@ -183,5 +206,5 @@ function openInExplorer(target, select) {
 
 module.exports = {
   IS_WIN, findBin, sha, json, readBody, readRaw, Limiter, run, killTree, normalize,
-  AUDIO_EXT, VIDEO_EXT, MIME, serveRange, YT_JS, JsonStore, openInExplorer,
+  AUDIO_EXT, VIDEO_EXT, MIME, serveRange, privatize, YT_JS, JsonStore, openInExplorer,
 };

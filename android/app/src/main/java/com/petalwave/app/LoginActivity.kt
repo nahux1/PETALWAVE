@@ -34,7 +34,7 @@ class LoginActivity : Activity() {
         super.onCreate(savedInstanceState)
         val cm = CookieManager.getInstance()
         cm.setAcceptCookie(true)
-        cm.removeAllCookies(null)   // empezar sin sesiones viejas
+        cm.removeAllCookies { App.setTokenCookie() }   // empezar sin sesiones viejas (la clave de Petalwave se vuelve a poner)
         web = WebView(this).apply {
             setBackgroundColor(Color.WHITE)
             settings.javaScriptEnabled = true
@@ -98,7 +98,7 @@ class LoginActivity : Activity() {
         }
         Thread {
             val res = try {
-                val c = URL("http://127.0.0.1:${App.PORT}/api/cookies").openConnection() as HttpURLConnection
+                val c = App.conn("/api/cookies")
                 c.requestMethod = "POST"; c.doOutput = true; c.connectTimeout = 8000; c.readTimeout = 20000
                 c.setRequestProperty("Content-Type", "text/plain; charset=utf-8")
                 c.outputStream.use { it.write(txt.toString().toByteArray()) }
@@ -107,7 +107,7 @@ class LoginActivity : Activity() {
                 if (code < 400) "ok:${jar.size}" else "err:" + body.take(200)
             } catch (e: Exception) { "err:" + (e.message ?: "sin conexión con Petalwave") }
             runOnUiThread {
-                CookieManager.getInstance().removeAllCookies(null)   // la sesión queda solo en Petalwave
+                CookieManager.getInstance().removeAllCookies { App.setTokenCookie() }   // la sesión queda solo en Petalwave
                 onResult?.invoke(res); onResult = null
                 finish()
             }
@@ -115,7 +115,7 @@ class LoginActivity : Activity() {
     }
 
     override fun onDestroy() {
-        if (!done) { onResult?.invoke("cancel"); onResult = null; CookieManager.getInstance().removeAllCookies(null) }
+        if (!done) { onResult?.invoke("cancel"); onResult = null; CookieManager.getInstance().removeAllCookies { App.setTokenCookie() } }
         web.destroy()
         super.onDestroy()
     }

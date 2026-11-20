@@ -86,7 +86,8 @@ class Updater {
     const full = (r.assets || []).find((a) => /windows\.zip$/.test(a.name));
     this.last = {
       current: this.current, latest, hasUpdate: !!latest && cmpVer(latest, this.current) > 0,
-      canAuto: !!asset, size: asset ? asset.size : 0, url: asset ? asset.browser_download_url : null,
+      canAuto: !!(asset && /^sha256:[a-f0-9]{64}$/.test(asset.digest || '')), size: asset ? asset.size : 0, url: asset ? asset.browser_download_url : null,
+      sha256: asset && /^sha256:[a-f0-9]{64}$/.test(asset.digest || '') ? asset.digest.slice(7) : null,
       fullUrl: full ? full.browser_download_url : r.html_url, page: r.html_url,
       title: r.name || 'petalwave ' + latest, notes: String(r.body || '').slice(0, 4000), date: r.published_at,
     };
@@ -102,7 +103,7 @@ class Updater {
     const upd = m.update && ok(m.update.url) ? m.update : null;
     this.last = {
       current: this.current, latest, hasUpdate: cmpVer(latest, this.current) > 0,
-      canAuto: !!upd, size: upd ? upd.size : 0, url: upd ? upd.url : null, sha256: upd && /^[a-f0-9]{64}$/.test(upd.sha256 || '') ? upd.sha256 : null,
+      canAuto: !!(upd && /^[a-f0-9]{64}$/.test(upd.sha256 || '')), size: upd ? upd.size : 0, url: upd ? upd.url : null, sha256: upd && /^[a-f0-9]{64}$/.test(upd.sha256 || '') ? upd.sha256 : null,
       fullUrl: m.full && ok(m.full.url) ? m.full.url : m.page, page: ok(m.page) ? m.page : `https://github.com/${REPO}/releases/latest`,
       title: m.title || 'petalwave ' + latest, notes: String(m.notes || '').slice(0, 4000), date: m.date, via: 'manifest',
     };
@@ -122,6 +123,8 @@ class Updater {
       const info = this.last && Date.now() - this.lastAt < 10 * 60e3 ? this.last : await this.check(true);
       if (!info.hasUpdate) throw new Error('ya tenés la última versión (' + info.current + ')');
       if (!info.url) throw new Error('esta versión no trae actualización automática: bajá el zip completo');
+      // sin huella SHA-256 publicada no se instala nada (no hay forma de comprobar que el paquete es el original)
+      if (!/^[a-f0-9]{64}$/.test(info.sha256 || '')) throw new Error('esta actualización no trae verificación SHA-256: bajá el zip completo desde la página de GitHub');
       fs.rmSync(this.dir, { recursive: true, force: true });
       fs.mkdirSync(this.dir, { recursive: true });
       const zip = path.join(this.dir, ASSET);
@@ -138,7 +141,7 @@ class Updater {
         if (!r) await new Promise((w) => setTimeout(w, 2000 * (i + 1)));
       }
       if (!r) throw new Error('la descarga quedó incompleta, probá de nuevo');
-      if (info.sha256) {
+      {
         const h = crypto.createHash('sha256').update(fs.readFileSync(zip)).digest('hex');
         if (h !== info.sha256) throw new Error('el paquete descargado no coincide con el publicado (verificación SHA-256): no se instaló nada');
       }

@@ -1,5 +1,11 @@
 # petalwave — registro de cambios
 
+## 2.7.2 — seguridad del servidor local
+- **El servidor local solo le responde a Petalwave.** Antes, una página web abierta en el navegador podía mandarle pedidos (cambiar ajustes, empezar descargas o actualizaciones). Ahora se rechaza (403) todo pedido que llegue con otro `Host` (frena el *DNS rebinding*), con `Sec-Fetch-Site` de otro sitio o con un `Origin` ajeno. Solo se exceptúa la vuelta del inicio de sesión de Spotify, que ya está protegida por `state` y PKCE.
+- **Android 1.2.2:** además, una clave al azar por cada arranque (`X-Petalwave-Token` o la cookie `pwt`, `HttpOnly` y `SameSite=Strict`) para todo `/api`: otras apps del teléfono no pueden leer ni cambiar nada.
+- **Actualizaciones:** solo se instalan si el paquete trae huella SHA-256 y coincide. Sin huella, el botón manda a bajar el zip a mano. Si se usa la API de GitHub de respaldo, se toma el `digest` que GitHub publica de cada archivo.
+- **Tu sesión en disco:** en Windows, `cookies.txt` y la carpeta `data` (con `spotify.json`) quedan con permisos solo para tu usuario y el sistema (`icacls`). En Android ya estaban en el almacenamiento privado de la app y sin copia de seguridad.
+
 ## 2.7.1 — carpetas de la biblioteca
 - **Android 1.2.1:** se pueden agregar y quitar carpetas de la biblioteca (antes el servidor de Android no lo permitía y las volvía a armar al abrir la app). **+ carpeta** abre el explorador de archivos del teléfono (`ACTION_OPEN_DOCUMENT_TREE`); sirve la memoria interna y la tarjeta SD. Las carpetas se recuerdan (`foldersExtra` / `foldersHidden`). Las rutas se muestran como *Teléfono › Music*.
 - La carpeta donde se guardan las descargas no se quita en silencio: en Android queda fija y en Windows avisa si es la única.
