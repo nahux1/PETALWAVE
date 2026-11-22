@@ -332,7 +332,11 @@ class Stats:
 
     def record(self, b):
         t = LIB.tracks.get(b.get("id"))
-        sec = float(b.get("seconds") or 0)
+        try:
+            sec = float(b.get("seconds") or 0)
+            float(b.get("duration") or 0)
+        except (TypeError, ValueError):
+            return
         if not t or sec <= 0:
             return
         dur = float(b.get("duration") or t.get("duration") or 0)
@@ -1000,7 +1004,8 @@ class H(BaseHTTPRequestHandler):
         if raw:
             return data
         try:
-            return json.loads(data.decode("utf-8") or "{}")
+            v = json.loads(data.decode("utf-8") or "{}")
+            return v if isinstance(v, dict) else {}   # solo objetos: null, listas o textos no sirven
         except Exception:  # noqa: BLE001
             return {}
 
@@ -1196,12 +1201,18 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/settings" and M == "POST":
             b = self.body()
             if isinstance(b.get("ui"), dict):
-                S.data["ui"] = {**S.data.get("ui", {}), **b["ui"]}
+                merged = {**S.data.get("ui", {}), **{k: v for k, v in b["ui"].items() if isinstance(k, str) and len(k) <= 64}}
+                if len(json.dumps(merged)) > 1024 * 1024:
+                    return self.send_json(413, {"error": "ajustes demasiado grandes"})
+                S.data["ui"] = merged
             for k in ("lyricsOnline", "lyricsYtm", "videoToDownloads"):
                 if isinstance(b.get(k), bool):
                     S.data[k] = b[k]
-            if b.get("concurrency"):
-                S.data["concurrency"] = max(1, min(4, int(b["concurrency"])))
+            try:
+                if b.get("concurrency"):
+                    S.data["concurrency"] = max(1, min(4, int(float(b["concurrency"]))))
+            except (TypeError, ValueError):
+                pass
             S.save()
             return self.send_json(200, S.data)
 
@@ -1341,6 +1352,8 @@ class H(BaseHTTPRequestHandler):
             try:
                 if p == "/api/ytm/status":
                     return self.send_json(200, ytm("status"))
+                if p == "/api/ytm/search" and not (q.get("q") or "").strip():
+                    return self.send_json(200, {"items": []})
                 if p == "/api/ytm/search":
                     flt = q.get("filter") if q.get("filter") in ("songs", "videos", "albums", "playlists") else "songs"
                     return self.send_json(200, {"items": annotate(ytm("search", {"q": q.get("q", "")[:200], "filter": flt, "limit": 30}, 600))})
@@ -1351,7 +1364,7 @@ class H(BaseHTTPRequestHandler):
                 if p == "/api/ytm/history":
                     return self.send_json(200, {"items": annotate(ytm("history", {}, 30))})
                 if p == "/api/ytm/songs":
-                    ids = [x for x in (q.get("ids") or "").split(",") if re.fullmatch(r"[\w-]{11}", x)][:200]
+                    ids = list(dict.fromkeys(x for x in (q.get("ids") or "").split(",") if re.fullmatch(r"[\w-]{11}", x)))[:200]
                     return self.send_json(200, annotate_list(ytm("songs", {"ids": ids}, 3600)))
                 m = re.fullmatch(r"/api/ytm/(playlist|album|radio)/([\w-]+)", p)
                 if m:

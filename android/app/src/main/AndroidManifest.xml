@@ -58,6 +58,10 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" />
         </receiver>
+        <!-- botones del widget: receptor privado (ninguna otra app puede usarlo) -->
+        <receiver
+            android:name=".WidgetButtons"
+            android:exported="false" />
 
         <service
             android:name=".PlayerService"

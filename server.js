@@ -284,11 +284,19 @@ async function route(req, res) {
   if (p === '/api/settings' && M === 'POST') {
     const b = await body();
     if (b.__tooBig) return U.json(res, 413, { error: 'muy grande' });
-    if (b.ui && typeof b.ui === 'object') S.ui = { ...S.ui, ...b.ui };
+    if (b.ui && typeof b.ui === 'object' && !Array.isArray(b.ui)) {
+      // nombres de ajuste cortos y como mucho 1 MB en total (antes se podían guardar cientos de KB de basura que se cargan al abrir)
+      const merged = { ...S.ui };
+      for (const [k, v] of Object.entries(b.ui)) if (k.length <= 64 && k !== '__proto__') merged[k] = v;
+      if (JSON.stringify(merged).length > 1024 * 1024) return U.json(res, 413, { error: 'ajustes demasiado grandes' });
+      S.ui = merged;
+    }
     if (typeof b.lyricsOnline === 'boolean') S.lyricsOnline = b.lyricsOnline;
     if (typeof b.lyricsYtm === 'boolean') S.lyricsYtm = b.lyricsYtm;
     if (b.concurrency) { S.concurrency = Math.max(1, Math.min(4, b.concurrency | 0)); downloads.pump(); }
     if (typeof b.videoToDownloads === 'boolean') S.videoToDownloads = b.videoToDownloads;
+    const okDir = (v) => typeof v === 'string' && v.length < 500 && path.isAbsolute(v);   // nada de números, objetos ni rutas relativas
+    if ((b.videoDir && !okDir(b.videoDir)) || (b.downloadDir && !okDir(b.downloadDir))) return U.json(res, 400, { error: 'Esa carpeta no es válida: elegila con el botón "cambiar"' });
     if (b.videoDir) {
       const d = path.resolve(String(b.videoDir));
       try { fs.mkdirSync(d, { recursive: true }); } catch { return U.json(res, 400, { error: 'No puedo usar esa carpeta' }); }
@@ -441,6 +449,7 @@ async function route(req, res) {
     const q = u.searchParams;
     try {
       if (p === '/api/ytm/status') return U.json(res, 200, ytm.available() ? await ytm.call('status', {}, { timeout: 30000 }) : { auth: false, unavailable: true, error: 'ytmusicapi no está instalado' });
+      if (p === '/api/ytm/search' && !String(q.get('q') || '').trim()) return U.json(res, 200, { items: [] });   // búsqueda vacía: no molestar a YouTube
       if (p === '/api/ytm/search') {
         const filter = ['songs', 'videos', 'albums', 'playlists'].includes(q.get('filter')) ? q.get('filter') : 'songs';
         return U.json(res, 200, { items: annotate(await ytm.call('search', { q: String(q.get('q') || '').slice(0, 200), filter, limit: 30 }, { cacheMs: 10 * 60e3 })) });
@@ -451,7 +460,7 @@ async function route(req, res) {
       if ((mm = m(/^\/api\/ytm\/playlist\/([\w-]+)$/))) return U.json(res, 200, annotateList(await ytm.call('playlist', { id: mm[1], limit: 1000 }, { timeout: 120000, cacheMs: 60e3 })));
       if ((mm = m(/^\/api\/ytm\/album\/([\w-]+)$/))) return U.json(res, 200, annotateList(await ytm.call('album', { browseId: mm[1] }, { cacheMs: 30 * 60e3 })));
       if (p === '/api/ytm/songs') {
-        const ids = String(q.get('ids') || '').split(',').filter((x) => /^[\w-]{11}$/.test(x)).slice(0, 200);
+        const ids = [...new Set(String(q.get('ids') || '').split(',').filter((x) => /^[\w-]{11}$/.test(x)))].slice(0, 200);   // sin repetidas
         return U.json(res, 200, annotateList(await ytm.call('songs', { ids }, { timeout: 120000, cacheMs: 60 * 60e3 })));
       }
       if ((mm = m(/^\/api\/ytm\/radio\/([\w-]{11})$/))) return U.json(res, 200, annotateList(await ytm.call('radio', { videoId: mm[1], limit: 50 }, { cacheMs: 10 * 60e3 })));

@@ -142,6 +142,7 @@ document.addEventListener('keydown', (e) => {
   const tag = e.target.tagName;
   const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable;
   if (e.key === 'Escape') {
+    if (!$('#gsearch').hidden) { e.preventDefault(); return bus.emit('gsearch:close'); }
     if (typing) { e.target.blur(); return; }
     if (!$('#full').hidden) return toggleFull(false);
     if (miniOn) return toggleMini(false);

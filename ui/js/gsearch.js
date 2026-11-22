@@ -94,4 +94,5 @@ export function initGsearch() {
   $('#gsClose').onclick = close;
   $('#gsearch').addEventListener('click', (e) => { if (e.target.id === 'gsearch') close(); });
   bus.on('gsearch', open);
+  bus.on('gsearch:close', close);
 }

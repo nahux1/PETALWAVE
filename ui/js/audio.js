@@ -106,7 +106,8 @@ class Engine {
     // silencio al final (cola larga callada): pasar a la siguiente sin esperar
     if (dur - now < Math.max(20, dur * 0.15)) {
       m.tailSil = db < -50 ? m.tailSil + 0.25 : 0;
-      if (m.tailSil >= 1.5 && !m.tailFired) {
+      // 3 s de silencio, o 1,5 s si ya faltan menos de 8 s (una pausa corta antes del final no corta la canción)
+      if ((m.tailSil >= 3 || (m.tailSil >= 1.5 && dur - now <= 8)) && !m.tailFired) {
         m.tailFired = true;
         if (this.crossfade > 0 && !this.nearEndFired) { this.nearEndFired = true; bus.emit('eng:nearend'); }
         else if (!this.nearEndFired) bus.emit('eng:ended');

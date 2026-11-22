@@ -10,6 +10,17 @@
   - CSP (solo scripts propios, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` y COOP en las dos versiones.
   - Windows: la ventana solo navega a su propia dirección exacta y solo acepta mensajes de la interfaz.
   - Android: WebView sin acceso a `file://` ni `content://`, Safe Browsing, límite de 600 MB por pedido y chequeo de carpeta estricto en `/ui/`.
+- **Errores encontrados atacando los servidores** (1256 pedidos con datos rotos; ninguno los tiró abajo):
+  - Un cuerpo que no es un objeto (`null`, una lista, un texto) daba error interno en 7 pedidos en Windows y en 6 en Android. Ahora se ignora.
+  - Ajustes: una "carpeta" que no era texto con ruta completa creaba carpetas llamadas `123` o `[object Object]` y las descargas iban ahí. Ahora se rechaza.
+  - Los ajustes de la interfaz aceptaban cientos de KB de basura que se cargaban al abrir. Ahora tienen nombres cortos y un límite de 1 MB.
+  - Android: un número de descargas simultáneas o unos segundos que no eran números daban error interno.
+  - Buscar con el texto vacío ya no le pregunta a YouTube.
+  - Los datos de canciones repetidas se piden una sola vez (antes, 300 repetidas tardaban 17 s).
+  - Un código de playlist pegado a mano importa como mucho 500 canciones.
+- **Transiciones inteligentes:** hacen falta 3 s de silencio para pasar de canción (o 1,5 s solo en los últimos 8 s), para no cortar una pausa antes del final.
+- **Buscador:** Esc lo cierra aunque el foco no esté en la caja.
+- **Android (encontrado analizando el APK compilado):** cualquier otra app del teléfono podía manejar la música con el mensaje del widget o abriendo Petalwave con un comando. Ahora los botones del widget van a un receptor privado (`WidgetButtons`) y la pantalla principal solo hace caso a comandos con la clave privada de la app.
 
 ## 2.9.0 — mixes, descargas inteligentes, tu año, QR y widget
 - **Volumen parejo** (`audio.js`): cada reproductor mide el RMS de su canción (sin contar silencios) con su propio analizador y ajusta una ganancia hacia −16 dBFS (entre −12 y +8 dB; hasta +3 dB los primeros 10 s si nunca se midió). La medida se guarda (`pw-loud`) y la próxima vez arranca ajustada.

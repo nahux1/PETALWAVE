@@ -31,7 +31,7 @@ export function decodePlaylist(code) {
   if (!m) throw new Error('Ese no es un código de playlist de Petalwave');
   let name = 'playlist compartida';
   try { name = unb64u(m[1]) || name; } catch {}
-  const ids = m[2].match(/[\w-]{11}/g) || [];
+  const ids = [...new Set(m[2].match(/[\w-]{11}/g) || [])].slice(0, 500);   // sin repetidas y con límite
   return { name, ids };
 }
 

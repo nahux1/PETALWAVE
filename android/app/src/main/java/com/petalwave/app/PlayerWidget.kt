@@ -41,8 +41,9 @@ class PlayerWidget : AppWidgetProvider() {
             if (a != null) v.setImageViewBitmap(R.id.w_cover, a) else v.setImageViewResource(R.id.w_cover, R.drawable.ic_note)
             val open = PendingIntent.getActivity(ctx, 10, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_IMMUTABLE)
             v.setOnClickPendingIntent(R.id.w_root, open)
+            // los botones van al receptor privado WidgetButtons (otras apps no pueden mandarle nada)
             fun btn(id: Int, cmd: String, code: Int) = v.setOnClickPendingIntent(id, PendingIntent.getBroadcast(ctx, code,
-                Intent(ctx, PlayerWidget::class.java).setAction("com.petalwave.app.W_" + cmd), PendingIntent.FLAG_IMMUTABLE))
+                Intent(ctx, WidgetButtons::class.java).putExtra("cmd", cmd), PendingIntent.FLAG_IMMUTABLE))
             btn(R.id.w_prev, "prev", 11); btn(R.id.w_toggle, "toggle", 12); btn(R.id.w_next, "next", 13)
             return v
         }
@@ -52,15 +53,4 @@ class PlayerWidget : AppWidgetProvider() {
         mgr.updateAppWidget(ids, views(ctx))
     }
 
-    override fun onReceive(ctx: Context, intent: Intent) {
-        super.onReceive(ctx, intent)
-        val act = intent.action ?: return
-        if (!act.startsWith("com.petalwave.app.W_")) return
-        val cmd = act.removePrefix("com.petalwave.app.W_")
-        // con Petalwave abierto (aunque esté de fondo) el botón va directo al reproductor; si no, abre la app y lo hace ahí
-        if (MainActivity.alive()) MainActivity.cmd(cmd)
-        else try {
-            ctx.startActivity(Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("pw_cmd", cmd))
-        } catch (_: Exception) { }
-    }
 }

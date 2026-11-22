@@ -53,7 +53,10 @@ function readBody(req, limit = 2e6) {
     req.on('data', (c) => { size += c.length; if (size <= limit) chunks.push(c); });
     req.on('end', () => {
       if (size > limit) return ok({ __tooBig: true });
-      try { ok(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); } catch { ok({}); }
+      try {
+        const v = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+        ok(v && typeof v === 'object' && !Array.isArray(v) ? v : {});   // solo objetos: null, listas o textos no sirven
+      } catch { ok({}); }
     });
     req.on('error', () => ok({}));
   });

@@ -94,7 +94,7 @@ class MainActivity : Activity() {
         setContentView(loading)
         askPermissions()
         handleShare(intent)
-        pendingCmd = intent?.getStringExtra("pw_cmd")
+        pendingCmd = trustedCmd(intent)
         // el servicio mantiene viva la música con la pantalla apagada y arranca el servidor interno
         val svc = Intent(this, PlayerService::class.java)
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
@@ -150,7 +150,7 @@ class MainActivity : Activity() {
     // compartir un link desde YouTube / YouTube Music / el navegador → va a la pantalla de descargas
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); handleShare(intent)
-        intent.getStringExtra("pw_cmd")?.let { cmd(it) }
+        trustedCmd(intent)?.let { cmd(it) }
     }
     private fun handleShare(i: Intent?) {
         if (i?.action != Intent.ACTION_SEND) return
@@ -186,6 +186,14 @@ class MainActivity : Activity() {
             val f = File(if (rel.isEmpty()) base else "$base/$rel")
             if (f.isDirectory) f.absolutePath else null
         } catch (_: Exception) { null }
+    }
+
+    // comandos del widget con la app cerrada: solo si traen la clave privada de Petalwave
+    // (la pantalla principal es pública porque la abre el lanzador; sin esto cualquier app podía manejar la música)
+    private fun trustedCmd(i: Intent?): String? {
+        val c = i?.getStringExtra("pw_cmd") ?: return null
+        if (c !in setOf("prev", "toggle", "next")) return null
+        return if (i.getStringExtra("pw_key") == WidgetButtons.key(this)) c else null
     }
 
     private fun hostMsg(m: String) {
