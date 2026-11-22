@@ -1,5 +1,6 @@
 // reproductor: cola, historial, repetir/aleatorio, reanudación, estadísticas, Media Session y UI de "now playing"
 import { $, $$, bus, P, api, toast, fmtTime, coverUrl, host, clamp } from './core.js';
+import { onListen } from './taste.js';
 import { engine } from './audio.js';
 import { D, T, trackLabel } from './data.js';
 import { themeForTrack } from './theme.js';
@@ -52,6 +53,7 @@ function endSession(completed) {
   if (s.sec < 2) return;
   const t = T(s.id);
   api.post('/api/stats/play', { id: s.id, seconds: Math.round(s.sec), duration: t ? t.duration : 0, completed }).catch(() => {});
+  onListen(t, s.sec, completed);   // gustos: escuchada entera, a medias o saltada (taste.js)
   if (t && (completed || s.sec >= Math.min(30, (t.duration || 60) * 0.5))) D.plays[s.id] = (D.plays[s.id] || 0) + 1;
 }
 

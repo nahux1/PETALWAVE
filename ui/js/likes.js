@@ -3,6 +3,7 @@
 import { $$, bus, api, toast } from './core.js';
 import { D, T, plOp } from './data.js';
 import { current } from './player.js';
+import { signal } from './taste.js';
 
 let ytmAuth = false;
 const likedList = () => D.playlists.find((p) => p.id === 'liked');
@@ -25,6 +26,7 @@ export async function toggleLike(id, on) {
     catch { sub += ' · (YouTube Music no respondió)'; }
   }
   toast(want ? 'Me gusta ♥' : 'Quitado de Me gusta', { sub, ms: 1800 });
+  signal(want ? 'like' : 'unlike', t);
   bus.emit('like', { id, on: want });
 }
 

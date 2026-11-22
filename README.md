@@ -20,6 +20,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 **Mover ventanas:** mantené apretada una ventana medio segundo y arrastrala: al costado para ordenarla o a cualquier lugar para dejarla flotando. Doble clic en su título la devuelve.
 **Si tu PC es lenta:** tocá el botón **✦** de la barra hasta que diga **⚡ máximo rendimiento** (apaga efectos y gasta hasta un 27% menos de memoria).
 **Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*.
+**Recomendaciones:** Petalwave aprende de lo que escuchás entero, lo que saltás y tus ♥. En la biblioteca → *para vos*: **recomendadas** (de tus canciones) y **descubrí** (canciones nuevas de YouTube Music que no tenés). Cuando se termina la cola sigue solo con canciones a tu gusto.
 **Me gusta:** tocá el ♥ del reproductor (o la tecla `h`): la canción queda en la playlist *Me gusta*, con o sin cuenta. Con sesión iniciada también se marca en YouTube Music.
 
 **Lo básico:** `1` música · `2` descargas (pegá un link y listo, sin cookies) · `3` YouTube Music y Spotify ·
@@ -27,7 +28,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 
 ## 📱 Android (APK)
 
-1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.2.2.apk`** (en "Assets").
+1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.3.0.apk`** (en "Assets").
 2. Abrí el archivo descargado. Si el teléfono pregunta, tocá **Ajustes** → activá **Permitir de esta fuente** → volvé atrás → **Instalar**.
 3. Si aparece **Play Protect** ("app no verificada"): tocá **Más detalles** → **Instalar de todas formas**. Sale porque la app no está en Play Store; es normal.
 4. Abrí **Petalwave** y aceptá los permisos de música y notificaciones.

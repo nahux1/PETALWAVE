@@ -90,7 +90,7 @@ export const SHORTCUT_LABELS = {
   lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', like: 'me gusta', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
 };
 const DEFAULT_PREFS = {
-  theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true,
+  theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true, autoRecs: true,
   notify: true, notifyToast: true, blur: true, anim: true, compact: false, sideTab: 'queue', ws: 'music',
   libView: 'songs', libSort: { key: 'added', dir: -1 },
   shortcuts: { ...DEFAULT_SHORTCUTS },

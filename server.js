@@ -112,6 +112,16 @@ function annotate(list) {
 const annotateList = (o) => { if (o && o.tracks) annotate(o.tracks); return o; };
 const ytmErr = (res, e) => U.json(res, e.auth ? 401 : 502, { error: e.message, auth: !!e.auth });
 const playlists = new U.JsonStore(path.join(DATA, 'playlists.json'), () => ({ items: [] }));
+// gustos: señales de escucha (escuchada entera, saltada, me gusta, "no me interesa"…) para las recomendaciones (ui/js/taste.js)
+const taste = new U.JsonStore(path.join(DATA, 'taste.json'), () => ({ events: [] }));
+const TASTE_KINDS = new Set(['play', 'skip', 'like', 'unlike', 'nope', 'pl']);
+const cleanEvent = (e) => {
+  if (!e || !TASTE_KINDS.has(e.k)) return null;
+  const s = (v, n) => (v == null ? undefined : String(v).slice(0, n));
+  const num = (v) => (Number.isFinite(+v) ? Math.round(+v) : undefined);
+  return { t: Math.min(Date.now(), num(e.t) || Date.now()), k: e.k, id: s(e.id, 40), yt: /^[\w-]{11}$/.test(e.yt || '') ? e.yt : undefined,
+    a: s(e.a, 120), ti: s(e.ti, 200), g: s(e.g, 60), y: num(e.y), s: num(e.s), d: num(e.d) };
+};
 
 // ---------- CPU / RAM ----------
 function cpuSnap() { let idle = 0, total = 0; for (const c of os.cpus()) { for (const k in c.times) total += c.times[k]; idle += c.times.idle; } return { idle, total }; }
@@ -385,6 +395,16 @@ async function route(req, res) {
   if ((mm = m(/^\/api\/similar\/([0-9a-f]{16})$/))) return U.json(res, 200, { ids: stats.similar(mm[1], +u.searchParams.get('n') || 25) });
 
   // ---------- estadísticas ----------
+  if (p === '/api/taste' && M === 'GET') return U.json(res, 200, { events: taste.data.events });
+  if (p === '/api/taste' && M === 'POST') {
+    const b = await body();
+    const evs = (Array.isArray(b.events) ? b.events : []).slice(0, 200).map(cleanEvent).filter(Boolean);
+    taste.data.events.push(...evs);
+    if (taste.data.events.length > 6000) taste.data.events.splice(0, taste.data.events.length - 6000);
+    taste.save();
+    return U.json(res, 200, { ok: true, n: evs.length });
+  }
+  if (p === '/api/taste' && M === 'DELETE') { taste.data.events = []; taste.save(true); return U.json(res, 200, { ok: true }); }
   if (p === '/api/stats/play' && M === 'POST') { stats.record(await body()); return U.json(res, 200, { ok: true }); }
   if (p === '/api/stats') return U.json(res, 200, stats.summary(u.searchParams.get('range') || 'month'));
 
@@ -584,6 +604,6 @@ server.listen(PORT, '127.0.0.1', () => {
   }
 });
 
-const shutdown = () => { downloads.stopAll(); ytm.stop(); playlists.save(true); settings.save(true); stats.store.save(true); library.store.save(true); process.exit(0); };
+const shutdown = () => { downloads.stopAll(); ytm.stop(); playlists.save(true); taste.save(true); settings.save(true); stats.store.save(true); library.store.save(true); process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

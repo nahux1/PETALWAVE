@@ -430,6 +430,31 @@ class Stats:
         return out
 
 
+# gustos: señales de escucha para las recomendaciones (las calcula la interfaz, ui/js/taste.js)
+TASTE_KINDS = {"play", "skip", "like", "unlike", "nope", "pl"}
+
+
+def clean_event(e):
+    if not isinstance(e, dict) or e.get("k") not in TASTE_KINDS:
+        return None
+    now = int(time.time() * 1000)
+
+    def s(k, n):
+        v = e.get(k)
+        return None if v is None else str(v)[:n]
+
+    def num(k):
+        try:
+            return int(round(float(e.get(k))))
+        except (TypeError, ValueError):
+            return None
+    out = {"t": min(now, num("t") or now), "k": e["k"], "id": s("id", 40), "a": s("a", 120), "ti": s("ti", 200), "g": s("g", 60),
+           "y": num("y"), "s": num("s"), "d": num("d")}
+    if re.fullmatch(r"[\w-]{11}", str(e.get("yt") or "")):
+        out["yt"] = e["yt"]
+    return {k: v for k, v in out.items() if v is not None}
+
+
 def playlist_op(b):
     items = PL.data["items"]
     now = int(time.time() * 1000)
@@ -1234,6 +1259,18 @@ class H(BaseHTTPRequestHandler):
                 return self.send_json(200, playlist_op(self.body()))
             except ValueError as e:
                 return self.send_json(400, {"error": str(e)})
+        if p == "/api/taste" and M == "GET":
+            return self.send_json(200, {"events": TASTE.data["events"]})
+        if p == "/api/taste" and M == "POST":
+            evs = [e for e in (clean_event(x) for x in (self.body().get("events") or [])[:200]) if e]
+            TASTE.data["events"].extend(evs)
+            TASTE.data["events"] = TASTE.data["events"][-6000:]
+            TASTE.save()
+            return self.send_json(200, {"ok": True, "n": len(evs)})
+        if p == "/api/taste" and M == "DELETE":
+            TASTE.data["events"] = []
+            TASTE.save(True)
+            return self.send_json(200, {"ok": True})
         if p == "/api/autoplaylists":
             return self.send_json(200, {"items": ST.auto()})
         m = re.fullmatch(r"/api/similar/([0-9a-f]{16})", p)
@@ -1439,7 +1476,7 @@ httpd = None
 
 def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs=None, token=""):
     """la llama MainActivity (Kotlin) al abrir la app; devuelve cuando el servidor ya escucha"""
-    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN
+    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN, TASTE
     if httpd:
         return port
     APP_VERSION = version
@@ -1461,6 +1498,7 @@ def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs
     S.save()
     LIB, ST, DL = Library(), Stats(), Downloads()
     PL = JsonStore(os.path.join(data_dir, "playlists.json"), lambda: {"items": []})
+    TASTE = JsonStore(os.path.join(data_dir, "taste.json"), lambda: {"events": []})
     httpd = ThreadingHTTPServer(("127.0.0.1", port), H)
     httpd.daemon_threads = True
     threading.Thread(target=httpd.serve_forever, daemon=True).start()

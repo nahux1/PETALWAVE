@@ -5,6 +5,29 @@ import { D, T, loadLibrary, loadPlaylists, loadAuto, plOp, trackLabel, ytm, load
 import { playList, playNext, addQueue, radio, S as PS, current } from './player.js';
 import { openRadio } from './ytmui.js';
 import { isLiked, toggleLike } from './likes.js';
+import { signal, recsLocal, recsOnline, cachedDiscover, profile, nope } from './taste.js';
+
+// ---------- recomendaciones (taste.js) ----------
+// se calculan al entrar a la vista o con "actualizar" (no en cada canción, para que la lista no salte)
+const REC = { local: null, disc: null, discLoading: false, discErr: '' };
+const WHY = new Map();
+function loadDisc(force) {
+  if (REC.discLoading) return;
+  REC.discLoading = true; REC.discErr = '';
+  if (view.type === 'disc') render();
+  recsOnline({ force }).then((r) => { REC.disc = r; for (const it of r.items) WHY.set('yt_' + it.videoId, it.why); })
+    .catch((e) => { REC.discErr = e.message; })
+    .finally(() => { REC.discLoading = false; if (view.type === 'disc') render(); });
+}
+function tasteLine() {
+  const p = profile();
+  const arts = p.topArtists.slice(0, 4).map((a) => { const t = D.tracks.find((x) => norm(x._a) === a.name); return t ? t._a : a.name; });
+  const bits = [];
+  if (arts.length) bits.push('escuchás ' + arts.join(', '));
+  if (p.topTags.length) bits.push('te gusta lo ' + p.topTags.slice(0, 2).map((x) => x.name).join(' y '));
+  if (p.topGenres.length) bits.push(p.topGenres.slice(0, 2).map((x) => x.name).join(', '));
+  return bits.join(' · ');
+}
 import { C } from './custom.js';
 
 const ROW_H = () => (document.body.classList.contains('compact') ? 38 : C().rowH);
@@ -19,6 +42,8 @@ export const lib = { view: () => view, ids: () => ids };
 // ---------- navegación ----------
 export function go(v) {
   view = v;
+  if (v.type === 'recs') { REC.local = recsLocal(60); for (const r of REC.local) WHY.set(r.id, r.why); }
+  if (v.type === 'disc' && !REC.disc) { const c = cachedDiscover(); if (c) { REC.disc = c; for (const it of c.items) WHY.set('yt_' + it.videoId, it.why); } else loadDisc(false); }
   sel.clear(); anchor = -1;
   $$('#lnav [data-view], #lnav [data-pl], #lnav [data-auto], #lnav [data-ytm]').forEach((b) => b.classList.toggle('on',
     (b.dataset.view && b.dataset.view === v.type && !v.key) || (b.dataset.pl && v.type === 'pl' && b.dataset.pl === v.key) ||
@@ -41,7 +66,7 @@ function renderNav() {
   $('#cSongs').textContent = D.tracks.length || '';
   $('#cArtists').textContent = artists.size || '';
   $('#cAlbums').textContent = albums.size || '';
-  $('#navAuto').innerHTML = D.auto.slice(0, 9).map((a) => `<button data-auto="${esc(a.id)}" title="${esc(a.desc)}">${esc(a.name)}<span class="c">${a.tracks.length}</span></button>`).join('') || '<div class="m" style="padding:2px 8px">escuchá algo y aparecen tus mixes</div>';
+  $('#navAuto').innerHTML = D.auto.filter((a) => a.id !== 'auto:foryou').slice(0, 9).map((a) => `<button data-auto="${esc(a.id)}" title="${esc(a.desc)}">${esc(a.name)}<span class="c">${a.tracks.length}</span></button>`).join('') || '<div class="m" style="padding:2px 8px">escuchá algo y aparecen tus mixes</div>';
   // listas de tu cuenta de YouTube Music: suenan online sin descargar (lo que ya tenés, desde el archivo)
   const st = ytm.status;
   const cnt = (k) => { const l = ytm.lists.get(k); return l ? l.ids.length : ''; };
@@ -101,6 +126,8 @@ function viewTracksRaw() {
     case 'genre': return sorted(filtered(all.filter((t) => (t.genre || '—') === view.key)), P.get('libSort'));
     case 'year': return sorted(filtered(all.filter((t) => String(t.year || '—') === view.key)), { key: 'artist', dir: 1 });
     case 'pl': { const p = D.playlists.find((x) => x.id === view.key); return p ? filtered(p.tracks.map(T).filter(Boolean)) : []; }
+    case 'recs': return filtered((REC.local || []).map((r) => T(r.id)).filter(Boolean));
+    case 'disc': return filtered((REC.disc ? REC.disc.items : []).map((it) => T('yt_' + it.videoId)).filter(Boolean));
     case 'auto': { const a = D.auto.find((x) => x.id === view.key); return a ? filtered(a.tracks.map(T)) : []; }
     case 'ytm': {
       const l = ytm.lists.get(view.key);
@@ -154,6 +181,16 @@ function headerHtml(list) {
         <div class="sub">youtube music · ☁ ${online} online sin descargar · ${list.length - online} en tu PC · ${esc(syncTxt)}</div><h2 data-raw>${esc(name)}</h2>
         <div class="sub">${sub}${l.error ? ' · <span style="color:var(--warn)">' + esc(l.error) + '</span>' : ''}</div>${acts(extra)}</div></div>`;
     }
+    case 'recs': case 'disc': {
+      const p = profile();
+      const disc = view.type === 'disc';
+      const cold = p.positives < 3 ? '<div class="sub rec-cold">todavía te conozco poco: escuchá canciones enteras, saltá las que no te gustan y tocá ♥ para que las recomendaciones mejoren</div>' : '';
+      const state = disc ? (REC.discLoading ? 'buscando canciones nuevas para vos…' : REC.discErr ? '<span style="color:var(--warn)">' + esc(REC.discErr) + '</span>' : REC.disc ? 'actualizado ' + ago(REC.disc.at) + ' · suenan online, sin descargar' : '') : '';
+      const extra = `<button class="cb" data-h="recsnew">${icon('sync')} ${disc ? 'buscar nuevas' : 'otra mezcla'}</button>`;
+      const line = tasteLine();
+      return `<div class="ttlbar"><div><div class="sub">${disc ? 'descubrí · youtube music' : 'recomendadas · de tu biblioteca'}</div><h2>${disc ? 'Canciones nuevas para vos' : 'Para vos'}</h2>
+        <div class="sub">${line ? 'Según tus gustos: ' + esc(line) : 'según lo que escuchás'}${state ? ' · ' + state : ''}</div><div class="sub">${sub}</div>${cold}${acts(extra)}</div></div>`;
+    }
     case 'recent': return `<div class="ttlbar"><div><h2>recientes</h2><div class="sub">lo último que entró a la biblioteca · ${sub}</div>${acts()}</div></div>`;
     default: return `<div class="ttlbar" style="padding-bottom:6px"><div><div class="sub">${sub}${D.scan && D.scan.scanning ? ' · escaneando…' : ''}</div>${acts()}</div></div>`;
   }
@@ -183,6 +220,7 @@ function bindHeader(head, list) {
     render();
   }));
   head.querySelectorAll('[data-h]').forEach((b) => (b.onclick = async () => {
+    if (b.dataset.h === 'recsnew') { if (view.type === 'disc') return loadDisc(true); REC.local = recsLocal(60); for (const r of REC.local) WHY.set(r.id, r.why); return render(); }
     const a = b.dataset.h;
     if (a === 'play') playList(ids, 0, { shuffle: false });
     if (a === 'shuffle') playList(ids, Math.floor(Math.random() * ids.length), { shuffle: true });
@@ -224,7 +262,7 @@ function renderTable(body) {
       const t = T(ids[i]); if (!t) continue;
       html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}" draggable="true">
         <span class="ix"><span class="num">${t.id === cur ? '♪' : view.type === 'album' && t.trackNo ? t.trackNo : i + 1}</span><span class="pi" data-play>${icon('play')}</span></span>
-        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}</div></span></span>
+        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}${(view.type === 'recs' || view.type === 'disc') && WHY.get(t.id) ? `<span class="why"> · ${esc(WHY.get(t.id))}</span>` : ''}</div></span></span>
         <span class="c2">${esc(t.album || '')}</span>
         <span class="num2">${fmtTime(t.duration)}</span>
         <span class="num2">${D.plays[t.id] || ''}</span>
@@ -285,6 +323,7 @@ export function trackMenu(x, y, idsArg) {
         ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: p.id === 'liked' ? 'heart' : 'lyr', fn: () => addToPl(p.id, chosen) })),
       ] },
       plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
+      (view.type === 'recs' || view.type === 'disc') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
       { label: remote.length > 1 ? `descargar ${remote.length} a mi PC` : 'descargar a mi PC', icon: 'dl', fn: async () => {
         const d = P.get('dl'), format = d.format === 'mp4' ? 'mp3' : d.format;
         try { const r = await api.post('/api/downloads', { urls: remote.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' }); toast(`${r.ids.length} en cola ⇣`); }
@@ -308,6 +347,7 @@ export function trackMenu(x, y, idsArg) {
       ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
     ] },
     plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
+    (view.type === 'recs' || view.type === 'disc') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
     { sep: true },
     one && { label: 'ir al artista', icon: 'radio', fn: () => go({ type: 'artist', key: one._a }) },
     one && one.album && { label: 'ir al álbum', icon: 'folder', fn: () => go({ type: 'album', key: { album: one.album, artist: one.albumArtist || one.artist } }) },
@@ -317,10 +357,20 @@ export function trackMenu(x, y, idsArg) {
     { label: chosen.length > 1 ? `enviar ${chosen.length} a la papelera` : 'enviar a la papelera', icon: 'x', danger: true, fn: () => trash(chosen) },
   ]);
 }
+function notInterested(chosen) {
+  for (const id of chosen) nope(T(id));
+  const out = new Set(chosen);
+  if (REC.local) REC.local = REC.local.filter((r) => !out.has(r.id));
+  if (REC.disc) REC.disc = { ...REC.disc, items: REC.disc.items.filter((it) => !out.has('yt_' + it.videoId)) };
+  sel.clear();
+  toast(chosen.length > 1 ? 'no te las vuelvo a recomendar' : 'no te la vuelvo a recomendar', { sub: 'y le doy menos peso a ese estilo', ms: 1800 });
+  render();
+}
 async function addToPl(pid, chosen) {
   const p = D.playlists.find((x) => x.id === pid);
   const before = p ? p.tracks.length : 0;
   await plOp({ id: pid, add: chosen });
+  if (pid !== 'liked') for (const id of chosen) signal('pl', T(id));
   const after = (D.playlists.find((x) => x.id === pid) || {}).tracks.length;
   toast(after > before ? `agregada${after - before > 1 ? 's ' + (after - before) : ''} a «${p.name}»` : 'ya estaba en la playlist', { ms: 1600 });
   if (view.type === 'pl' && view.key === pid) render();

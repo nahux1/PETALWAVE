@@ -14,6 +14,7 @@ import { renderSettings, keyName, isRecordingKey } from './settings.js';
 import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } from './viz.js';
 import { initYtm } from './ytmui.js';
 import { initLikes, likeCurrent } from './likes.js';
+import { loadTaste, recsOnline, recsLocal } from './taste.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
@@ -296,10 +297,23 @@ async function boot() {
   host.send('tray:' + (P.get('closeToTray') !== false ? 1 : 0));   // la ✕ minimiza a la bandeja (ajustes → reproducción)
   try { setDeps(await api.get('/api/status')); } catch {}
   connectStream();
-  await Promise.all([loadLibrary(), loadPlaylists(), loadAuto()]);
+  await Promise.all([loadLibrary(), loadPlaylists(), loadAuto(), loadTaste()]);
   player.restore();
   player.renderNP();
   setWs(P.get('ws') || 'music');
+  // cola terminada: seguir con canciones según tus gustos (ajustes → reproducción)
+  bus.on('ended-queue', async () => {
+    if (P.get('autoRecs') === false) return;
+    const inQ = new Set(player.S.queue);
+    let ids = [];
+    try { const r = await Promise.race([recsOnline(), new Promise((_, no) => setTimeout(() => no(new Error('lento')), 12000))]); ids = r.items.map((it) => 'yt_' + it.videoId); } catch {}
+    if (ids.filter((id) => !inQ.has(id)).length < 5) ids = ids.concat(recsLocal(30).map((r) => r.id));
+    ids = [...new Set(ids)].filter((id) => !inQ.has(id) && T(id)).slice(0, 12);
+    if (!ids.length) return;
+    player.addQueue(ids);
+    toast('sigue con recomendaciones para vos ❀', { sub: 'ajustes → reproducción para apagarlo', ms: 2200 });
+    player.next({ auto: true });
+  });
   // eventos del servidor
   const reload = debounce(async () => { await loadLibrary(); loadAuto(); }, 700);
   bus.on('sse:library', reload);

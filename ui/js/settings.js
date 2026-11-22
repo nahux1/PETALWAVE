@@ -47,6 +47,7 @@ export async function renderSettings() {
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
       ${chk('resume', 'reanudar al abrir', 'vuelve a donde quedaste')}
+      ${chk('autoRecs', 'seguir con recomendaciones', 'cuando termina la cola, sigue con canciones según tus gustos', 'Usa las recomendaciones de "para vos": de YouTube Music (canciones nuevas) si está disponible, si no de tu biblioteca.')}
       <label class="cfrow"><span>la ✕ minimiza a la bandeja${tip('Al tocar la cruz, petalwave se esconde al lado del reloj de Windows y la música sigue sonando. Para cerrarlo del todo: clic derecho en la flor de la bandeja → Salir.')}<span class="m">la música sigue sonando · se cierra desde la bandeja</span></span><input type="checkbox" id="cTray" ${p.closeToTray !== false ? 'checked' : ''}></label>
       ${chk('notifyToast', 'aviso al cambiar de canción', 'en la esquina de la ventana')}
       ${chk('notify', 'notificación de Windows', 'si petalwave está en segundo plano')}

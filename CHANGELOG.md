@@ -1,5 +1,14 @@
 # petalwave — registro de cambios
 
+## 2.8.0 — recomendaciones según tus gustos
+- **Petalwave aprende lo que te gusta** (`ui/js/taste.js`, el mismo en Windows y Android). Guarda señales de escucha en `data/taste.json`: escuchada entera +1, más de la mitad +0.5, saltada en los primeros segundos −1, me gusta +3, quitar me gusta −2, agregar a una playlist +1.5, "no me interesa" −3. Cada señal pierde la mitad de su peso cada 45 días.
+- Con esas señales arma tu **perfil**: artistas, artistas invitados, género, estilo (slowed, phonk, remix, lofi, hardtekk…) y década. Sirve también para canciones que nunca escuchaste. Las reproducciones y los me gusta de antes cuentan desde el primer día.
+- **Recomendadas** (biblioteca → para vos): tus canciones ordenadas por tu perfil, con menos peso a lo que sonó hace poco, un poco de azar del día para descubrir y como mucho 3 por artista. Cada una dice por qué ("porque escuchás…", "te gusta lo slowed").
+- **Descubrí**: canciones nuevas de YouTube Music. Toma las radios de tus canciones favoritas y lo más escuchado de tus artistas, saca lo que ya tenés y lo que marcaste "no me interesa", y ordena con tu perfil. Suenan online sin descargar y se renueva cada 6 horas o con "buscar nuevas".
+- **No me interesa** en el menú de cada recomendación.
+- **Seguir con recomendaciones** cuando termina la cola (ajustes → reproducción, activado).
+- Servidor: `GET/POST/DELETE /api/taste`. Solo acepta señales válidas y en Android pide la clave.
+
 ## 2.7.2 — seguridad del servidor local
 - **El servidor local solo le responde a Petalwave.** Antes, una página web abierta en el navegador podía mandarle pedidos (cambiar ajustes, empezar descargas o actualizaciones). Ahora se rechaza (403) todo pedido que llegue con otro `Host` (frena el *DNS rebinding*), con `Sec-Fetch-Site` de otro sitio o con un `Origin` ajeno. Solo se exceptúa la vuelta del inicio de sesión de Spotify, que ya está protegida por `state` y PKCE.
 - **Android 1.2.2:** además, una clave al azar por cada arranque (`X-Petalwave-Token` o la cookie `pwt`, `HttpOnly` y `SameSite=Strict`) para todo `/api`: otras apps del teléfono no pueden leer ni cambiar nada.
