@@ -1,0 +1,6 @@
+Librerías incluidas en Petalwave (sin modificar):
+
+- qrcode.js — QR Code Generator for JavaScript 1.4.4, Copyright (c) 2009 Kazuhiko Arase. Licencia MIT.
+  https://github.com/kazuhikoarase/qrcode-generator
+- jsQR.js — jsQR 1.4.0, Copyright Cosmo Wolfe. Licencia Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+  https://github.com/cozmo/jsQR

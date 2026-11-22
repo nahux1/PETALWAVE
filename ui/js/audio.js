@@ -1,6 +1,15 @@
 // motor de audio: 2 reproductores (para fundir canciones) + video, cadena EQ 10 bandas, normalizador y limitador.
 // Cadena: deck(s) → mezcla → preamp → graves → 10 bandas → agudos → balance → [normalizar] → analizador → volumen → limitador → salida
-import { bus, mediaUrl } from './core.js';
+import { bus, mediaUrl, local } from './core.js';
+
+// ---------- volumen parejo ----------
+// Se mide el volumen real de cada canción mientras suena (RMS sin contar silencios) y se ajusta su ganancia
+// para que todas suenen parecido. La medida se recuerda: la próxima vez arranca ya ajustada.
+const TARGET_DB = -16;          // volumen objetivo (RMS en dBFS); la mayoría de la música está entre −20 y −9
+const LOUD_KEY = 'pw-loud';
+const loudMap = local.get(LOUD_KEY, {}) || {};
+let loudDirty = 0;
+const saveLoud = () => { const k = Object.keys(loudMap); if (k.length > 3000) for (const x of k.slice(0, k.length - 3000)) delete loudMap[x]; local.set(LOUD_KEY, loudMap); };
 
 export const EQ_FREQS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 const dbToGain = (db) => Math.pow(10, db / 20);
@@ -16,6 +25,8 @@ class Engine {
     this.fadeToken = 0;
     this.nearEndFired = false;
     this.crossfade = 2;
+    this.autoLevel = true;   // volumen parejo
+    this.smart = true;       // saltar silencios al principio y al final
   }
 
   init(videoEl) {
@@ -49,8 +60,11 @@ class Engine {
       el.crossOrigin = 'anonymous'; el.preload = 'auto';
       const src = ctx.createMediaElementSource(el);
       const gain = ctx.createGain(); gain.gain.value = 0;
-      src.connect(gain); gain.connect(this.mix);
-      const d = { el, gain, video: el.tagName === 'VIDEO' };
+      // cada reproductor mide su propio volumen (así, durante un fundido, cada canción se mide sola)
+      const lgain = ctx.createGain();
+      const meter = ctx.createAnalyser(); meter.fftSize = 2048;
+      src.connect(meter); src.connect(lgain); lgain.connect(gain); gain.connect(this.mix);
+      const d = { el, gain, lgain, meter, buf: new Float32Array(2048), video: el.tagName === 'VIDEO' };
       this.bind(d);
       return d;
     };
@@ -59,7 +73,53 @@ class Engine {
     this.freq = new Uint8Array(this.analyser.frequencyBinCount);
     this.wave = new Float32Array(this.analyser.fftSize);
     this.lr = new Float32Array(this.aL.fftSize);
+    setInterval(() => this.tick(), 250);
   }
+
+  // cada 250 ms: medir el volumen de la canción que suena y detectar silencios
+  tick() {
+    const d = this.active;
+    if (!d || d.el.paused || !this.track || d.video) return;
+    d.meter.getFloatTimeDomainData(d.buf);
+    let e = 0; for (let i = 0; i < d.buf.length; i++) e += d.buf[i] * d.buf[i];
+    const ms = e / d.buf.length, db = ms > 1e-12 ? 10 * Math.log10(ms) : -120;
+    const m = d.m;
+    if (!m || m.id !== this.track.id) return;
+    const el = d.el, dur = el.duration, now = el.currentTime;
+    // volumen parejo: promedio de energía de las partes con sonido
+    if (db > -50) { m.sum += ms; m.n++; }
+    if (this.autoLevel && m.n >= 8 && m.n % 4 === 0) {
+      const loud = 10 * Math.log10(m.sum / m.n);
+      const prev = loudMap[m.id];
+      // la medida guardada se va afinando con cada escucha
+      const est = prev == null ? loud : prev * 0.7 + loud * 0.3;
+      if (m.n >= 40 || prev == null) { loudMap[m.id] = Math.round(est * 10) / 10; if (++loudDirty % 3 === 0) saveLoud(); }
+      // con pocos segundos medidos y sin medida guardada, subir con cuidado (un intro suave engaña)
+      this.applyLevel(d, est, 1.2, prev == null && m.n < 40 ? 3 : 8);
+    }
+    if (!this.smart || !isFinite(dur) || dur < 20) return;
+    // silencio al principio (más de 1 s callado en los primeros 8 s): saltarlo
+    if (!m.lead && now < 8) {
+      if (db < -60) { m.leadSil += 0.25; if (m.leadSil >= 1 && now + 1 < dur) el.currentTime = now + 1; }
+      else m.lead = true;
+    }
+    // silencio al final (cola larga callada): pasar a la siguiente sin esperar
+    if (dur - now < Math.max(20, dur * 0.15)) {
+      m.tailSil = db < -50 ? m.tailSil + 0.25 : 0;
+      if (m.tailSil >= 1.5 && !m.tailFired) {
+        m.tailFired = true;
+        if (this.crossfade > 0 && !this.nearEndFired) { this.nearEndFired = true; bus.emit('eng:nearend'); }
+        else if (!this.nearEndFired) bus.emit('eng:ended');
+      }
+    }
+  }
+  // ganancia para llegar al volumen objetivo (entre −12 y +8 dB, para no exagerar)
+  applyLevel(d, loud, tau = 0.05, maxUp = 8) {
+    const gdb = this.autoLevel && loud != null ? Math.max(-12, Math.min(maxUp, TARGET_DB - loud)) : 0;
+    const p = d.lgain.gain, t = this.ctx.currentTime;
+    p.cancelScheduledValues(t); p.setTargetAtTime(dbToGain(gdb), t, tau);
+  }
+  setAutoLevel(on) { this.autoLevel = !!on; for (const d of this.decks) if (d.m) this.applyLevel(d, on ? loudMap[d.m.id] : null, 0.3); }
 
   bind(d) {
     const on = (ev, fn) => d.el.addEventListener(ev, (e) => { if (d === this.active) fn(e); });
@@ -105,6 +165,9 @@ class Engine {
     if (next === old) { // mismo deck (p. ej. video → video): fundido corto de salida
       this.ramp(next, 0, 0.05); await wait(60);
     }
+    if (loudDirty) saveLoud();   // guardar lo medido de la anterior
+    next.m = { id: track.id, sum: 0, n: 0, leadSil: 0, lead: !!startAt, tailSil: 0, tailFired: false };
+    if (!next.video) this.applyLevel(next, loudMap[track.id], 0.02);   // si ya la medimos, arranca ajustada
     next.el.src = mediaUrl(track.id);
     next.el.currentTime = 0;
     if (startAt > 0) {
@@ -146,6 +209,7 @@ class Engine {
     if (playing) { this.ramp(d, 0, 0.04); await wait(45); }
     d.el.currentTime = Math.max(0, Math.min(d.el.duration - 0.25, t));
     this.nearEndFired = false;
+    if (d.m) { d.m.lead = true; d.m.tailSil = 0; d.m.tailFired = false; }   // si moviste la barra, no saltar nada solo
     if (playing) this.ramp(d, this.level(), 0.06);
     bus.emit('eng:seek');
   }

@@ -59,9 +59,11 @@ function endSession(completed) {
 
 // ---------- reproducir ----------
 async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false } = {}) {
-  const id = S.queue[i];
-  const t = T(id);
+  let id = S.queue[i];
+  let t = T(id);
   if (!t) return;
+  // canción online que ya está en tu biblioteca (por ejemplo, bajada por las descargas inteligentes): se usa el archivo
+  if (t.remote && t.ytId) { const loc = D.tracks.find((x) => x.ytId === t.ytId && !x.video); if (loc) { S.queue[i] = id = loc.id; t = loc; } }
   ensure();
   endSession(false);
   S.qi = i;
@@ -282,10 +284,13 @@ if ('mediaSession' in navigator) {
 }
 
 // ---------- volumen ----------
+bus.on('prefs', (k) => { if (k === 'autoLevel' || k === 'smartGaps') applySound(); });
 export function applySound() {
   const v = P.get('vol'), eq = P.get('eq');
   engine.setVolume(v.master, v.muted);
   engine.setNorm(!!v.norm);
+  engine.setAutoLevel(P.get('autoLevel') !== false);   // volumen parejo entre canciones
+  engine.smart = P.get('smartGaps') !== false;          // saltar silencios al principio y al final
   engine.setEq(eq);
   renderVol();
 }

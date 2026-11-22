@@ -25,6 +25,7 @@ class MainActivity : Activity() {
     companion object {
         @Volatile private var current: MainActivity? = null
         // botones de la notificación / auriculares / pantalla bloqueada → la interfaz (evento pw-cmd)
+        fun alive(): Boolean { val a = current; return a != null && a::web.isInitialized && App.serverReady }
         fun cmd(c: String) {
             val a = current ?: return
             a.runOnUiThread { if (a::web.isInitialized) a.web.evaluateJavascript("document.dispatchEvent(new CustomEvent('pw-cmd',{detail:" + JSONObject.quote(c) + "}))", null) }
@@ -34,6 +35,8 @@ class MainActivity : Activity() {
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingShare: String? = null
     private var pickId: String? = null
+    private var pendingCmd: String? = null                       // botón del widget con la app cerrada
+    private var camRequest: android.webkit.PermissionRequest? = null   // la cámara para leer códigos QR
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,9 +61,20 @@ class MainActivity : Activity() {
                     // window.open (botón "abrir la descarga" de la actualización, etc.) → navegador del teléfono
                     view.evaluateJavascript("window.open=function(u){try{PetalwaveNative.open(String(new URL(u,location.href)))}catch(e){}return null};", null)
                     pendingShare?.let { sendShare(it); pendingShare = null }
+                    pendingCmd?.let { c -> pendingCmd = null; view.postDelayed({ cmd(c) }, 2500) }
                 }
             }
             webChromeClient = object : WebChromeClient() {
+                // cámara (solo para leer códigos QR de playlists compartidas, y solo desde la interfaz de Petalwave)
+                override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
+                    runOnUiThread {
+                        val wantsCam = request.resources.contains(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)
+                        val ours = request.origin?.host == "127.0.0.1"
+                        if (!wantsCam || !ours) { request.deny(); return@runOnUiThread }
+                        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) request.grant(arrayOf(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                        else { camRequest?.deny(); camRequest = request; requestPermissions(arrayOf(Manifest.permission.CAMERA), 8) }
+                    }
+                }
                 // elegir archivos (cookies.txt, wallpaper, letras .lrc)
                 override fun onShowFileChooser(view: WebView, cb: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
                     fileCallback?.onReceiveValue(null)
@@ -76,6 +90,7 @@ class MainActivity : Activity() {
         setContentView(loading)
         askPermissions()
         handleShare(intent)
+        pendingCmd = intent?.getStringExtra("pw_cmd")
         // el servicio mantiene viva la música con la pantalla apagada y arranca el servidor interno
         val svc = Intent(this, PlayerService::class.java)
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
@@ -103,6 +118,11 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, res: IntArray) {
         super.onRequestPermissionsResult(code, perms, res)
+        if (code == 8) {
+            val r = camRequest; camRequest = null
+            if (res.isNotEmpty() && res[0] == PackageManager.PERMISSION_GRANTED) r?.grant(arrayOf(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)) else r?.deny()
+            return
+        }
         // con permiso nuevo para leer música, volver a buscar canciones
         if (App.serverReady) web.evaluateJavascript("fetch('/api/library/rescan',{method:'POST'})", null)
     }
@@ -124,7 +144,10 @@ class MainActivity : Activity() {
     }
 
     // compartir un link desde YouTube / YouTube Music / el navegador → va a la pantalla de descargas
-    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); handleShare(intent) }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent); handleShare(intent)
+        intent.getStringExtra("pw_cmd")?.let { cmd(it) }
+    }
     private fun handleShare(i: Intent?) {
         if (i?.action != Intent.ACTION_SEND) return
         val txt = i.getStringExtra(Intent.EXTRA_TEXT) ?: return
@@ -172,6 +195,17 @@ class MainActivity : Activity() {
     inner class NativeBridge {
         @JavascriptInterface fun open(url: String) = runOnUiThread { openExternal(url) }
         @JavascriptInterface fun platform(): String = "android"
+        // "wifi", "datos" o "sin" (para las descargas inteligentes: por defecto solo con WiFi)
+        @JavascriptInterface fun net(): String = try {
+            val cm = getSystemService(android.net.ConnectivityManager::class.java)
+            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+            when {
+                caps == null -> "sin"
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET) -> "wifi"
+                cm.isActiveNetworkMetered -> "datos"
+                else -> "wifi"
+            }
+        } catch (_: Exception) { "wifi" }
         @JavascriptInterface fun media(json: String) = PlayerService.update(json)
         // iniciar sesión con Google (ver LoginActivity); el resultado vuelve a la interfaz como "login:ok|err|cancel"
         // elegir carpeta con el explorador de archivos del teléfono; la ruta vuelve como "picked:<id>:<ruta>"
@@ -181,6 +215,29 @@ class MainActivity : Activity() {
             try { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), 43) }
             catch (e: Exception) { pickId = null; hostMsg("picked:$id:") }
         }
+        // guarda una imagen PNG en Imágenes/Petalwave y, si se pide, abre "compartir"
+        @JavascriptInterface fun saveImage(b64: String, name: String, share: Boolean): String = try {
+            val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+            val safe = name.replace(Regex("[^\\w.-]"), "_").ifEmpty { "petalwave.png" }
+            val uri: Uri = if (Build.VERSION.SDK_INT >= 29) {
+                val cv = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, safe)
+                    put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                    put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Petalwave")
+                }
+                val u = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv) ?: throw Exception("no se pudo crear la imagen")
+                contentResolver.openOutputStream(u)!!.use { it.write(bytes) }
+                u
+            } else {
+                val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                Uri.parse(android.provider.MediaStore.Images.Media.insertImage(contentResolver, bmp, safe, "Petalwave") ?: throw Exception("no se pudo guardar"))
+            }
+            if (share) runOnUiThread {
+                startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Compartir"))
+            }
+            "ok"
+        } catch (e: Exception) { "no se pudo guardar la imagen: " + (e.message ?: "error") }
         @JavascriptInterface fun login() = runOnUiThread {
             LoginActivity.onResult = { r -> hostMsg("login:" + r) }
             startActivity(Intent(this@MainActivity, LoginActivity::class.java))

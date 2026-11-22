@@ -17,7 +17,7 @@ export async function renderStats() {
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div class="hd" style="margin:0">▤ estadísticas</div>
       <div class="seg">${['week', 'month', 'all'].map((r) => `<button data-r="${r}" class="${r === range ? 'on' : ''}">${{ week: 'semana', month: 'mes', all: 'todo' }[r]}</button>`).join('')}</div>
-      <span class="m">${rl}</span></div>
+      <span class="m">${rl}</span><span class="sp" style="flex:1"></span><button class="go" id="bYear" title="un resumen de tu año para guardar o compartir">❀ tu ${new Date().getFullYear()} en Petalwave</button></div>
     <div class="kpis">
       <div class="kpi"><div class="v">${fmtLong(s.seconds)}</div><div class="l">escuchado (${rl})</div></div>
       <div class="kpi"><div class="v">${s.plays}</div><div class="l">reproducciones</div></div>
@@ -37,6 +37,7 @@ export async function renderStats() {
     <div class="m">mixes armados con tu propia biblioteca e historial (sin internet)</div>
     <div class="grid" style="margin-top:8px">${D.auto.map((a, i) => { const c = (a.tracks.map(T).find((t) => t && (t.hasCover || t.video)) || {}).id; return `<div class="card" data-auto="${i}"><div class="cimg">❀${c ? `<img loading="lazy" src="${coverUrl(c)}" onerror="this.classList.add('x')">` : ''}<button class="cplay" data-ap="${i}">${icon('play')}</button></div><div class="cn">${esc(a.name)}</div><div class="cs">${esc(a.desc)} · ${a.tracks.length}</div></div>`; }).join('') || '<div class="m">aparecen cuando escuches algunas canciones</div>'}</div>`;
   box.querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => { range = b.dataset.r; renderStats(); }));
+  $('#bYear').onclick = () => import('./wrapped.js').then((m) => m.showYear());
   box.querySelectorAll('[data-t]').forEach((r) => (r.onclick = () => radio(r.dataset.t)));
   box.querySelectorAll('[data-a]').forEach((r) => (r.onclick = () => { go({ type: 'artist', key: r.dataset.a }); bus.emit('ws', 'music'); }));
   box.querySelectorAll('[data-al]').forEach((r) => (r.onclick = () => { go({ type: 'album', key: { album: r.dataset.al, artist: r.dataset.ar } }); bus.emit('ws', 'music'); }));

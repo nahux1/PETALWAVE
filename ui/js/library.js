@@ -5,11 +5,21 @@ import { D, T, loadLibrary, loadPlaylists, loadAuto, plOp, trackLabel, ytm, load
 import { playList, playNext, addQueue, radio, S as PS, current } from './player.js';
 import { openRadio } from './ytmui.js';
 import { isLiked, toggleLike } from './likes.js';
-import { signal, recsLocal, recsOnline, cachedDiscover, profile, nope } from './taste.js';
+import { sharePlaylist, importDialog } from './share.js';
+import { signal, recsLocal, recsOnline, cachedDiscover, profile, nope, recsMood, recsTime, moodOnline, MOODS, SLOTS, slotNow } from './taste.js';
 
 // ---------- recomendaciones (taste.js) ----------
 // se calculan al entrar a la vista o con "actualizar" (no en cada canción, para que la lista no salte)
-const REC = { local: null, disc: null, discLoading: false, discErr: '' };
+const REC = { local: null, disc: null, discLoading: false, discErr: '', mix: null, mixLoading: false };
+function loadMix(key) {
+  const calc = () => { REC.mix = key === 'time' ? recsTime() : recsMood(key); for (const r of REC.mix) WHY.set(r.id, r.why); };
+  calc();
+  if (key !== 'time' && MOODS[key]) {   // sumar canciones del momento desde YouTube Music
+    REC.mixLoading = true;
+    moodOnline(key).then(() => { if (view.type === 'mix' && view.key === key) calc(); }).finally(() => { REC.mixLoading = false; if (view.type === 'mix' && view.key === key) render(); });
+  }
+}
+const mixInfo = (key) => key === 'time' ? { name: 'Mix ' + SLOTS[slotNow()].name, desc: 'lo que solés escuchar a esta hora, según tus gustos' } : { name: 'Mix ' + MOODS[key].name, desc: MOODS[key].desc };
 const WHY = new Map();
 function loadDisc(force) {
   if (REC.discLoading) return;
@@ -43,6 +53,8 @@ export const lib = { view: () => view, ids: () => ids };
 export function go(v) {
   view = v;
   if (v.type === 'recs') { REC.local = recsLocal(60); for (const r of REC.local) WHY.set(r.id, r.why); }
+  if (v.type === 'mix') loadMix(v.key);
+  $$('#lnav [data-mix]').forEach((b) => b.classList.toggle('on', v.type === 'mix' && b.dataset.mix === v.key));
   if (v.type === 'disc' && !REC.disc) { const c = cachedDiscover(); if (c) { REC.disc = c; for (const it of c.items) WHY.set('yt_' + it.videoId, it.why); } else loadDisc(false); }
   sel.clear(); anchor = -1;
   $$('#lnav [data-view], #lnav [data-pl], #lnav [data-auto], #lnav [data-ytm]').forEach((b) => b.classList.toggle('on',
@@ -66,6 +78,7 @@ function renderNav() {
   $('#cSongs').textContent = D.tracks.length || '';
   $('#cArtists').textContent = artists.size || '';
   $('#cAlbums').textContent = albums.size || '';
+  { const mt = $('#navMixTime'); if (mt) mt.lastChild.textContent = 'mix ' + SLOTS[slotNow()].name; }
   $('#navAuto').innerHTML = D.auto.filter((a) => a.id !== 'auto:foryou').slice(0, 9).map((a) => `<button data-auto="${esc(a.id)}" title="${esc(a.desc)}">${esc(a.name)}<span class="c">${a.tracks.length}</span></button>`).join('') || '<div class="m" style="padding:2px 8px">escuchá algo y aparecen tus mixes</div>';
   // listas de tu cuenta de YouTube Music: suenan online sin descargar (lo que ya tenés, desde el archivo)
   const st = ytm.status;
@@ -127,6 +140,7 @@ function viewTracksRaw() {
     case 'year': return sorted(filtered(all.filter((t) => String(t.year || '—') === view.key)), { key: 'artist', dir: 1 });
     case 'pl': { const p = D.playlists.find((x) => x.id === view.key); return p ? filtered(p.tracks.map(T).filter(Boolean)) : []; }
     case 'recs': return filtered((REC.local || []).map((r) => T(r.id)).filter(Boolean));
+    case 'mix': return filtered((REC.mix || []).map((r) => T(r.id)).filter(Boolean));
     case 'disc': return filtered((REC.disc ? REC.disc.items : []).map((it) => T('yt_' + it.videoId)).filter(Boolean));
     case 'auto': { const a = D.auto.find((x) => x.id === view.key); return a ? filtered(a.tracks.map(T)) : []; }
     case 'ytm': {
@@ -166,8 +180,9 @@ function headerHtml(list) {
     case 'genre': return big(view.key, null, 'género');
     case 'year': return big(view.key, null, 'año');
     case 'pl': { const p = D.playlists.find((x) => x.id === view.key) || (view.key === 'liked' ? { id: 'liked', name: 'Me gusta', tracks: [] } : null);
-      if (p && p.id === 'liked') return big('Me gusta', firstCover(list), p.tracks.length ? `${p.tracks.length} ${p.tracks.length === 1 ? 'canción' : 'canciones'} · tocá ♥ en el reproductor para sumar más` : 'todavía vacía: tocá ♥ mientras suena una canción', '');
-      return p ? big(p.name, firstCover(list), 'playlist · arrastrá para ordenar', `<button class="cb" data-h="rename">renombrar</button><button class="cb danger" data-h="delpl">borrar</button>`) : ''; }
+      const shareBtn = `<button class="cb" data-h="sharepl" title="código QR para pasarla a otro Petalwave">${icon('qr')} compartir</button>`;
+      if (p && p.id === 'liked') return big('Me gusta', firstCover(list), p.tracks.length ? `${p.tracks.length} ${p.tracks.length === 1 ? 'canción' : 'canciones'} · tocá ♥ en el reproductor para sumar más` : 'todavía vacía: tocá ♥ mientras suena una canción', p.tracks.length ? shareBtn : '');
+      return p ? big(p.name, firstCover(list), 'playlist · arrastrá para ordenar', `${shareBtn}<button class="cb" data-h="rename">renombrar</button><button class="cb danger" data-h="delpl">borrar</button>`) : ''; }
     case 'auto': { const a = D.auto.find((x) => x.id === view.key); return a ? big(a.name, firstCover(list), a.desc, `<button class="cb" data-h="savepl">guardar como playlist</button>`) : ''; }
     case 'ytm': {
       const l = ytm.lists.get(view.key) || {};
@@ -190,6 +205,11 @@ function headerHtml(list) {
       const line = tasteLine();
       return `<div class="ttlbar"><div><div class="sub">${disc ? 'descubrí · youtube music' : 'recomendadas · de tu biblioteca'}</div><h2>${disc ? 'Canciones nuevas para vos' : 'Para vos'}</h2>
         <div class="sub">${line ? 'Según tus gustos: ' + esc(line) : 'según lo que escuchás'}${state ? ' · ' + state : ''}</div><div class="sub">${sub}</div>${cold}${acts(extra)}</div></div>`;
+    }
+    case 'mix': {
+      const m = mixInfo(view.key);
+      const note = list.length < 6 ? '<div class="sub rec-cold">' + (REC.mixLoading ? 'buscando más canciones en YouTube Music…' : 'pocas canciones de este estilo por ahora: escuchá más y tocá ♥, o probá "descubrí"') + '</div>' : '';
+      return `<div class="ttlbar"><div><div class="sub">mix · según tus gustos</div><h2>${esc(m.name)}</h2><div class="sub">${esc(m.desc)}${REC.mixLoading ? ' · buscando más…' : ''}</div><div class="sub">${sub}</div>${note}${acts(`<button class="cb" data-h="recsnew">${icon('sync')} otra mezcla</button>`)}</div></div>`;
     }
     case 'recent': return `<div class="ttlbar"><div><h2>recientes</h2><div class="sub">lo último que entró a la biblioteca · ${sub}</div>${acts()}</div></div>`;
     default: return `<div class="ttlbar" style="padding-bottom:6px"><div><div class="sub">${sub}${D.scan && D.scan.scanning ? ' · escaneando…' : ''}</div>${acts()}</div></div>`;
@@ -220,7 +240,8 @@ function bindHeader(head, list) {
     render();
   }));
   head.querySelectorAll('[data-h]').forEach((b) => (b.onclick = async () => {
-    if (b.dataset.h === 'recsnew') { if (view.type === 'disc') return loadDisc(true); REC.local = recsLocal(60); for (const r of REC.local) WHY.set(r.id, r.why); return render(); }
+    if (b.dataset.h === 'sharepl') return sharePlaylist(view.key);
+    if (b.dataset.h === 'recsnew') { if (view.type === 'disc') return loadDisc(true); if (view.type === 'mix') { loadMix(view.key); return render(); } REC.local = recsLocal(60); for (const r of REC.local) WHY.set(r.id, r.why); return render(); }
     const a = b.dataset.h;
     if (a === 'play') playList(ids, 0, { shuffle: false });
     if (a === 'shuffle') playList(ids, Math.floor(Math.random() * ids.length), { shuffle: true });
@@ -262,7 +283,7 @@ function renderTable(body) {
       const t = T(ids[i]); if (!t) continue;
       html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}" draggable="true">
         <span class="ix"><span class="num">${t.id === cur ? '♪' : view.type === 'album' && t.trackNo ? t.trackNo : i + 1}</span><span class="pi" data-play>${icon('play')}</span></span>
-        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}${(view.type === 'recs' || view.type === 'disc') && WHY.get(t.id) ? `<span class="why"> · ${esc(WHY.get(t.id))}</span>` : ''}</div></span></span>
+        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}${(view.type === 'recs' || view.type === 'disc' || view.type === 'mix') && WHY.get(t.id) ? `<span class="why"> · ${esc(WHY.get(t.id))}</span>` : ''}</div></span></span>
         <span class="c2">${esc(t.album || '')}</span>
         <span class="num2">${fmtTime(t.duration)}</span>
         <span class="num2">${D.plays[t.id] || ''}</span>
@@ -323,7 +344,7 @@ export function trackMenu(x, y, idsArg) {
         ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: p.id === 'liked' ? 'heart' : 'lyr', fn: () => addToPl(p.id, chosen) })),
       ] },
       plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
-      (view.type === 'recs' || view.type === 'disc') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
+      (view.type === 'recs' || view.type === 'disc' || view.type === 'mix') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
       { label: remote.length > 1 ? `descargar ${remote.length} a mi PC` : 'descargar a mi PC', icon: 'dl', fn: async () => {
         const d = P.get('dl'), format = d.format === 'mp4' ? 'mp3' : d.format;
         try { const r = await api.post('/api/downloads', { urls: remote.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' }); toast(`${r.ids.length} en cola ⇣`); }
@@ -347,7 +368,7 @@ export function trackMenu(x, y, idsArg) {
       ...D.playlists.map((p) => ({ label: p.name, raw: true, icon: 'lyr', fn: () => addToPl(p.id, chosen) })),
     ] },
     plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
-    (view.type === 'recs' || view.type === 'disc') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
+    (view.type === 'recs' || view.type === 'disc' || view.type === 'mix') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
     { sep: true },
     one && { label: 'ir al artista', icon: 'radio', fn: () => go({ type: 'artist', key: one._a }) },
     one && one.album && { label: 'ir al álbum', icon: 'folder', fn: () => go({ type: 'album', key: { album: one.album, artist: one.albumArtist || one.artist } }) },
@@ -361,6 +382,7 @@ function notInterested(chosen) {
   for (const id of chosen) nope(T(id));
   const out = new Set(chosen);
   if (REC.local) REC.local = REC.local.filter((r) => !out.has(r.id));
+  if (REC.mix) REC.mix = REC.mix.filter((r) => !out.has(r.id));
   if (REC.disc) REC.disc = { ...REC.disc, items: REC.disc.items.filter((it) => !out.has('yt_' + it.videoId)) };
   sel.clear();
   toast(chosen.length > 1 ? 'no te las vuelvo a recomendar' : 'no te la vuelvo a recomendar', { sub: 'y le doy menos peso a ese estilo', ms: 1800 });
@@ -533,9 +555,11 @@ export function initLibrary() {
   $('#lnav').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'bNewPl') return newPlaylist();
+    if (b.id === 'bImpPl') return importDialog((p) => go({ type: 'pl', key: p.id }));
     if (b.dataset.view) go({ type: b.dataset.view });
     if (b.dataset.pl) go({ type: 'pl', key: b.dataset.pl });
     if (b.dataset.auto) go({ type: 'auto', key: b.dataset.auto });
+    if (b.dataset.mix) go({ type: 'mix', key: b.dataset.mix });
     if (b.dataset.ytm) go({ type: 'ytm', key: b.dataset.ytm });
     if (b.id === 'bYtmRefresh') {
       if (!ytm.status || !ytm.status.auth) return toast('iniciá sesión en YouTube Music (workspace 3)', { kind: 'warn' });

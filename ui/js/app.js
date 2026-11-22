@@ -15,6 +15,7 @@ import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } fro
 import { initYtm } from './ytmui.js';
 import { initLikes, likeCurrent } from './likes.js';
 import { loadTaste, recsOnline, recsLocal } from './taste.js';
+import { initSmartDl } from './smartdl.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
@@ -289,6 +290,7 @@ async function boot() {
   initSync();
   initYtm();
   initLikes();
+  initSmartDl();
   initViz();
   initBg();
   initUpdate();

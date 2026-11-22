@@ -1,5 +1,6 @@
 // workspace de ajustes: temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento
 import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2 } from './core.js';
+import { runSmartDl, smartDone } from './smartdl.js';
 const isAndroid = !!window.PetalwaveNative;
 const niceAndroid = (f) => f.replace(/^\/storage\/emulated\/0\/?/, 'Teléfono › ').replace(/^\/storage\/([\w-]+)\/?/, 'Tarjeta SD › ').replace(/\//g, ' › ');
 import { allThemes, setTheme, setDyn } from './theme.js';
@@ -46,6 +47,8 @@ export async function renderSettings() {
     </div>
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
+      ${chk('autoLevel', 'volumen parejo', 'todas las canciones suenan a un volumen parecido', 'Petalwave mide el volumen real de cada canción mientras suena y la sube o la baja (hasta 8 dB) para que no haya saltos entre una muy baja y una muy fuerte. La medida se recuerda para la próxima vez.')}
+      ${chk('smartGaps', 'transiciones inteligentes', 'salta los silencios largos al principio y al final', 'Si una canción termina con varios segundos de silencio (o arranca callada), pasa a la siguiente sin esperar, con el fundido de arriba.')}
       ${chk('resume', 'reanudar al abrir', 'vuelve a donde quedaste')}
       ${chk('autoRecs', 'seguir con recomendaciones', 'cuando termina la cola, sigue con canciones según tus gustos', 'Usa las recomendaciones de "para vos": de YouTube Music (canciones nuevas) si está disponible, si no de tu biblioteca.')}
       <label class="cfrow"><span>la ✕ minimiza a la bandeja${tip('Al tocar la cruz, petalwave se esconde al lado del reloj de Windows y la música sigue sonando. Para cerrarlo del todo: clic derecho en la flor de la bandeja → Salir.')}<span class="m">la música sigue sonando · se cierra desde la bandeja</span></span><input type="checkbox" id="cTray" ${p.closeToTray !== false ? 'checked' : ''}></label>
@@ -64,6 +67,9 @@ export async function renderSettings() {
     <div class="cfgsec"><h3>⇣ descargas</h3>
       <div class="cfrow"><span>carpeta de destino<span class="m" style="word-break:break-all">${esc(server.downloadDir || '')}</span></span><button class="cb" id="cDest">cambiar</button></div>
       <label class="cfrow"><span>videos (mp4) a la carpeta Descargas${tip('Los videos se guardan en la carpeta Descargas de Windows, así los encontrás fácil y los podés pasar al celular o a WhatsApp. Siguen apareciendo en la biblioteca de Petalwave. La música sigue yendo a la carpeta de destino.')}<span class="m" style="word-break:break-all">${esc(server.videoDir || '')}</span></span><span><input type="checkbox" id="cVidDl" ${server.videoToDownloads !== false ? 'checked' : ''}> <button class="cb sm" id="cVidDir">cambiar</button> <button class="cb sm" data-open="${esc(server.videoDir || '')}">abrir</button></span></label>
+      <label class="cfrow"><span>descargas inteligentes${tip('Petalwave baja solo tus ♥ que todavía suenan online y lo mejor de "descubrí", para que tengas tu música sin internet. Como mucho 10 cada 3 horas, hasta el límite que elijas. Las que ya bajó no se vuelven a contar.')}<span class="m">baja solo tus favoritas para escuchar sin internet</span></span><input type="checkbox" data-p="smartDl" ${p.smartDl ? 'checked' : ''}></label>
+      <div class="cfrow"><span>límite de descargas inteligentes<span class="m" id="cSdlInfo"></span></span><span><select id="cSdlMax">${[20, 50, 100, 200, 500].map((n) => `<option value="${n}" ${+p.smartDlMax === n ? 'selected' : ''}>${n} canciones</option>`).join('')}</select> <button class="cb sm" id="cSdlNow">bajar ahora</button></span></div>
+      ${isAndroid ? `<label class="cfrow"><span>solo con WiFi<span class="m">no gasta tus datos móviles</span></span><input type="checkbox" data-p="smartDlWifi" ${p.smartDlWifi !== false ? 'checked' : ''}></label>` : ''}
       <div class="cfrow"><span>simultáneas${tip('Más de 2 a la vez aumenta el riesgo de que YouTube bloquee las descargas por un rato.')}<span class="m">recomendado: 2</span></span><select id="cConc">${[1, 2, 3, 4].map((n) => `<option ${server.concurrency == n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
     </div>
     <div class="cfgsec"><h3>≡ letras ${tip('Orden de búsqueda: archivo .lrc o .txt con el mismo nombre del audio → letra guardada dentro del archivo → YouTube Music → LRCLIB.')}</h3>
@@ -155,6 +161,15 @@ export async function renderSettings() {
     const f = await host.pickFolder('Carpeta donde guardar las descargas');
     if (!f) return;
     try { const s = await api.post('/api/settings', { downloadDir: f }); setDest(s.downloadDir); renderSettings(); toast('las descargas van a ' + s.downloadDir); } catch (e) { toast(e.message, { kind: 'err' }); }
+  };
+  { const n = smartDone().length; const el = $('#cSdlInfo'); if (el) el.textContent = `bajadas solas hasta ahora: ${n}`; }
+  $('#cSdlMax').onchange = (e) => { P.set('smartDlMax', +e.target.value); };
+  $('#cSdlNow').onclick = async () => {
+    if (!P.get('smartDl')) { P.set('smartDl', true); const c = box.querySelector('[data-p="smartDl"]'); if (c) c.checked = true; }
+    const r = await runSmartDl({ force: true });
+    if (r.skipped) toast(r.skipped === 'límite' ? 'llegaste al límite: subilo para bajar más' : r.skipped === 'solo con WiFi' ? 'estás con datos móviles: conectate a WiFi (o apagá "solo con WiFi")' : r.skipped, { kind: 'warn' });
+    else if (r.error) toast(r.error, { kind: 'err' });
+    else if (!r.queued) toast('no hay nada nuevo para bajar', { sub: 'tocá ♥ en canciones online o mirá "descubrí"', ms: 2200 });
   };
   $('#cVidDl').onchange = (e) => api.post('/api/settings', { videoToDownloads: e.target.checked }).then(() => toast(e.target.checked ? 'los videos van a la carpeta Descargas' : 'los videos van a la carpeta de destino', { ms: 1800 }));
   $('#cVidDir').onclick = async (e) => {

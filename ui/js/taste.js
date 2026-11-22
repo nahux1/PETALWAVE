@@ -23,7 +23,8 @@ const W = { artist: 1, feat: 0.45, genre: 0.5, tag: 0.6, decade: 0.05, own: 0.9 
 // estilos que se reconocen en el título (y en el género)
 const TAGS = ['slowed', 'reverb', 'sped up', 'speed up', 'nightcore', 'phonk', 'remix', 'lofi', 'lo-fi', 'acoustic', 'acustico', 'live', 'en vivo',
   'cover', 'instrumental', '8d', 'edit', 'funk', 'trap', 'drill', 'reggaeton', 'cumbia', 'rkt', 'techno', 'house', 'mashup', 'bass boosted', 'ost',
-  'anime', 'opening', 'rock', 'metal', 'jazz', 'piano', 'synthwave', 'vaporwave', 'hardstyle', 'dubstep', 'kpop', 'k-pop', 'corrido', 'bachata', 'salsa'];
+  'anime', 'opening', 'rock', 'metal', 'jazz', 'piano', 'synthwave', 'vaporwave', 'hardstyle', 'dubstep', 'kpop', 'k-pop', 'corrido', 'bachata', 'salsa',
+  'hardtekk', 'tekk', 'ambient', 'chill', 'classical', 'clasica', 'study', 'edm', 'sad', 'workout', 'gym', 'sleep', 'rain', 'orchestral', 'symphonic'];
 
 let events = [];
 let pending = [];
@@ -91,6 +92,11 @@ function weightOf(e) {
 // ---------- perfil ----------
 export function profile() {
   if (prof) return prof;
+  prof = buildProfile(() => true, true);
+  return prof;
+}
+const slotCache = new Map();
+function buildProfile(keep, withPrior) {
   const now = Date.now();
   const aff = new Map();      // rasgo → peso
   const own = new Map();      // canción → peso
@@ -106,9 +112,9 @@ export function profile() {
     if (f.decade) add('d:' + f.decade, w * W.decade);
   };
   // punto de partida: reproducciones viejas y tus "me gusta" (de antes de que existieran las señales)
-  const liked = D.playlists.find((p) => p.id === 'liked');
+  const liked = withPrior ? D.playlists.find((p) => p.id === 'liked') : null;
   const seen = new Set(events.map((e) => (e.yt ? 'yt:' + e.yt : 'id:' + e.id)));
-  for (const [id, n] of Object.entries(D.plays || {})) {
+  for (const [id, n] of Object.entries(withPrior ? D.plays || {} : {})) {
     const t = T(id); if (!t || !n || seen.has(keyOf(t))) continue;
     const w = 0.35 * Math.log1p(n);
     feed(t, w); own.set(keyOf(t), (own.get(keyOf(t)) || 0) + w);
@@ -119,6 +125,7 @@ export function profile() {
   }
   // señales, con olvido gradual
   for (const e of events) {
+    if (!keep(e)) continue;
     const w = weightOf(e) * Math.pow(0.5, (now - e.t) / HALF_LIFE);
     if (!w) continue;
     const k = e.yt ? 'yt:' + e.yt : 'id:' + e.id;
@@ -132,8 +139,7 @@ export function profile() {
   const O = new Map([...own].map(([k, v]) => [k, sq(v / 2)]));
   const top = (pfx, n) => [...A].filter(([k, v]) => k.startsWith(pfx) && v > 0.15).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => ({ name: k.slice(2), v }));
   const positives = [...O].filter(([, v]) => v > 0).length;
-  prof = { A, O, lastPlay, nope, positives, signals: events.length, topArtists: top('a:', 8), topGenres: top('g:', 5), topTags: top('t:', 5) };
-  return prof;
+  return { A, O, lastPlay, nope, positives, signals: events.length, topArtists: top('a:', 8), topGenres: top('g:', 5), topTags: top('t:', 5) };
 }
 
 // nombre "lindo" de un artista del perfil (el que figura en tu biblioteca)
@@ -225,7 +231,7 @@ export async function recsOnline({ force = false, n = 40 } = {}) {
     const artists = p.topArtists.slice(0, 3).map((a) => prettyArtist(a.name));
     const cand = new Map();
     const take = (items, src, w) => (items || []).forEach((it, i) => {
-      if (!it || !it.videoId || it.isVideo || /MUSIC_VIDEO_TYPE_UGC/.test(it.type || '')) return;
+      if (!it || !it.videoId || it.isVideo || /MUSIC_VIDEO_TYPE_UGC/.test(it.type || '') || isCompilation(it)) return;
       const c = cand.get(it.videoId) || { it, hits: 0, rank: 1, src: [] };
       c.hits += w; c.rank = Math.min(c.rank, i / 50); c.src.push(src); cand.set(it.videoId, c);
     });
@@ -256,6 +262,102 @@ export function nope(t) {
   signal('nope', t);
   const c = local.get(CACHE_KEY, null);
   if (c && t.ytId) { c.items = c.items.filter((x) => x.videoId !== t.ytId); local.set(CACHE_KEY, c); }
+}
+
+// ---------- mixes por momento del día ----------
+// cada momento tiene su propio perfil (lo que escuchás a esa hora) mezclado con el general
+export const SLOTS = {
+  madrugada: { name: 'de madrugada', icon: '☾', from: 0, to: 6, mood: 'relajarte' },
+  manana: { name: 'de la mañana', icon: '☀', from: 6, to: 12, mood: 'concentrarte' },
+  tarde: { name: 'de la tarde', icon: '◐', from: 12, to: 19, mood: 'entrenar' },
+  noche: { name: 'de la noche', icon: '☾', from: 19, to: 24, mood: 'relajarte' },
+};
+export const slotNow = (h = new Date().getHours()) => Object.keys(SLOTS).find((k) => h >= SLOTS[k].from && h < SLOTS[k].to);
+function slotProfile(slot) {
+  const c = slotCache.get(slot);
+  if (c && c.n === events.length) return c.p;
+  const S = SLOTS[slot];
+  const p = buildProfile((e) => { const h = new Date(e.t).getHours(); return h >= S.from && h < S.to; }, false);
+  slotCache.set(slot, { n: events.length, p });
+  return p;
+}
+
+// ---------- mixes por momento (entrenar, relajarte, concentrarte) ----------
+export const MOODS = {
+  entrenar: { name: 'para entrenar', icon: '⚡', search: 'workout phonk', desc: 'con energía: phonk, hardtekk, trap, remixes, sped up',
+    tags: ['phonk', 'hardtekk', 'tekk', 'hardstyle', 'drill', 'trap', 'techno', 'bassboosted', 'spedup', 'speedup', 'nightcore', 'metal', 'rock', 'dubstep', 'funk', 'remix', 'house', 'edm', 'workout', 'gym', 'rkt', 'reggaeton'] },
+  relajarte: { name: 'para relajarte', icon: '❀', search: 'slowed reverb chill', desc: 'tranquilo: slowed, lofi, acústico, chill',
+    tags: ['lofi', 'slowed', 'reverb', 'acoustic', 'acustico', 'piano', 'jazz', 'ambient', 'chill', 'sad', 'sleep', 'rain'] },
+  concentrarte: { name: 'para concentrarte', icon: '✎', search: 'lofi instrumental study', desc: 'sin distraerte: instrumental, lofi, piano, bandas sonoras',
+    tags: ['instrumental', 'lofi', 'piano', 'ost', 'synthwave', 'ambient', 'classical', 'clasica', 'study', 'orchestral', 'symphonic'] },
+};
+// lo que no va con un momento aunque tenga un estilo que sí (p. ej. un hardtekk "slowed" no es para relajarse)
+const AVOID = { relajarte: ['hardtekk', 'tekk', 'hardstyle', 'metal', 'dubstep', 'drill', 'bassboosted', 'rkt'], concentrarte: ['hardtekk', 'tekk', 'hardstyle', 'metal', 'dubstep', 'drill', 'bassboosted', 'rkt', 'reggaeton'] };
+function moodMatch(f, mood) {
+  const M = MOODS[mood]; if (!M) return 0;
+  if ((AVOID[mood] || []).some((x) => f.tags.includes(x))) return 0;
+  const hit = f.tags.filter((x) => M.tags.includes(x)).length + (f.genre && M.tags.some((x) => f.genre.includes(x)) ? 1 : 0);
+  return Math.min(1, hit / 1.5);
+}
+// compilados de una hora, "hits 2021", etc.: no son canciones
+const isCompilation = (it) => (it.duration || 0) > 600 || /\b(hits|continuo|nonstop|non-stop|mix 20\d\d|1 hour|1 hora|compilation|recopilaci[oó]n|full album)\b/i.test(it.title || '');
+// candidatas: tu biblioteca + lo último de "descubrí" + lo que se buscó para cada momento
+const extraIds = new Set();
+function candidates() {
+  const out = D.tracks.filter((t) => !t.video && !t.isVideo);
+  const c = local.get(CACHE_KEY, null);
+  if (c) for (const it of c.items) out.push(T('yt_' + it.videoId) || remoteTrack(it));
+  for (const id of extraIds) { const t = T(id); if (t && !out.includes(t)) out.push(t); }
+  return out;
+}
+function rankWith(list, fn, n, perArtist = 3) {
+  const now = Date.now(), p = profile();
+  const scored = [];
+  for (const t of list) {
+    const k = keyOf(t);
+    if (p.nope.has(k)) continue;
+    const r = score(t, p);
+    const extra = fn(t, r);
+    if (extra == null) continue;
+    let fin = r.s + extra.add;
+    const last = p.lastPlay.get(k) || 0;
+    if (now - last < DAY) fin -= 0.5;
+    fin += (dayRand(t.id) - 0.5) * 0.25;
+    scored.push({ t, final: fin, f: r.f, why: extra.why || reason(t, r) });
+  }
+  return pick(scored, n, perArtist).map((x) => ({ id: x.t.id, why: x.why, score: x.final }));
+}
+export function recsMood(mood, n = 40) {
+  const M = MOODS[mood];
+  return rankWith(candidates(), (t, r) => {
+    const m = moodMatch(r.f, mood);
+    if (!m) return null;
+    const tag = r.f.tags.find((x) => M.tags.includes(x));
+    return { add: 0.8 * m, why: tag ? M.name + ' · ' + tag : M.name };
+  }, n);
+}
+// más canciones del momento desde YouTube Music, mezclando tu estilo favorito con el del momento
+export async function moodOnline(mood) {
+  const M = MOODS[mood];
+  const fav = profile().topTags.map((x) => x.name).find((x) => M.tags.includes(x));
+  const q = fav ? fav + ' ' + M.search.split(' ').filter((w) => w !== fav)[0] : M.search;
+  try {
+    const r = await api.get('/api/ytm/search?filter=songs&q=' + encodeURIComponent(q));
+    const ids = [];
+    for (const it of (r.items || [])) if (it.videoId && !it.isVideo && !isCompilation(it)) { remoteTrack(it); ids.push('yt_' + it.videoId); extraIds.add('yt_' + it.videoId); }
+    return ids;
+  } catch { return []; }
+}
+export function recsTime(slot = slotNow(), n = 40) {
+  const S = SLOTS[slot];
+  const sp = slotProfile(slot);
+  const enough = sp.positives >= 3;
+  return rankWith(candidates(), (t, r) => {
+    let add = 0;
+    if (enough) { const rs = score(t, sp); add = 0.9 * rs.s; if (rs.s > 0.3) return { add, why: 'lo que escuchás ' + S.name }; }
+    add += 0.35 * moodMatch(r.f, S.mood);   // sin historia a esta hora: el estilo que suele ir con el momento
+    return { add };
+  }, n);
 }
 
 export const tasteReady = () => loaded;

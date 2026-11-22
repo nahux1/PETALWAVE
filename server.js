@@ -450,6 +450,10 @@ async function route(req, res) {
       if (p === '/api/ytm/history') return U.json(res, 200, { items: annotate(await ytm.call('history', {}, { cacheMs: 30e3 })) });
       if ((mm = m(/^\/api\/ytm\/playlist\/([\w-]+)$/))) return U.json(res, 200, annotateList(await ytm.call('playlist', { id: mm[1], limit: 1000 }, { timeout: 120000, cacheMs: 60e3 })));
       if ((mm = m(/^\/api\/ytm\/album\/([\w-]+)$/))) return U.json(res, 200, annotateList(await ytm.call('album', { browseId: mm[1] }, { cacheMs: 30 * 60e3 })));
+      if (p === '/api/ytm/songs') {
+        const ids = String(q.get('ids') || '').split(',').filter((x) => /^[\w-]{11}$/.test(x)).slice(0, 200);
+        return U.json(res, 200, annotateList(await ytm.call('songs', { ids }, { timeout: 120000, cacheMs: 60 * 60e3 })));
+      }
       if ((mm = m(/^\/api\/ytm\/radio\/([\w-]{11})$/))) return U.json(res, 200, annotateList(await ytm.call('radio', { videoId: mm[1], limit: 50 }, { cacheMs: 10 * 60e3 })));
       if (p === '/api/ytm/rate' && M === 'POST') {
         const b = await body();

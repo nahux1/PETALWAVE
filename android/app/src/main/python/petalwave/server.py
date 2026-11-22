@@ -357,7 +357,8 @@ class Stats:
 
     def summary(self, rng):
         now = time.time() * 1000
-        since = now - 7 * 864e5 if rng == "week" else now - 30 * 864e5 if rng == "month" else 0
+        year0 = time.mktime((time.localtime().tm_year, 1, 1, 0, 0, 0, 0, 0, -1)) * 1000
+        since = now - 7 * 864e5 if rng == "week" else now - 30 * 864e5 if rng == "month" else year0 if rng == "year" else 0
         d = self.store.data
         log = [e for e in d["log"] if e[0] >= since]
         pt, pa, pb, secs = {}, {}, {}, 0
@@ -374,9 +375,12 @@ class Stats:
                 x = pb.setdefault(k, {"name": t["album"], "artist": t.get("albumArtist") or t.get("artist"), "plays": 0, "seconds": 0, "cover": tid}); x["plays"] += 1; x["seconds"] += sec
         top = lambda m: sorted(m.values(), key=lambda v: (-v["plays"], -v["seconds"]))[:15]  # noqa: E731
         chart = []
-        if rng == "all":
+        if rng in ("all", "year"):
             months = {}
+            yr = str(time.localtime().tm_year)
             for k, v in d["days"].items():
+                if rng == "year" and not k.startswith(yr):
+                    continue
                 months[k[:7]] = months.get(k[:7], 0) + v
             chart = [{"label": k, "seconds": round(months[k])} for k in sorted(months)[-12:]]
         else:
@@ -1323,6 +1327,9 @@ class H(BaseHTTPRequestHandler):
                     return self.send_json(200, {"items": ytm("playlists", {}, 60)})
                 if p == "/api/ytm/history":
                     return self.send_json(200, {"items": annotate(ytm("history", {}, 30))})
+                if p == "/api/ytm/songs":
+                    ids = [x for x in (q.get("ids") or "").split(",") if re.fullmatch(r"[\w-]{11}", x)][:200]
+                    return self.send_json(200, annotate_list(ytm("songs", {"ids": ids}, 3600)))
                 m = re.fullmatch(r"/api/ytm/(playlist|album|radio)/([\w-]+)", p)
                 if m:
                     kind, i = m.groups()

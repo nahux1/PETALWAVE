@@ -771,6 +771,10 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
 .likeb.liked svg.i{fill:currentColor;stroke:currentColor}
 .likeb.liked svg.i{animation:likePop .38s cubic-bezier(.3,1.6,.5,1)}
 @keyframes likePop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.qrbox{display:grid;place-items:center;background:#fff;border-radius:var(--r);padding:10px;margin:0 auto;width:min(340px,78vw)}
+.qrbox svg{width:100%;height:auto;display:block}
+.qrcode-txt{width:100%;margin-top:8px;font-size:11px;word-break:break-all}
+.scanbox{margin-top:10px}.scanbox video{width:100%;max-height:50vh;border-radius:var(--r);background:#000;object-fit:cover}
 .row .a .why{color:var(--ac);opacity:.8}
 .rec-cold{margin-top:6px;padding:6px 10px;border:1px dashed var(--bd-on);border-radius:var(--r-sm);color:var(--dim);max-width:560px}
 .row .t .lk{color:var(--ac);font-weight:400;margin-right:6px;font-size:.92em}

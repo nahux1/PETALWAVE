@@ -21,6 +21,10 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 **Si tu PC es lenta:** tocá el botón **✦** de la barra hasta que diga **⚡ máximo rendimiento** (apaga efectos y gasta hasta un 27% menos de memoria).
 **Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*.
 **Recomendaciones:** Petalwave aprende de lo que escuchás entero, lo que saltás y tus ♥. En la biblioteca → *para vos*: **recomendadas** (de tus canciones) y **descubrí** (canciones nuevas de YouTube Music que no tenés). Cuando se termina la cola sigue solo con canciones a tu gusto.
+**Mixes:** *mix de la noche/mañana/tarde*, *para entrenar*, *para relajarte* y *para concentrarte* (biblioteca → para vos).
+**Sin internet:** ajustes → descargas → *descargas inteligentes* baja solas tus favoritas.
+**Tu año:** estadísticas (4) → *tu año en Petalwave* arma una imagen para compartir.
+**Compartir playlists:** en una playlist tocá *compartir* (código QR); en el otro Petalwave: *mis playlists → importar*.
 **Me gusta:** tocá el ♥ del reproductor (o la tecla `h`): la canción queda en la playlist *Me gusta*, con o sin cuenta. Con sesión iniciada también se marca en YouTube Music.
 
 **Lo básico:** `1` música · `2` descargas (pegá un link y listo, sin cookies) · `3` YouTube Music y Spotify ·
@@ -28,7 +32,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 
 ## 📱 Android (APK)
 
-1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.3.0.apk`** (en "Assets").
+1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.4.0.apk`** (en "Assets").
 2. Abrí el archivo descargado. Si el teléfono pregunta, tocá **Ajustes** → activá **Permitir de esta fuente** → volvé atrás → **Instalar**.
 3. Si aparece **Play Protect** ("app no verificada"): tocá **Más detalles** → **Instalar de todas formas**. Sale porque la app no está en Play Store; es normal.
 4. Abrí **Petalwave** y aceptá los permisos de música y notificaciones.
@@ -39,6 +43,7 @@ Las canciones quedan en **Música/Petalwave** (m4a) y los videos en **Descargas/
 Para sumar música de otra carpeta: ajustes (5) → *biblioteca* → **+ carpeta** y elegila en el explorador del teléfono.
 Para actualizar, instalá el APK nuevo encima: no se pierde nada.
 **Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*. La contraseña se escribe en la página de Google; Petalwave no la ve.
+**Widget:** mantené apretada la pantalla de inicio → *Widgets* → *Petalwave*.
 Por ahora en Android no hay Spotify ni sync.
 
 ### 🔄 Actualizar

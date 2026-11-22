@@ -34,7 +34,7 @@ class Stats {
 
   summary(range = 'month') {
     const now = Date.now();
-    const since = range === 'week' ? now - 7 * 864e5 : range === 'month' ? now - 30 * 864e5 : 0;
+    const since = range === 'week' ? now - 7 * 864e5 : range === 'month' ? now - 30 * 864e5 : range === 'year' ? new Date(new Date().getFullYear(), 0, 1).getTime() : 0;
     const d = this.store.data;
     const log = d.log.filter((e) => e[0] >= since);
     const perTrack = new Map(), perArtist = new Map(), perAlbum = new Map();
@@ -53,9 +53,10 @@ class Stats {
     const top = (m) => [...m.values()].sort((a, b) => b.plays - a.plays || b.seconds - a.seconds).slice(0, 15);
     // gráfico por día (7 o 30 días) o por mes (todo)
     const chart = [];
-    if (range === 'all') {
+    if (range === 'all' || range === 'year') {
       const months = {};
-      for (const [k, v] of Object.entries(d.days)) { const m = k.slice(0, 7); months[m] = (months[m] || 0) + v; }
+      const yr = String(new Date().getFullYear());
+      for (const [k, v] of Object.entries(d.days)) { if (range === 'year' && !k.startsWith(yr)) continue; const m = k.slice(0, 7); months[m] = (months[m] || 0) + v; }
       const keys = Object.keys(months).sort().slice(-12);
       for (const k of keys) chart.push({ label: k, seconds: Math.round(months[k]) });
     } else {

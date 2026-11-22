@@ -255,6 +255,24 @@ def m_song(p):
             "thumb": (v.get("thumbnail") or {}).get("thumbnails", [{}])[-1].get("url", "")}
 
 
+def m_songs(p):
+    """título, artista, duración y carátula de una lista de videoIds (hasta 200), en paralelo"""
+    from concurrent.futures import ThreadPoolExecutor
+    ids = [i for i in (p.get("ids") or []) if isinstance(i, str) and len(i) == 11][:200]
+
+    def one(vid):
+        try:
+            d = anon().get_song(vid).get("videoDetails") or {}
+            th = (d.get("thumbnail") or {}).get("thumbnails") or []
+            author = (d.get("author") or "").replace(" - Topic", "")
+            return {"videoId": vid, "title": d.get("title") or "", "artists": [author] if author else [], "album": "",
+                    "duration": int(d.get("lengthSeconds") or 0), "thumb": th[-1]["url"] if th else "", "type": d.get("musicVideoType") or "song"}
+        except Exception:  # noqa: BLE001
+            return {"videoId": vid, "title": "", "artists": [], "album": "", "duration": 0, "thumb": "", "type": "song", "available": False}
+    with ThreadPoolExecutor(6) as ex:
+        return {"tracks": list(ex.map(one, ids))}
+
+
 METHODS = {k[2:]: v for k, v in globals().items() if k.startswith("m_")}
 
 if __name__ == "__main__":

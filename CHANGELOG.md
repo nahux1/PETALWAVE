@@ -1,5 +1,14 @@
 # petalwave — registro de cambios
 
+## 2.9.0 — mixes, descargas inteligentes, tu año, QR y widget
+- **Volumen parejo** (`audio.js`): cada reproductor mide el RMS de su canción (sin contar silencios) con su propio analizador y ajusta una ganancia hacia −16 dBFS (entre −12 y +8 dB; hasta +3 dB los primeros 10 s si nunca se midió). La medida se guarda (`pw-loud`) y la próxima vez arranca ajustada.
+- **Transiciones inteligentes:** salta más de 1 s de silencio al principio (en los primeros 8 s) y, con 1,5 s de silencio en el tramo final, pasa a la siguiente con el fundido. No actúa si moviste la barra.
+- **Mixes** (`taste.js`): por momento del día (un perfil propio con las señales de esa franja horaria, mezclado con el general) y por momento (entrenar, relajarte, concentrarte), según estilos y con búsquedas en YouTube Music. Se descartan compilados de más de 10 min o tipo "hits 2021".
+- **Descargas inteligentes** (`smartdl.js`): tus ♥ online y lo mejor de descubrí, hasta 10 cada 3 h y hasta el límite elegido. En Android, solo con WiFi por defecto (`PetalwaveNative.net()`). Si una canción online ya está en la biblioteca, el reproductor usa el archivo.
+- **Tu año en Petalwave** (`wrapped.js`): imagen 1080×1920 con los colores del tema. Junta `/api/stats?range=year` (nuevo rango) con lo escuchado online. Se guarda o se copia en Windows; en Android se guarda en Imágenes/Petalwave o se comparte (`saveImage`).
+- **Playlists por QR** (`share.js`): código `PW1.<nombre>.<ids>` de hasta unas 250 canciones, con qrcode-generator (MIT) y lector jsQR (Apache 2.0) o BarcodeDetector. `/api/ytm/songs` trae título y artista de los ids. En Android se pide la cámara solo al escanear.
+- **Widget de Android** (`PlayerWidget`): carátula, canción y controles. Con la app cerrada, el botón abre Petalwave y hace la acción.
+
 ## 2.8.0 — recomendaciones según tus gustos
 - **Petalwave aprende lo que te gusta** (`ui/js/taste.js`, el mismo en Windows y Android). Guarda señales de escucha en `data/taste.json`: escuchada entera +1, más de la mitad +0.5, saltada en los primeros segundos −1, me gusta +3, quitar me gusta −2, agregar a una playlist +1.5, "no me interesa" −3. Cada señal pierde la mitad de su peso cada 45 días.
 - Con esas señales arma tu **perfil**: artistas, artistas invitados, género, estilo (slowed, phonk, remix, lofi, hardtekk…) y década. Sirve también para canciones que nunca escuchaste. Las reproducciones y los me gusta de antes cuentan desde el primer día.

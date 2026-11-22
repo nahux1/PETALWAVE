@@ -45,6 +45,7 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="i-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z"/></symbol>
     <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-9.2-9.4A4.9 4.9 0 0112 6a4.9 4.9 0 019.2 4.6C19.5 15.4 12 20 12 20z"/></symbol>
     <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 000-17z" fill="currentColor"/></symbol>
   </defs>
@@ -120,11 +121,15 @@
             <div class="lgb" id="navRecs">
               <button data-view="recs" title="canciones de tu biblioteca elegidas según tus gustos"><svg class="i"><use href="#i-heart"/></svg>recomendadas</button>
               <button data-view="disc" title="canciones nuevas parecidas a tus favoritas (YouTube Music)"><svg class="i"><use href="#i-sync"/></svg>descubrí</button>
+              <button data-mix="time" id="navMixTime" title="lo que escuchás a esta hora del día"><svg class="i"><use href="#i-moon"/></svg>mix del momento</button>
+              <button data-mix="entrenar" title="con energía: phonk, hardtekk, trap, remixes"><svg class="i"><use href="#i-radio"/></svg>para entrenar</button>
+              <button data-mix="relajarte" title="tranquilo: slowed, lofi, acústico"><svg class="i"><use href="#i-heart"/></svg>para relajarte</button>
+              <button data-mix="concentrarte" title="instrumental, lofi, piano, bandas sonoras"><svg class="i"><use href="#i-lyr"/></svg>para concentrarte</button>
             </div>
             <div class="lgb" id="navAuto"></div>
           </div>
           <div class="lgrp" data-grp="pl">
-            <div class="lsec" data-toggle><span><i class="chev">▾</i>mis playlists</span><button class="ico addpl" id="bNewPl" title="nueva playlist"><svg class="i"><use href="#i-plus"/></svg></button></div>
+            <div class="lsec" data-toggle><span><i class="chev">▾</i>mis playlists</span><button class="ico addpl" id="bImpPl" title="importar una playlist compartida (código o QR)"><svg class="i"><use href="#i-dl"/></svg></button><button class="ico addpl" id="bNewPl" title="nueva playlist"><svg class="i"><use href="#i-plus"/></svg></button></div>
             <div class="lgb" id="navPl"></div>
           </div>
         </nav>

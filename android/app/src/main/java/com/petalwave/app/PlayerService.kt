@@ -131,10 +131,12 @@ class PlayerService : Service() {
             .setState(if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, pos, if (playing) 1f else 0f, SystemClock.elapsedRealtime())
             .build())
         getSystemService(NotificationManager::class.java).notify(1, build())
+        PlayerWidget.push(this, title, artist, playing, art)   // el widget de la pantalla de inicio
     }
 
     override fun onDestroy() {
         instance = null
+        PlayerWidget.push(this, "Petalwave", "tocá para abrir", false, null)
         session.release()
         lock?.release(); lock = null
         super.onDestroy()
