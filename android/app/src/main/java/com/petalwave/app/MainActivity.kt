@@ -47,6 +47,10 @@ class MainActivity : Activity() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
+            // seguridad: la interfaz no necesita leer archivos del teléfono por file:// ni content://
+            settings.allowFileAccess = false
+            settings.allowContentAccess = false
+            if (Build.VERSION.SDK_INT >= 26) settings.safeBrowsingEnabled = true
             settings.userAgentString = settings.userAgentString + " PetalwaveAndroid/" + (packageManager.getPackageInfo(packageName, 0).versionName ?: "1")
             overScrollMode = View.OVER_SCROLL_NEVER
             addJavascriptInterface(NativeBridge(), "PetalwaveNative")

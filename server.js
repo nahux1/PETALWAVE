@@ -579,7 +579,19 @@ function allowed(req) {
   return null;
 }
 
+// encabezados de seguridad en todas las respuestas:
+// - CSP: la interfaz solo carga código propio (nada de scripts de otros sitios) y no se puede meter dentro de otra página
+// - nosniff / DENY / no-referrer: el navegador no adivina tipos, no se puede enmarcar y no se filtra la dirección local
+const SEC_HEADERS = {
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+};
+
 const server = http.createServer((req, res) => {
+  for (const [k, v] of Object.entries(SEC_HEADERS)) res.setHeader(k, v);
   const why = allowed(req);
   if (why) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });

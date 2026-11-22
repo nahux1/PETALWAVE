@@ -1093,10 +1093,33 @@ class H(BaseHTTPRequestHandler):
                 return "clave"
         return None
 
+    # encabezados de seguridad en todas las respuestas (los mismos que en la versión de Windows)
+    SEC_HEADERS = {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+        "Cross-Origin-Opener-Policy": "same-origin",
+    }
+
+    def end_headers(self):
+        for k, v in self.SEC_HEADERS.items():
+            self.send_header(k, v)
+        super().end_headers()
+
     def route(self, M):
         # se lee el pedido completo siempre: si una ruta no usa los datos y quedan sin leer,
         # arruinan el pedido siguiente que llega por la misma conexión
-        n = int(self.headers.get("Content-Length") or 0)
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            n = -1
+        if n < 0 or n > 600 * 1024 * 1024:   # nada de pedidos gigantes (el fondo de video más grande permitido ronda los 300 MB)
+            self.send_response(413)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            self.close_connection = True
+            return
         self._raw = self.rfile.read(n) if n else b""
         why = self.denied()
         if why:
@@ -1130,7 +1153,7 @@ class H(BaseHTTPRequestHandler):
             return self.send_file(os.path.join(WWW, "icon.png"), "image/png", "max-age=86400")
         if p.startswith("/ui/"):
             f = os.path.normpath(os.path.join(WWW, p.lstrip("/")))
-            if not f.startswith(WWW):
+            if not f.startswith(WWW + os.sep):
                 return self.send_json(403, {"error": "no"})
             return self.send_file(f)
 

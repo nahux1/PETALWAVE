@@ -509,7 +509,8 @@ static class AppWindow
                 core.NewWindowRequested += (a, b) => { b.Handled = true; OpenExternal(b.Uri); };
                 core.NavigationStarting += (a, b) =>
                 {
-                    if (!b.Uri.StartsWith(url, StringComparison.OrdinalIgnoreCase) && !b.Uri.StartsWith("about:"))
+                    // solo la propia interfaz (con la barra: "http://127.0.0.1:37370" no cuenta como propia)
+                    if (!(b.Uri.Equals(url, StringComparison.OrdinalIgnoreCase) || b.Uri.StartsWith(url + "/", StringComparison.OrdinalIgnoreCase)) && !b.Uri.StartsWith("about:"))
                     {
                         b.Cancel = true;
                         OpenExternal(b.Uri);
@@ -520,6 +521,8 @@ static class AppWindow
                 {
                     try
                     {
+                        // solo se aceptan mensajes de la interfaz de Petalwave
+                        if (!(b.Source ?? "").StartsWith(url + "/", StringComparison.OrdinalIgnoreCase)) return;
                         var m = b.TryGetWebMessageAsString();
                         if (m == null) return;
                         if (m.StartsWith("caption:#") && m.Length == 15)

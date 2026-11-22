@@ -16,6 +16,9 @@ import { initYtm } from './ytmui.js';
 import { initLikes, likeCurrent } from './likes.js';
 import { loadTaste, recsOnline, recsLocal } from './taste.js';
 import { initSmartDl } from './smartdl.js';
+import { renderHome, initHome } from './home.js';
+import { initGsearch, open as openSearch } from './gsearch.js';
+import { initCfgNav } from './cfgnav.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
@@ -23,17 +26,42 @@ import { applyCaps } from './caps.js';
 import { initLayout } from './layout.js';
 
 // ---------- workspaces (como Hyprland: 1..5) ----------
-const WS = ['music', 'dl', 'sync', 'stats', 'cfg'];
+const WS = ['home', 'music', 'dl', 'sync', 'stats', 'cfg'];
 function setWs(ws) {
   if (!WS.includes(ws)) ws = 'music';
   $$('#wsNav [data-ws]').forEach((b) => b.classList.toggle('on', b.dataset.ws === ws));
   $$('#wsa > .ws').forEach((w) => (w.hidden = w.dataset.ws !== ws));
   P.set('ws', ws);
+  if (ws === 'home') renderHome();
   if (ws === 'stats') renderStats();
   if (ws === 'cfg') renderSettings();
   if (ws === 'music') renderLib();
 }
 bus.on('ws', setWs);
+
+// ---------- gestos en el celular ----------
+// barra de abajo: deslizar hacia arriba abre el reproductor · reproductor: a los costados cambia de canción, hacia abajo se cierra
+function swipe(el, { onLeft, onRight, onUp, onDown, canDown = () => true }) {
+  let x0 = 0, y0 = 0, t0 = 0, on = false;
+  el.addEventListener('touchstart', (e) => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); on = e.touches.length === 1; }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (!on) return; on = false;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0, dt = Date.now() - t0;
+    if (dt > 700) return;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) return dx < 0 ? onLeft && onLeft() : onRight && onRight();
+    if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx) * 1.5) return dy < 0 ? onUp && onUp() : canDown() && onDown && onDown();
+  }, { passive: true });
+}
+function slideCover(dir) {
+  const c = $('.fcover'); if (!c) return;
+  c.classList.remove('sl-l', 'sl-r'); void c.offsetWidth; c.classList.add(dir < 0 ? 'sl-l' : 'sl-r');
+}
+setTimeout(() => {
+  const mini = $('.np-mini');
+  if (mini) swipe(mini, { onUp: () => toggleFull(true), onLeft: () => player.next(), onRight: () => player.prev() });
+  const fl = $('.fleft');
+  if (fl) swipe(fl, { onLeft: () => { slideCover(-1); player.next(); }, onRight: () => { slideCover(1); player.prev(); }, onDown: () => toggleFull(false), canDown: () => ($('.fmain') ? $('.fmain').scrollTop < 10 : true) });
+}, 0);
 
 // ---------- modos de ventana ----------
 function applyPrefsClasses() {
@@ -98,8 +126,8 @@ const ACTIONS = {
   },
   theme: () => { const had = P.get('dyn'); const n = cycleTheme(); if (!had) toast('tema: ' + n, { ms: 1200 }); }, dyn: () => { setDyn(!P.get('dyn')); toast(P.get('dyn') ? 'colores de la carátula ◐' : 'colores del tema ◑', { ms: 1300 }); },
   viz: () => toast('visualizador: ' + cycleMode(), { ms: 1100 }), lyrics: () => setSideTab('lyrics'), queue: () => setSideTab('queue'),
-  search: () => { setWs('music'); $('#q').focus(); $('#q').select(); },
-  ws1: () => setWs('music'), ws2: () => setWs('dl'), ws3: () => setWs('sync'), ws4: () => setWs('stats'), ws5: () => setWs('cfg'),
+  search: () => openSearch(), gsearch: () => openSearch(),
+  ws0: () => setWs('home'), ws1: () => setWs('music'), ws2: () => setWs('dl'), ws3: () => setWs('sync'), ws4: () => setWs('stats'), ws5: () => setWs('cfg'),
 };
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
@@ -291,6 +319,9 @@ async function boot() {
   initYtm();
   initLikes();
   initSmartDl();
+  initHome();
+  initGsearch();
+  initCfgNav();
   initViz();
   initBg();
   initUpdate();

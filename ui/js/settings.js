@@ -19,7 +19,9 @@ export function keyName(e) {
   let k = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === 'Shift' || k === 'Control' || k === 'Alt' || k === 'Meta') return null;
   if (e.shiftKey && e.key.length === 1) k = e.key.toUpperCase();
-  return (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '') + (e.shiftKey && e.key.length === 1 ? k : k);
+  // símbolos (/, ?, ¿…): en teclados en español muchos se escriben con Shift; el Shift no cuenta (si no, "/" nunca coincidía)
+  const symbol = e.key.length === 1 && e.key.toLowerCase() === e.key.toUpperCase() && e.key !== ' ';
+  return (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey && !symbol ? 'Shift+' : '') + k;
 }
 const pretty = (k) => (k || '—').replace('Space', 'espacio').replace('ArrowRight', '→').replace('ArrowLeft', '←').replace('ArrowUp', '↑').replace('ArrowDown', '↓');
 

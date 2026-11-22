@@ -842,3 +842,84 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
   body.hide-topnp .np-mini{display:flex!important}
   .np-mini .mob-only[hidden]{display:none!important}
 }
+
+/* ---------- inicio ---------- */
+.hhero{padding:10px 6px 4px}
+.hhero h2{margin:0;font-size:28px;letter-spacing:.01em}
+.hhero .petal{color:var(--ac);display:inline-block;animation:petalSpin 9s linear infinite}
+@keyframes petalSpin{to{transform:rotate(360deg)}}
+.hsec{margin-top:18px}
+.hsec-h{display:flex;align-items:center;gap:10px;padding:0 6px}
+.hsec-h h3{margin:0;font-size:15px;flex:1}
+.home-row{display:grid;grid-auto-flow:column;grid-auto-columns:160px;gap:6px;overflow-x:auto;padding:6px 2px 10px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.home-row .card{scroll-snap-align:start}
+.hempty{margin:30px auto;max-width:460px;text-align:center;padding:26px;border:1px dashed var(--bd-on);border-radius:var(--r)}
+.hempty .big{font-size:54px;color:var(--ac);animation:petalSpin 12s linear infinite;display:inline-block}
+.hempty h3{margin:8px 0}
+.hempty .acts{justify-content:center;margin-top:14px;display:flex;gap:8px}
+/* ---------- buscador único ---------- */
+.gsearch{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:flex;justify-content:center;align-items:flex-start;padding-top:9vh;animation:fadeIn .12s}
+.gs-box{width:min(660px,94vw);max-height:76vh;display:flex;flex-direction:column;background:color-mix(in srgb,var(--deep) 96%,transparent);border:1.5px solid var(--bd-on);border-radius:var(--r);box-shadow:0 24px 70px rgba(0,0,0,.6);overflow:hidden;animation:popIn .15s ease-out}
+.gs-in{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--bd)}
+.gs-in input{flex:1;background:none;border:0;outline:0;font-size:16px;color:var(--fg)}
+.gs-res{overflow:auto;padding:6px}
+.gs-h{font-size:11px;letter-spacing:.12em;color:var(--dim);padding:10px 8px 4px;text-transform:uppercase}
+.gs-it{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-sm);cursor:pointer}
+.gs-it.on,.gs-it:hover{background:var(--hl)}
+.gs-it img{width:40px;height:40px;border-radius:var(--r-sm);object-fit:cover;background:var(--hl2);flex:0 0 auto}
+.gs-it img.round{border-radius:50%}
+.gs-it img.x{visibility:hidden}
+.gs-ic{width:40px;height:40px;display:grid;place-items:center;color:var(--ac);flex:0 0 auto}
+.gs-t{min-width:0;display:flex;flex-direction:column}
+.gs-t b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gs-t span{color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gs-empty{padding:22px;text-align:center;color:var(--dim)}.gs-empty.sm{padding:8px}
+.ws-nav .lb{display:none}
+@media (max-width:700px){
+  /* barra de navegación abajo, al alcance del pulgar */
+  #wsNav{position:fixed;left:0;right:0;bottom:0;z-index:45;height:calc(58px + env(safe-area-inset-bottom));padding:4px 2px calc(4px + env(safe-area-inset-bottom));
+    display:flex;justify-content:space-around;align-items:stretch;gap:0;border-radius:0;border:0;border-top:1px solid var(--bd-on);
+    background:color-mix(in srgb,var(--deep) 97%,transparent)}
+  #wsNav .logo{display:none}
+  .top::before{content:'❀ Petalwave';color:var(--ac);font-weight:700;letter-spacing:.04em;margin-right:auto;padding-left:6px;white-space:nowrap}
+  #wsNav button{flex:1;flex-direction:column;justify-content:center;gap:2px;padding:4px 0;border-radius:var(--r-sm);min-width:0}
+  #wsNav button svg{width:21px;height:21px}
+  #wsNav .lb{display:block;font-size:10px;letter-spacing:.02em;line-height:1}
+  #wsNav button.on{background:none;color:var(--ac)}
+  #wsNav button.on svg{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--ac) 60%,transparent))}
+  #wsNav [data-ws=stats]{display:none}
+  #wsNav .badge{top:2px;right:calc(50% - 18px)}
+  .np-mini{bottom:calc(64px + env(safe-area-inset-bottom))!important}
+  .shell{padding-bottom:136px!important}
+  #toasts{bottom:140px!important}
+  .gsearch{padding-top:0;align-items:stretch}
+  .gs-box{width:100vw;max-height:none;height:100%;border-radius:0;border:0}
+  .home-row{grid-auto-columns:136px}
+  .hcard .cplay{opacity:1;transform:none}
+  .hhero h2{font-size:24px}
+}
+
+/* reproductor: la carátula se desliza al cambiar de canción con el dedo, y el fondo se mueve despacito */
+.fcover.sl-l{animation:slideL .32s ease-out}.fcover.sl-r{animation:slideR .32s ease-out}
+@keyframes slideL{0%{transform:translateX(0);opacity:1}45%{transform:translateX(-40%);opacity:0}55%{transform:translateX(40%);opacity:0}100%{transform:none;opacity:1}}
+@keyframes slideR{0%{transform:translateX(0);opacity:1}45%{transform:translateX(40%);opacity:0}55%{transform:translateX(-40%);opacity:0}100%{transform:none;opacity:1}}
+#full:not([hidden]) .fbg{animation:fbgDrift 28s ease-in-out infinite alternate}
+@keyframes fbgDrift{0%{transform:scale(1.1) translate(0,0)}50%{transform:scale(1.22) translate(-2%,1.5%)}100%{transform:scale(1.15) translate(2%,-1.5%)}}
+body.noanim #full .fbg{animation:none}
+@media (max-width:700px){
+  .np-mini::before{content:'';position:absolute;top:4px;left:50%;width:34px;height:3px;margin-left:-17px;border-radius:3px;background:color-mix(in srgb,var(--fg) 22%,transparent)}
+  #full .fclose{top:calc(10px + env(safe-area-inset-top))}
+  #full .fmain::before{content:'deslizá ↓ para cerrar · ← → para cambiar';display:block;text-align:center;font-size:11px;color:var(--dim);opacity:.7;margin-bottom:4px}
+}
+
+/* ajustes: buscador y categorías */
+.cfgnav{position:sticky;top:-14px;z-index:5;margin:-4px -4px 12px;padding:10px 8px 8px;background:color-mix(in srgb,var(--deep) 94%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.cfgnav input{width:100%;padding:8px 12px;border:1px solid var(--bd);border-radius:999px;background:color-mix(in srgb,var(--ink) 60%,transparent);outline:0;font-size:13px}
+.cfgnav input:focus{border-color:var(--ac)}
+.cfgcats{display:flex;gap:6px;overflow-x:auto;padding-top:8px;scrollbar-width:none}
+.cfgcats::-webkit-scrollbar{display:none}
+.cfgcats button{flex:0 0 auto;border:1px solid var(--bd);background:none;border-radius:999px;padding:4px 11px;cursor:pointer;color:var(--dim);font-size:12px}
+.cfgcats button.on{background:var(--ac);border-color:var(--ac);color:var(--ink)}
+.cfgsec[hidden]{display:none!important}
+.cfg-hide{display:none!important}
+.hquick{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}

@@ -45,6 +45,7 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="i-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10"/></symbol>
     <symbol id="i-qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z"/></symbol>
     <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-9.2-9.4A4.9 4.9 0 0112 6a4.9 4.9 0 019.2 4.6C19.5 15.4 12 20 12 20z"/></symbol>
     <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 000-17z" fill="currentColor"/></symbol>
@@ -60,11 +61,13 @@
 <header class="top" id="top">
   <nav class="mod ws-nav" id="wsNav">
     <span class="logo">❀</span>
-    <button data-ws="music" class="on" title="música (1)"><svg class="i"><use href="#i-music"/></svg><b>1</b></button>
-    <button data-ws="dl" title="descargas (2)"><svg class="i"><use href="#i-dl"/></svg><b>2</b><i class="badge" id="dlBadge" hidden></i></button>
-    <button data-ws="sync" title="YouTube Music (3)"><svg class="i"><use href="#i-sync"/></svg><b>3</b><i class="sdot" id="syncDot"></i></button>
-    <button data-ws="stats" title="estadísticas (4)"><svg class="i"><use href="#i-stats"/></svg><b>4</b></button>
-    <button data-ws="cfg" title="ajustes (5)"><svg class="i"><use href="#i-cfg"/></svg><b>5</b></button>
+    <button data-ws="home" title="inicio (0)"><svg class="i"><use href="#i-home"/></svg><b>0</b><span class="lb">inicio</span></button>
+    <button data-ws="music" class="on" title="música (1)"><svg class="i"><use href="#i-music"/></svg><b>1</b><span class="lb">biblioteca</span></button>
+    <button class="mob-search" data-act="gsearch" title="buscar en todo (/)"><svg class="i"><use href="#i-search"/></svg><span class="lb">buscar</span></button>
+    <button data-ws="dl" title="descargas (2)"><svg class="i"><use href="#i-dl"/></svg><b>2</b><i class="badge" id="dlBadge" hidden></i><span class="lb">descargas</span></button>
+    <button data-ws="sync" title="YouTube Music (3)"><svg class="i"><use href="#i-sync"/></svg><b>3</b><i class="sdot" id="syncDot"></i><span class="lb">online</span></button>
+    <button data-ws="stats" title="estadísticas (4)"><svg class="i"><use href="#i-stats"/></svg><b>4</b><span class="lb">stats</span></button>
+    <button data-ws="cfg" title="ajustes (5)"><svg class="i"><use href="#i-cfg"/></svg><b>5</b><span class="lb">ajustes</span></button>
   </nav>
   <i class="tsep"></i>
   <span class="mod np-mini">
@@ -236,6 +239,12 @@
       </div>
     </div>
 
+    <!-- ===== 0 · inicio ===== -->
+    <div class="ws w" data-ws="home" hidden>
+      <span class="lbl">~/inicio</span>
+      <div class="pad scroll" id="homeBody"></div>
+    </div>
+
     <!-- ===== 4 · estadísticas ===== -->
     <div class="ws w" data-ws="stats" hidden>
       <span class="lbl">~/stats</span>
@@ -361,6 +370,13 @@
 <div class="modal" id="modal" hidden><div class="mbox" id="mbox"></div></div>
 <div id="drop">soltá música para importarla · una imagen para el wallpaper · cookies.txt · un .lrc para la letra ❀</div>
 <div id="toasts"></div>
+<!-- buscador único: biblioteca, playlists y YouTube Music en un solo lugar (tecla /) -->
+<div class="gsearch" id="gsearch" hidden>
+  <div class="gs-box">
+    <div class="gs-in"><svg class="i"><use href="#i-search"/></svg><input id="gsQ" type="search" placeholder="buscar canciones, artistas, playlists…" autocomplete="off" spellcheck="false"><button class="ico" id="gsClose" title="cerrar (esc)"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="gs-res scroll" id="gsRes"></div>
+  </div>
+</div>
 <div id="osd"><svg class="i"><use href="#i-play"/></svg><span></span><i class="osdbar"><b></b></i></div>
 <input type="file" id="filePick" hidden>
 

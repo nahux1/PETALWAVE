@@ -1,5 +1,16 @@
 # petalwave — registro de cambios
 
+## 2.10.0 — Inicio, buscador único, celular más cómodo y seguridad
+- **Inicio** (`ui/js/home.js`, workspace `home`, tecla `0`, se abre por defecto): seguir escuchando, mixes, descubrí, playlists y recién agregadas, en filas de tarjetas.
+- **Buscador único** (`ui/js/gsearch.js`, tecla `/`): biblioteca, artistas, playlists y YouTube Music en un mismo lugar, con teclado (↑ ↓ Enter) y búsquedas recientes.
+- **Celular:** barra de navegación fija abajo con nombres; deslizar la barra de la canción hacia arriba abre el reproductor; en pantalla completa, a los costados cambia de canción y hacia abajo cierra; fondo con movimiento lento.
+- **Ajustes** (`ui/js/cfgnav.js`): categorías y buscador que filtra secciones y opciones.
+- Atajos: los símbolos que se escriben con Shift (como `/` en teclados en español) ya coinciden con el atajo.
+- **Seguridad:**
+  - CSP (solo scripts propios, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` y COOP en las dos versiones.
+  - Windows: la ventana solo navega a su propia dirección exacta y solo acepta mensajes de la interfaz.
+  - Android: WebView sin acceso a `file://` ni `content://`, Safe Browsing, límite de 600 MB por pedido y chequeo de carpeta estricto en `/ui/`.
+
 ## 2.9.0 — mixes, descargas inteligentes, tu año, QR y widget
 - **Volumen parejo** (`audio.js`): cada reproductor mide el RMS de su canción (sin contar silencios) con su propio analizador y ajusta una ganancia hacia −16 dBFS (entre −12 y +8 dB; hasta +3 dB los primeros 10 s si nunca se midió). La medida se guarda (`pw-loud`) y la próxima vez arranca ajustada.
 - **Transiciones inteligentes:** salta más de 1 s de silencio al principio (en los primeros 8 s) y, con 1,5 s de silencio en el tramo final, pasa a la siguiente con el fundido. No actúa si moviste la barra.
