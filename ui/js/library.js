@@ -1,6 +1,6 @@
 // biblioteca: vistas (canciones, artistas, álbumes, géneros, años, recientes, duplicados, playlists, automáticas),
 // búsqueda instantánea, lista virtualizada, selección múltiple, menú contextual, arrastrar a playlists y edición de etiquetas
-import { $, $$, bus, P, api, esc, fmtTime, fmtSize, norm, icon, coverUrl, toast, modal, prompt2, confirm2, ctxMenu, debounce, ago } from './core.js';
+import { $, $$, bus, P, api, esc, fmtTime, fmtSize, norm, icon, coverUrl, toast, modal, prompt2, confirm2, ctxMenu, debounce, ago, emptyState } from './core.js';
 import { D, T, loadLibrary, loadPlaylists, loadAuto, plOp, trackLabel, ytm, loadYtmList, loadYtmPlaylists } from './data.js';
 import { playList, playNext, addQueue, radio, S as PS, current } from './player.js';
 import { openRadio } from './ytmui.js';
@@ -264,7 +264,10 @@ function bindHeader(head, list) {
 function renderTable(body) {
   if (!ids.length) {
     if (view.type === 'ytm') { const l = ytm.lists.get(view.key); body.innerHTML = `<div class="empty">${!l || ytm.loading.has(view.key) ? 'trayendo tu lista de YouTube Music…' : l.error ? esc(l.error) : 'esta lista está vacía'}</div>`; return; }
-    body.innerHTML = `<div class="empty">${D.tracks.length ? 'nada coincide con la búsqueda' : D.scan && D.scan.scanning ? 'escaneando tu música…' : 'tu biblioteca está vacía.<br><br>descargá algo (workspace 2), arrastrá archivos acá o agregá carpetas en ajustes (5).'}</div>`;
+    body.innerHTML = D.tracks.length ? `<div class="empty">nada coincide con la búsqueda</div>`
+      : D.scan && D.scan.scanning ? `<div class="empty">escaneando tu música…</div>`
+      : ['recs', 'mix', 'disc', 'pl'].includes(view.type) ? emptyState(view.type === 'pl' ? 'Esta playlist está vacía' : 'Todavía no hay nada para recomendarte', view.type === 'pl' ? 'Agregá canciones desde su menú (⋮ → agregar a playlist) o arrastrándolas.' : 'Escuchá algunas canciones y tocá ♥: Petalwave aprende tus gustos.', [{ label: 'buscar música', attr: 'data-goto="gsearch"' }])
+      : emptyState('Tu biblioteca está vacía', 'Pegá un link de YouTube para descargar, agregá una carpeta con música o buscá algo para escuchar online.', [{ label: 'descargar música', attr: 'data-goto="dl"' }, { label: 'agregar carpeta', attr: 'data-goto="addfolder"' }, { label: 'buscar online', attr: 'data-goto="gsearch"' }]);
     return;
   }
   const rh = ROW_H();
@@ -551,6 +554,28 @@ export function initLibrary() {
   body.addEventListener('click', onRowClick);
   body.addEventListener('dblclick', onRowDbl);
   body.addEventListener('contextmenu', onRowCtx);
+  // celular: deslizar una canción a la derecha la pone en la cola, a la izquierda le da ♥
+  let sw = null;
+  body.addEventListener('touchstart', (e) => { const r = e.target.closest('.row'); if (!r || e.touches.length !== 1) return; sw = { r, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false }; }, { passive: true });
+  body.addEventListener('touchmove', (e) => {
+    if (!sw) return;
+    const dx = e.touches[0].clientX - sw.x, dy = e.touches[0].clientY - sw.y;
+    if (!sw.on && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; }   // es scroll
+    if (!sw.on && Math.abs(dx) > 14) sw.on = true;
+    if (!sw.on) return;
+    sw.dx = Math.max(-120, Math.min(120, dx));
+    sw.r.style.transform = `translateX(${sw.dx}px)`;
+    sw.r.classList.toggle('sw-q', sw.dx > 70); sw.r.classList.toggle('sw-l', sw.dx < -70);
+  }, { passive: true });
+  body.addEventListener('touchend', () => {
+    if (!sw) return;
+    const { r, dx, on } = sw; sw = null;
+    r.style.transform = ''; r.classList.remove('sw-q', 'sw-l');
+    if (!on) return;
+    const t = T(ids[+r.dataset.i]); if (!t) return;
+    if (dx > 70) { addQueue([t.id]); toast('a la cola ⇥', { sub: t.title, ms: 1400 }); }
+    else if (dx < -70) toggleLike(t.id);
+  });
   bindDrag();
   $('#lnav').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;

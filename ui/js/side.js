@@ -1,9 +1,10 @@
 // panel lateral: cola (reordenable), historial y letras (sincronizadas cuando hay marcas de tiempo)
-import { $, $$, bus, P, api, esc, fmtTime, coverUrl, icon, ctxMenu } from './core.js';
+import { $, $$, bus, P, api, esc, fmtTime, coverUrl, icon, ctxMenu, toast, emptyState } from './core.js';
 import { D, T } from './data.js';
-import { S, jump, removeAt, moveIn, clearQueue, playList, current, addQueue, playNext } from './player.js';
+import { S, jump, removeAt, moveIn, clearQueue, playList, current, addQueue, playNext, insertAt, restoreQueue } from './player.js';
 import { engine } from './audio.js';
-import { getDragIds, trackMenu } from './library.js';
+import { karaoke } from './comfort.js';
+import { getDragIds, trackMenu, newPlaylist } from './library.js';
 
 let tab = 'queue';
 export function setSideTab(t) {
@@ -24,19 +25,31 @@ function renderQueue() {
   $('#cQueue').textContent = S.queue.length ? `${S.queue.length - Math.max(0, S.qi)}` : '';
   if (tab !== 'queue') return;
   const box = $('#sbQueue');
-  if (!S.queue.length) { box.innerHTML = '<div class="empty">la cola está vacía.<br>doble clic en una canción, o arrastrala acá.</div>'; return; }
+  if (!S.queue.length) { box.innerHTML = emptyState('La cola está vacía', 'Tocá una canción, un mix de Inicio o arrastrá canciones acá.', [{ label: 'ir al inicio', attr: 'data-goto="home"' }], '♫'); return; }
   const from = Math.max(0, S.qi - 2), to = Math.min(S.queue.length, S.qi + 150);
-  let html = `<div class="m" style="display:flex;justify-content:space-between;padding:2px 6px 6px"><span>${S.queue.length} en cola${S.shuffle ? ' · aleatorio' : ''}${S.repeat !== 'off' ? ' · repetir ' + (S.repeat === 'one' ? 'una' : 'todo') : ''}</span><button class="cb sm" id="qClear">limpiar</button></div>`;
+  let html = `<div class="m" style="display:flex;justify-content:space-between;gap:6px;padding:2px 6px 6px"><span style="flex:1">${S.queue.length} en cola${S.shuffle ? ' · aleatorio' : ''}${S.repeat !== 'off' ? ' · repetir ' + (S.repeat === 'one' ? 'una' : 'todo') : ''}</span><button class="cb sm" id="qSave" title="guardar la cola como playlist">guardar</button><button class="cb sm" id="qClear">limpiar</button></div>`;
   for (let i = from; i < to; i++) { const t = T(S.queue[i]); if (t) html += qrow(t, i, i === S.qi ? 'cur' : i < S.qi ? 'past' : ''); }
   if (to < S.queue.length) html += `<div class="m" style="padding:6px">… y ${S.queue.length - to} más</div>`;
   box.innerHTML = html;
   const cur = box.querySelector('.qrow.cur'); if (cur) cur.scrollIntoView({ block: 'nearest' });
-  $('#qClear').onclick = clearQueue;
+  $('#qClear').onclick = () => {
+    const q = S.queue.slice(), qi = S.qi;
+    clearQueue();
+    toast('cola vaciada', { action: { label: 'deshacer', fn: () => restoreQueue(q, qi) }, ms: 5000 });
+  };
+  $('#qSave').onclick = () => newPlaylist(S.queue.slice());
+}
+// quitar con "deshacer" (por si se tocó sin querer)
+function removeWithUndo(i) {
+  if (i === S.qi) return removeAt(i);
+  const id = S.queue[i], t = T(id);
+  removeAt(i);
+  toast('quitada de la cola', { sub: t ? t.title : '', action: { label: 'deshacer', fn: () => insertAt(i, id) }, ms: 5000 });
 }
 function initQueue() {
   const box = $('#sbQueue');
   box.addEventListener('click', (e) => {
-    const x = e.target.closest('[data-qx]'); if (x) { e.stopPropagation(); return removeAt(+x.dataset.qx); }
+    const x = e.target.closest('[data-qx]'); if (x) { e.stopPropagation(); return removeWithUndo(+x.dataset.qx); }
     const r = e.target.closest('[data-qi]'); if (r) jump(+r.dataset.qi);
   });
   box.addEventListener('contextmenu', (e) => {
@@ -46,7 +59,10 @@ function initQueue() {
     ctxMenu(e.clientX, e.clientY, [
       { label: 'reproducir ahora', icon: 'play', fn: () => jump(i) },
       { label: 'reproducir después', icon: 'next', fn: () => { const id = S.queue[i]; if (i !== S.qi) { removeAt(i); playNext([id]); } } },
-      { label: 'quitar de la cola', icon: 'x', fn: () => removeAt(i) },
+      i > S.qi + 1 && { label: 'que suene después', icon: 'next', fn: () => moveIn(i, S.qi + 1) },
+      i > 0 && i !== S.qi && { label: 'subir', icon: 'back', fn: () => moveIn(i, i - 1) },
+      i < S.queue.length - 1 && i !== S.qi && { label: 'bajar', icon: 'fwd', fn: () => moveIn(i, i + 2) },
+      { label: 'quitar de la cola', icon: 'x', fn: () => removeWithUndo(i) },
       { sep: true },
       { label: 'más opciones…', icon: 'more', fn: () => trackMenu(e.clientX, e.clientY, [S.queue[i]]) },
     ]);
@@ -132,6 +148,7 @@ function paintLyrics() {
 function renderLyrics() { if (current()) loadLyrics(current()); else paintLyrics(); }
 export function syncLyrics(time) {
   if (!lyr.lines || !lyr.lines.length) return;
+  for (const box of [$('#sbLyrics'), $('#fLyrics')]) if (box && box.offsetParent !== null) karaoke(time, lyr.lines, box);
   let i = -1;
   for (let k = 0; k < lyr.lines.length; k++) { if (lyr.lines[k].t <= time + 0.15) i = k; else break; }
   for (const box of [$('#sbLyrics'), $('#fLyrics')]) {

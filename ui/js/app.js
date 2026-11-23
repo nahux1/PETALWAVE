@@ -20,6 +20,7 @@ import { renderHome, initHome } from './home.js';
 import { initGsearch, open as openSearch } from './gsearch.js';
 import { initCfgNav } from './cfgnav.js';
 import { listen as listenSong, initRecognize } from './recognize.js';
+import { initComfort, toggleCar } from './comfort.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
@@ -39,6 +40,31 @@ function setWs(ws) {
   if (ws === 'music') renderLib();
 }
 bus.on('ws', setWs);
+
+// atajos del ícono de Android (solo navegan: "¿qué suena?" abre la pantalla pero espera que toques para grabar)
+bus.on('host:go', async (g) => {
+  const lib = await import('./library.js');
+  if (g === 'recognize') return import('./recognize.js').then((m) => m.ready());
+  if (g === 'search') return openSearch();
+  setWs('music');
+  if (g === 'mix') lib.go({ type: 'mix', key: 'time' });
+  if (g === 'disc') lib.go({ type: 'disc' });
+  if (g === 'liked') lib.go({ type: 'pl', key: 'liked' });
+});
+
+// botones de las pantallas vacías
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('.estate [data-goto]'); if (!b) return;
+  const g = b.dataset.goto;
+  if (g === 'gsearch') return openSearch();
+  if (g === 'addfolder') {
+    const f = await host.pickFolder('Carpeta con música para agregar a la biblioteca');
+    if (f) { try { await api.post('/api/library/folders', { add: f }); toast('carpeta agregada: buscando canciones…'); } catch (err) { toast(err.message, { kind: 'err' }); } }
+    return;
+  }
+  document.body.classList.remove('qsheet');
+  setWs(g);
+});
 
 // ---------- gestos en el celular ----------
 // barra de abajo: deslizar hacia arriba abre el reproductor · reproductor: a los costados cambia de canción, hacia abajo se cierra
@@ -98,11 +124,12 @@ const ACTIONS = {
   vol: () => toggleVolPop(), eq: () => openEq(), radio: () => player.radio(), like: () => likeCurrent(),
   sleep: () => {
     const b = $('[data-act="sleep"]').getBoundingClientRect();
-    const on = player.sleep.until || player.sleep.endOfTrack;
+    const on = player.sleep.until || player.sleep.endOfTrack || player.sleep.endOfAlbum;
     ctxMenu(b.left, b.bottom + 6, [
       { header: 'temporizador para dormir' },
       ...[15, 30, 45, 60, 90].map((m) => ({ label: `${m} minutos`, icon: 'moon', fn: () => player.setSleep(m) })),
       { label: 'al terminar esta canción', icon: 'moon', fn: () => player.setSleep('track') },
+      { label: 'al terminar el álbum', icon: 'moon', fn: () => player.setSleep('album') },
       on && { sep: true },
       on && { label: 'apagar temporizador', icon: 'x', fn: () => player.setSleep(0) },
     ]);
@@ -127,6 +154,8 @@ const ACTIONS = {
   },
   theme: () => { const had = P.get('dyn'); const n = cycleTheme(); if (!had) toast('tema: ' + n, { ms: 1200 }); }, dyn: () => { setDyn(!P.get('dyn')); toast(P.get('dyn') ? 'colores de la carátula ◐' : 'colores del tema ◑', { ms: 1300 }); },
   viz: () => toast('visualizador: ' + cycleMode(), { ms: 1100 }), lyrics: () => setSideTab('lyrics'), queue: () => setSideTab('queue'),
+  car: () => toggleCar(),
+  qsheet: () => { const on = !document.body.classList.contains('qsheet'); document.body.classList.toggle('qsheet', on); if (on) setSideTab('queue'); },
   search: () => openSearch(), gsearch: () => openSearch(), recognize: () => listenSong(),
   ws0: () => setWs('home'), ws1: () => setWs('music'), ws2: () => setWs('dl'), ws3: () => setWs('sync'), ws4: () => setWs('stats'), ws5: () => setWs('cfg'),
 };
@@ -325,6 +354,7 @@ async function boot() {
   initGsearch();
   initCfgNav();
   initRecognize();
+  initComfort();
   initViz();
   initBg();
   initUpdate();
@@ -335,6 +365,7 @@ async function boot() {
   connectStream();
   await Promise.all([loadLibrary(), loadPlaylists(), loadAuto(), loadTaste()]);
   player.restore();
+  setTimeout(() => import('./welcome.js').then((m) => m.maybeWelcome()), 600);   // bienvenida la primera vez
   player.renderNP();
   setWs(P.get('ws') || 'music');
   // cola terminada: seguir con canciones según tus gustos (ajustes → reproducción)

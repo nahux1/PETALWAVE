@@ -37,6 +37,7 @@ class App : Application() {
         super.onCreate()
         ctx = this
         if (!Python.isStarted()) Python.start(AndroidPlatform(this))
+        Thread { startServer() }.start()   // arrancar ya, mientras Android dibuja la pantalla
     }
 
     @Synchronized

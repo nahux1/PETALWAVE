@@ -90,7 +90,7 @@ export const SHORTCUT_LABELS = {
   lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', like: 'me gusta', recognize: '¿qué suena?', ws0: 'inicio', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
 };
 const DEFAULT_PREFS = {
-  theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true, autoRecs: true, autoLevel: true, smartGaps: true, smartDl: false, smartDlMax: 50, smartDlWifi: true,
+  theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true, autoRecs: true, autoLevel: true, smartGaps: true, smartDl: false, smartDlMax: 50, smartDlWifi: true, karaoke: true, batterySaver: true, autoTheme: false, dayTheme: 'petal', nightTheme: 'blood', dayFrom: 7, nightFrom: 20,
   notify: true, notifyToast: true, blur: true, anim: true, compact: false, sideTab: 'queue', ws: 'home',
   libView: 'songs', libSort: { key: 'added', dir: -1 },
   shortcuts: { ...DEFAULT_SHORTCUTS },
@@ -132,6 +132,8 @@ function hostMsg(m) {
   } else if (m.startsWith('cmd:')) bus.emit('host:cmd', m.slice(4));
   else if (m.startsWith('login:')) bus.emit('host:login', m.slice(6));
   else if (m.startsWith('win:')) bus.emit('host:win', m.slice(4));
+  else if (m.startsWith('upd:')) bus.emit('host:upd', m.slice(4));
+  else if (m.startsWith('go:')) bus.emit('host:go', m.slice(3));
 }
 if (wv) wv.addEventListener('message', (e) => hostMsg(e.data));
 window.__pwHost = hostMsg;   // Android manda los mensajes por acá
@@ -158,11 +160,18 @@ export function toast(msg, opts = {}) {
   const el = document.createElement('div');
   el.className = 'toast ' + (opts.kind || '');
   el.innerHTML = (opts.img ? `<img src="${esc(opts.img)}" onerror="this.remove()">` : '') +
-    (opts.sub ? `<div><div class="tt">${esc(msg)}</div><div class="ts">${esc(opts.sub)}</div></div>` : `<div>${esc(msg)}</div>`);
+    (opts.sub ? `<div><div class="tt">${esc(msg)}</div><div class="ts">${esc(opts.sub)}</div></div>` : `<div>${esc(msg)}</div>`) +
+    (opts.action ? `<button class="cb sm tact">${esc(opts.action.label)}</button>` : '');
+  if (opts.action) el.querySelector('.tact').onclick = () => { try { opts.action.fn(); } finally { el.remove(); } };
   box.appendChild(el);
   while (box.children.length > 4) box.firstChild.remove();
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, opts.ms || 2800);
 }
+
+// ---------- pantalla vacía con onda (en vez de un texto suelto) ----------
+// botones: { label, attr } donde attr es p. ej. 'data-goto="dl"' (cada vista decide qué hace)
+export const emptyState = (title, sub = '', buttons = [], glyph = '❀') => `<div class="estate"><div class="es-petals"><i>${glyph}</i><i>❀</i><i>❀</i></div>
+  <h3>${esc(title)}</h3>${sub ? `<div class="m">${sub}</div>` : ''}${buttons.length ? `<div class="es-acts">${buttons.map((b, i) => `<button class="${i ? 'cb' : 'go'}" ${b.attr}>${esc(b.label)}</button>`).join('')}</div>` : ''}</div>`;
 
 // ---------- aviso flotante al usar atajos (icono + texto + barra opcional) ----------
 export function osd(iconName, text, bar) {

@@ -177,6 +177,12 @@ export async function auddSettings(el) {
   const del = el.querySelector('#cAuddDel'); if (del) del.onclick = async () => { await api.post('/api/recognize/config', { token: '' }); toast('clave quitada'); auddSettings(el); };
 }
 
+// pantalla lista para escuchar, esperando el toque (para atajos: nunca graba sin que lo pidas)
+export function ready() {
+  const o = overlay(); o.hidden = false; paintHist();
+  $('#rcMain').innerHTML = `<div class="rc-listen"><div class="rc-petal">❀</div><h3>¿qué suena?</h3><div class="m">tocá para escuchar ${SECS} segundos</div><div class="rc-acts"><button class="go" id="rcGo">${icon('mic')} escuchar</button></div></div>`;
+  $('#rcGo').onclick = listen;
+}
 export function initRecognize() {
   bus.on('recognize', listen);
 }

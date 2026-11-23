@@ -34,8 +34,8 @@ android {
         applicationId = "com.petalwave.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.5.0"
+        versionCode = 10
+        versionName = "1.6.0"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
     signingConfigs {

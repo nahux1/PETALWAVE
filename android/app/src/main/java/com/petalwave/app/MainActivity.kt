@@ -35,7 +35,8 @@ class MainActivity : Activity() {
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingShare: String? = null
     private var pickId: String? = null
-    private var pendingCmd: String? = null                       // botón del widget con la app cerrada
+    private var pendingCmd: String? = null
+    private var pendingGo: String? = null                         // atajo del ícono (mix, descubrí, me gusta, ¿qué suena?)                       // botón del widget con la app cerrada
     private var camRequest: android.webkit.PermissionRequest? = null   // cámara (QR) o micrófono (¿qué suena?) pendiente
     private var camRes: Array<String> = emptyArray()
 
@@ -67,6 +68,7 @@ class MainActivity : Activity() {
                     view.evaluateJavascript("window.open=function(u){try{PetalwaveNative.open(String(new URL(u,location.href)))}catch(e){}return null};", null)
                     pendingShare?.let { sendShare(it); pendingShare = null }
                     pendingCmd?.let { c -> pendingCmd = null; view.postDelayed({ cmd(c) }, 2500) }
+                    pendingGo?.let { g -> pendingGo = null; view.postDelayed({ hostMsg("go:$g") }, 1200) }
                 }
             }
             webChromeClient = object : WebChromeClient() {
@@ -92,13 +94,15 @@ class MainActivity : Activity() {
             }
         }
         val loading = TextView(this).apply {
-            text = "❀ Petalwave\n\npreparando…"; setTextColor(Color.parseColor("#F08A8F")); textSize = 18f
+            text = "❀"; setTextColor(Color.parseColor("#F08A8F")); textSize = 64f
             gravity = android.view.Gravity.CENTER; setBackgroundColor(Color.parseColor("#0B0708"))
+            animate().rotationBy(3600f).setDuration(40000).setInterpolator(android.view.animation.LinearInterpolator()).start()
         }
         setContentView(loading)
         askPermissions()
         handleShare(intent)
         pendingCmd = trustedCmd(intent)
+        pendingGo = goOf(intent)
         // el servicio mantiene viva la música con la pantalla apagada y arranca el servidor interno
         val svc = Intent(this, PlayerService::class.java)
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
@@ -106,7 +110,7 @@ class MainActivity : Activity() {
             App.ctx.startServer()
             runOnUiThread {
                 if (App.serverReady) { setContentView(web); App.setTokenCookie { web.loadUrl("http://127.0.0.1:${App.PORT}/") } }
-                else loading.text = "No se pudo iniciar Petalwave:\n\n" + (App.serverError ?: "error desconocido")
+                else { loading.animate().cancel(); loading.rotation = 0f; loading.textSize = 16f; loading.text = "No se pudo iniciar Petalwave:\n\n" + (App.serverError ?: "error desconocido") }
             }
         }.start()
     }
@@ -155,6 +159,8 @@ class MainActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); handleShare(intent)
         trustedCmd(intent)?.let { cmd(it) }
+        goOf(intent)?.let { hostMsg("go:$it") }
+        if (intent.action == "com.petalwave.app.INSTALL_STATUS") Updater.onStatus(this, intent) { m -> hostMsg("upd:$m") }
     }
     private fun handleShare(i: Intent?) {
         if (i?.action != Intent.ACTION_SEND) return
@@ -194,6 +200,7 @@ class MainActivity : Activity() {
 
     // comandos del widget con la app cerrada: solo si traen la clave privada de Petalwave
     // (la pantalla principal es pública porque la abre el lanzador; sin esto cualquier app podía manejar la música)
+    private fun goOf(i: Intent?): String? = i?.getStringExtra("pw_go")?.takeIf { it in setOf("mix", "disc", "liked", "recognize", "search") }
     private fun trustedCmd(i: Intent?): String? {
         val c = i?.getStringExtra("pw_cmd") ?: return null
         if (c !in setOf("prev", "toggle", "next")) return null
@@ -211,6 +218,13 @@ class MainActivity : Activity() {
     inner class NativeBridge {
         @JavascriptInterface fun open(url: String) = runOnUiThread { openExternal(url) }
         @JavascriptInterface fun platform(): String = "android"
+        // batería para el modo ahorro: {"level":0.0-1.0,"charging":true|false}
+        @JavascriptInterface fun battery(): String = try {
+            val bm = getSystemService(android.os.BatteryManager::class.java)
+            val lvl = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) / 100.0
+            val chg = if (Build.VERSION.SDK_INT >= 23) bm.isCharging else false
+            "{\"level\":$lvl,\"charging\":$chg}"
+        } catch (_: Exception) { "{\"level\":1,\"charging\":true}" }
         // "wifi", "datos" o "sin" (para las descargas inteligentes: por defecto solo con WiFi)
         @JavascriptInterface fun net(): String = try {
             val cm = getSystemService(android.net.ConnectivityManager::class.java)
@@ -254,6 +268,8 @@ class MainActivity : Activity() {
             }
             "ok"
         } catch (e: Exception) { "no se pudo guardar la imagen: " + (e.message ?: "error") }
+        // actualizar desde la app (ver Updater): baja el APK de GitHub, verifica el SHA-256 y abre el instalador
+        @JavascriptInterface fun installUpdate(url: String, sha256: String) = Updater.start(this@MainActivity, url, sha256) { m -> hostMsg("upd:$m") }
         @JavascriptInterface fun login() = runOnUiThread {
             LoginActivity.onResult = { r -> hostMsg("login:" + r) }
             startActivity(Intent(this@MainActivity, LoginActivity::class.java))

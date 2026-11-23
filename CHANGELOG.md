@@ -1,5 +1,33 @@
 # petalwave — registro de cambios
 
+## 2.11.0 — comodidad
+- **Bienvenida** (`ui/js/welcome.js`): 3 pasos la primera vez (tema, de dónde sale la música, consejos). No aparece si ya había música o escuchas.
+- **Pantallas vacías** (`emptyState` en `core.js`) con botones para descargar, agregar carpeta o buscar; en biblioteca, recomendaciones, playlists y cola.
+- **Celular:** deslizar una canción a la derecha la pone en la cola; a la izquierda le da ♥.
+- **Cola:**
+  - Hoja desde abajo en el celular (☰ en pantalla completa).
+  - "Deshacer" al quitar o vaciar (avisos con botón).
+  - Guardar como playlist.
+  - Subir, bajar o "que suene después" desde el menú.
+- **Temporizador:** baja el volumen de a poco los últimos 3 minutos. Nueva opción "al terminar el álbum".
+- **Comodidad** (`ui/js/comfort.js`):
+  - Letra karaoke (la línea se llena con `--lp`).
+  - Tema automático de día y de noche.
+  - Modo auto con botones gigantes y Wake Lock.
+  - Ahorro de batería: con 20% o menos y sin cargar pasa a "máximo rendimiento" y vuelve al cargar; en Android usa `PetalwaveNative.battery()`.
+- **Android 1.6.0:**
+  - **Atajos del ícono** (`res/xml/shortcuts.xml`, `pw_go`): solo navegan. "¿Qué suena?" abre la pantalla y espera el toque, nunca graba sola.
+  - **Actualizar desde la app** (`Updater.kt`):
+    - baja el APK solo de GitHub y verifica el SHA-256 de `latest.json`;
+    - instala con `PackageInstaller`;
+    - el aviso del instalador solo se acepta mientras Petalwave espera su propia instalación y si es la confirmación del sistema.
+  - **Arranque:** el servidor arranca en `App.onCreate`, el primer escaneo espera 3 s y hay una flor animada mientras carga.
+- **Base de datos:** medido con 20.000 canciones, la biblioteca en JSON carga en 0,03 s y se busca en 0,02 s; no hace falta SQLite.
+- **Pruebas automáticas** (`tools/probar.bat`, `tools/tests/run.js`):
+  - Sintaxis de JS y Python y caracteres invisibles.
+  - 17 pruebas de funciones y seguridad contra una copia aparte del servidor.
+  - El ataque de `fuzz.js`.
+
 ## 2.10.0 — ¿qué suena?, Inicio, buscador único, celular más cómodo y seguridad
 - **¿Qué suena?** (`ui/js/recognize.js`, `src/recognize.js`, tecla `w`): graba 8 s con el micrófono (MediaRecorder, opus) y el servidor los reenvía a AudD con la clave del usuario (`data/audd.json`, solo para tu usuario; nunca vuelve a la interfaz). Muestra título, artista, álbum y carátula, con escuchar (YouTube Music), me gusta, descargar y link, y un historial local. Pausa Petalwave mientras escucha. En Android pide RECORD_AUDIO recién al usarlo y el WebView solo concede el micrófono a la interfaz propia. `/api/recognize` acepta solo audio, de 2 KB a 5 MB.
 - **Inicio** (`ui/js/home.js`, workspace `home`, tecla `0`, se abre por defecto): seguir escuchando, mixes, descubrí, playlists y recién agregadas, en filas de tarjetas.

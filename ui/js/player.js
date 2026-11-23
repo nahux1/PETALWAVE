@@ -138,6 +138,15 @@ export function moveIn(from, to) {
   S.qi = Math.max(0, S.queue.indexOf(cur));
   bus.emit('queue'); persist();
 }
+// volver a poner una canción en la cola (deshacer "quitar")
+export function insertAt(i, id) {
+  if (!T(id)) return;
+  i = Math.max(0, Math.min(i, S.queue.length));
+  S.queue.splice(i, 0, id);
+  if (i <= S.qi) S.qi++;
+  bus.emit('queue'); persist();
+}
+export function restoreQueue(q, qi) { S.queue = q.slice(); S.qi = qi; bus.emit('queue'); persist(); }
 export function clearQueue() {
   const cur = S.queue[S.qi];
   S.queue = cur ? [cur] : [];
@@ -205,19 +214,21 @@ export async function radio(seed) {
 function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 // ---------- temporizador para dormir (con fundido suave al final) ----------
-export const sleep = { until: 0, endOfTrack: false, fading: false };
+export const sleep = { until: 0, endOfTrack: false, endOfAlbum: '', fading: false };
 export function setSleep(min) {
   sleep.fading = false;
+  sleep.endOfAlbum = '';
+  if (min === 'album') { const t = current(); if (!t || !t.album) return toast('esta canción no tiene álbum', { kind: 'warn' }); sleep.until = 0; sleep.endOfTrack = false; sleep.endOfAlbum = t.album; toast('se detiene al terminar el álbum ⏾', { sub: t.album, ms: 1800 }); renderSleep(); return; }
   if (min === 'track') { sleep.until = 0; sleep.endOfTrack = true; toast('se detiene al terminar esta canción ⏾', { ms: 1800 }); }
   else if (!min) { sleep.until = 0; sleep.endOfTrack = false; applySound(); toast('temporizador apagado', { ms: 1400 }); }
   else { sleep.until = Date.now() + min * 60000; sleep.endOfTrack = false; toast(`se detiene en ${min} min ⏾`, { ms: 1800 }); }
   renderSleep();
 }
 function renderSleep() {
-  const on = sleep.until || sleep.endOfTrack;
+  const on = sleep.until || sleep.endOfTrack || sleep.endOfAlbum;
   $$('[data-act="sleep"]').forEach((b) => b.classList.toggle('on', !!on));
   let txt = '';
-  if (sleep.endOfTrack) txt = 'fin';
+  if (sleep.endOfTrack) txt = 'fin'; else if (sleep.endOfAlbum) txt = 'álbum';
   else if (sleep.until) { const s = Math.max(0, Math.round((sleep.until - Date.now()) / 1000)); txt = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
   $$('[data-np="sleep"]').forEach((el) => { el.textContent = txt; el.hidden = !txt; });
 }
@@ -225,15 +236,17 @@ setInterval(() => {
   if (!sleep.until) return;
   const left = sleep.until - Date.now();
   renderSleep();
-  if (left <= 8000 && !sleep.fading && !engine.paused) {      // últimos 8 s: bajar el volumen de a poco
+  // últimos 3 minutos: el volumen baja de a poco (como quien se queda dormido), hasta apagarse
+  if (left <= 180000 && !engine.paused && engine.ctx) {
     sleep.fading = true;
-    if (engine.ctx) engine.master.gain.setTargetAtTime(0, engine.ctx.currentTime, 2.2);
+    const v = P.get('vol'), base = v.muted ? 0 : v.master;
+    engine.master.gain.setTargetAtTime(base * Math.pow(Math.max(0, left) / 180000, 1.6), engine.ctx.currentTime, 0.8);
   }
   if (left <= 0) { sleep.until = 0; stopForSleep(); }
 }, 1000);
 async function stopForSleep() {
   await engine.pause();
-  sleep.fading = false; sleep.endOfTrack = false;
+  sleep.fading = false; sleep.endOfTrack = false; sleep.endOfAlbum = '';
   applySound();                                                  // volver al volumen normal (en pausa)
   renderSleep();
   toast('temporizador: música detenida ⏾ que descanses', { ms: 3500 });
@@ -247,7 +260,13 @@ bus.on('eng:nearend', () => {
   if (S.qi + 1 >= S.queue.length && S.repeat !== 'all') return;
   next({ auto: true, fade });
 });
-bus.on('eng:ended', () => { endSession(true); errors = 0; if (sleep.endOfTrack) return stopForSleep(); next({ auto: true }); });
+bus.on('eng:ended', () => {
+  endSession(true); errors = 0;
+  if (sleep.endOfTrack) return stopForSleep();
+  // "al terminar el álbum": cortar cuando la siguiente es de otro álbum (o no hay siguiente)
+  if (sleep.endOfAlbum) { const n = T(S.queue[S.qi + 1]); if (!n || n.album !== sleep.endOfAlbum) { sleep.endOfAlbum = ''; return stopForSleep(); } }
+  next({ auto: true });
+});
 bus.on('eng:error', (msg) => {
   const t = current();
   errors++;

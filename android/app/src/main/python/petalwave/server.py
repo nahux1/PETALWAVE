@@ -1021,7 +1021,8 @@ def update_info(force=False):
         latest = a.get("version") or ""
         def v(x):
             return [int(p) if p.isdigit() else 0 for p in str(x).split(".")]
-        return {"current": APP_VERSION, "latest": latest or APP_VERSION, "hasUpdate": bool(latest) and v(latest) > v(APP_VERSION), "canAuto": False,
+        apk = {"url": a.get("url"), "sha256": a.get("sha256"), "size": a.get("size")} if a.get("url") and re.fullmatch(r"[a-f0-9]{64}", str(a.get("sha256") or "")) else None
+        return {"current": APP_VERSION, "latest": latest or APP_VERSION, "hasUpdate": bool(latest) and v(latest) > v(APP_VERSION), "canAuto": False, "apk": apk,
                 "page": a.get("url") or "https://github.com/nahux1/PETALWAVE/releases/latest", "notes": m.get("notes", ""), "title": "Petalwave " + (latest or APP_VERSION)}
     except Exception as e:  # noqa: BLE001
         return {"current": APP_VERSION, "error": "no se pudo consultar GitHub: " + str(e)[:120]}
@@ -1611,7 +1612,7 @@ def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs
     httpd = ThreadingHTTPServer(("127.0.0.1", port), H)
     httpd.daemon_threads = True
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    LIB.scan()
+    threading.Timer(3.0, LIB.scan).start()   # la interfaz primero; las canciones nuevas se buscan enseguida
     return port
 
 

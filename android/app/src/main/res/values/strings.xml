@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_desc">Lo que suena en Petalwave, con anterior, play/pausa y siguiente</string>
+    <string name="sc_recog">¿Qué suena?</string>
+    <string name="sc_recog_long">Reconocer una canción</string>
+    <string name="sc_mix">Mix del momento</string>
+    <string name="sc_mix_long">Mix según la hora</string>
+    <string name="sc_disc">Descubrí</string>
+    <string name="sc_disc_long">Canciones nuevas para vos</string>
+    <string name="sc_liked">Me gusta</string>
+    <string name="sc_liked_long">Tus canciones favoritas</string>
 </resources>

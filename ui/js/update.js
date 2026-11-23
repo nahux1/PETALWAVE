@@ -41,9 +41,27 @@ export async function openUpdate() {
       <div class="upd-bar" hidden><i></i><span>preparando…</span></div>`,
     actions: [
       { label: 'ahora no', value: false },
-      info.canAuto ? { label: 'actualizar ahora' + mb, primary: true, fn: (box) => install(box) } : { label: 'abrir la descarga', primary: true, fn: () => { window.open(info.page, '_blank'); } },
+      info.canAuto ? { label: 'actualizar ahora' + mb, primary: true, fn: (box) => install(box) }
+        : info.apk && window.PetalwaveNative && window.PetalwaveNative.installUpdate ? { label: 'actualizar ahora', primary: true, fn: (box) => installApk(box) }
+        : { label: 'abrir la descarga', primary: true, fn: () => { window.open(info.page, '_blank'); } },
     ],
   });
+}
+
+// Android: la app baja el APK, verifica su SHA-256 y abre el instalador del sistema (Android pide confirmar)
+function installApk(box) {
+  const bar = box.querySelector('.upd-bar'); bar.hidden = false;
+  const set = (pct, txt) => { bar.querySelector('i').style.width = pct + '%'; bar.querySelector('span').textContent = txt; };
+  set(0, 'descargando…');
+  const off = bus.on('host:upd', (m) => {
+    if (m.startsWith('progress:')) set(+m.slice(9), `descargando… ${m.slice(9)}%`);
+    else if (m === 'installing') set(100, 'verificado ✓ · abriendo el instalador de Android…');
+    else if (m === 'permiso') { set(0, 'Android pide permiso: activá "permitir de esta fuente", volvé y tocá "actualizar ahora" otra vez'); off(); }
+    else if (m === 'done') { set(100, 'actualizado ✓'); off(); }
+    else if (m.startsWith('error:')) { set(0, 'error: ' + m.slice(6)); off(); }
+  });
+  window.PetalwaveNative.installUpdate(info.apk.url, info.apk.sha256);
+  return false;   // la ventana queda abierta mostrando el progreso
 }
 
 async function install(box) {

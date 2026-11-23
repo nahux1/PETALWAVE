@@ -35,6 +35,8 @@ export async function renderSettings() {
   box.innerHTML = `<div class="cfg">
     <div class="cfgsec"><h3>◐ tema</h3>
       <div class="themes">${Object.entries(allThemes()).map(([k, t]) => `<button class="th-card ${p.theme === k ? 'on' : ''}" data-theme="${k}" title="${esc(t.desc)}">${sw(t)}<b>${t.mine ? '✎ ' : ''}${esc(t.name)}</b><div class="m">${esc(t.desc)}</div></button>`).join('')}</div>
+      ${chk('autoTheme', 'tema automático', 'uno de día y otro de noche', 'Cambia solo de tema según la hora. Si está activo "colores de la carátula", manda la carátula.')}
+      <div class="cfrow"><span>de día · de noche<span class="m">desde las ${+p.dayFrom || 7} h · desde las ${+p.nightFrom || 20} h</span></span><span><select data-ps="dayTheme">${Object.entries(allThemes()).map(([k, t]) => `<option value="${k}" ${p.dayTheme === k ? 'selected' : ''}>${esc(t.name || k)}</option>`).join('')}</select> <select data-ps="nightTheme">${Object.entries(allThemes()).map(([k, t]) => `<option value="${k}" ${p.nightTheme === k ? 'selected' : ''}>${esc(t.name || k)}</option>`).join('')}</select></span></div>
       ${chk('dyn', 'colores de la carátula', 'usa los colores de la portada · tecla c', 'Mientras suena algo, los colores del tema se reemplazan por los de la portada de la canción. Elegir un tema lo apaga.')}
       <label class="cfrow"><span>teñir el wallpaper<span class="m">tu imagen toma los colores del tema</span></span><input type="checkbox" id="cWpTint" ${p.wpTint !== false ? 'checked' : ''}></label>
       <div class="cfrow"><span>ventanas${tip('Mantené apretada una ventana medio segundo y arrastrala: al costado para cambiar el orden, a cualquier otro lugar para dejarla flotando, o la principal al otro lado para cambiar el panel de lado. Doble clic en el título de una flotante la devuelve.')}<span class="m">mantené apretado y arrastrá para moverlas · también las secciones de ajustes, desde su título</span></span><span><label class="m" style="margin-right:8px"><input type="checkbox" id="cLock" ${p.layoutLock ? 'checked' : ''}> bloquear</label><button class="cb" id="cLayReset">restablecer</button></span></div>
@@ -50,6 +52,8 @@ export async function renderSettings() {
     </div>
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
+      ${chk('karaoke', 'letra estilo karaoke', 'la línea que se canta se va llenando de color')}
+      ${chk('batterySaver', 'ahorro de batería', 'con menos de 20% y sin cargar, apaga efectos', 'En celulares y notebooks: con poca batería pasa solo a "máximo rendimiento" (sin efectos ni animaciones) y vuelve cuando cargás.')}
       ${chk('autoLevel', 'volumen parejo', 'todas las canciones suenan a un volumen parecido', 'Petalwave mide el volumen real de cada canción mientras suena y la sube o la baja (hasta 8 dB) para que no haya saltos entre una muy baja y una muy fuerte. La medida se recuerda para la próxima vez.')}
       ${chk('smartGaps', 'transiciones inteligentes', 'salta los silencios largos al principio y al final', 'Si una canción termina con varios segundos de silencio (o arranca callada), pasa a la siguiente sin esperar, con el fundido de arriba.')}
       ${chk('resume', 'reanudar al abrir', 'vuelve a donde quedaste')}
@@ -114,6 +118,7 @@ export async function renderSettings() {
   };
   if (box._offTheme) box._offTheme();
   box._offTheme = bus.on('theme:changed', syncTheme);
+  box.querySelectorAll('[data-ps]').forEach((s) => (s.onchange = () => { P.set(s.dataset.ps, s.value); bus.emit('prefs', s.dataset.ps); }));
   box.querySelectorAll('[data-p]').forEach((c) => (c.onchange = () => {
     const k = c.dataset.p;
     if (k === 'dyn') return setDyn(c.checked);

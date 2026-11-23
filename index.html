@@ -45,6 +45,7 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="i-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 16V11l2-5h10l2 5v5M3 16h18v3H3zM7 19v2M17 19v2M5 11h14"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M8.5 21h7"/></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10"/></symbol>
     <symbol id="i-qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z"/></symbol>
@@ -316,6 +317,7 @@
         <button class="tab on" data-side="queue"><svg class="i"><use href="#i-queue"/></svg>cola <span class="c" id="cQueue"></span></button>
         <button class="tab" data-side="hist"><svg class="i"><use href="#i-hist"/></svg>historial</button>
         <button class="tab" data-side="lyrics"><svg class="i"><use href="#i-lyr"/></svg>letra</button>
+        <button class="ico qs-close" data-act="qsheet" title="cerrar">✕</button>
       </div>
       <div class="sidebody" id="sbQueue"></div>
       <div class="sidebody" id="sbHist" hidden></div>
@@ -346,6 +348,7 @@
   <div class="fbg" id="fbg"></div>
   <canvas id="cvFull"></canvas>
   <button class="ib fclose" data-act="full" title="salir (esc)"><svg class="i"><use href="#i-x"/></svg></button>
+  <button class="ib fcar" data-act="car" title="modo auto: botones gigantes para manejar"><svg class="i"><use href="#i-car"/></svg></button>
   <button class="ib fcfg" data-act="fullcfg" title="fondo y visualizador de la pantalla completa"><svg class="i"><use href="#i-cfg"/></svg></button>
   <div class="fmain">
     <div class="fleft">
@@ -359,6 +362,7 @@
         <button class="ib big" data-act="toggle"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
         <button class="ib" data-act="next"><svg class="i"><use href="#i-next"/></svg></button>
         <button class="ib" data-act="repeat"><svg class="i" data-np="repicon"><use href="#i-rep"/></svg></button>
+        <button class="ib qs-open" data-act="qsheet" title="ver la cola"><svg class="i"><use href="#i-queue"/></svg></button>
         <button class="ib likeb" data-act="like" title="me gusta (h)" hidden><svg class="i"><use href="#i-heart"/></svg></button>
       </div>
     </div>

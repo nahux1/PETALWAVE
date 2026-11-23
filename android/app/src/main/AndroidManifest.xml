@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- solo para "¿qué suena?" (reconocer canciones): se pide recién la primera vez que lo usás -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- actualizar desde la app (Android pide confirmación cada vez) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -43,6 +45,8 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- atajos al mantener apretado el ícono -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <!-- "compartir" un link de YouTube a Petalwave lo pone a descargar -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

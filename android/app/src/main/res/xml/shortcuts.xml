@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- atajos al mantener apretado el ícono de Petalwave -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="recognize" android:enabled="true" android:icon="@drawable/ic_note"
+        android:shortcutShortLabel="@string/sc_recog" android:shortcutLongLabel="@string/sc_recog_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.petalwave.app" android:targetClass="com.petalwave.app.MainActivity">
+            <extra android:name="pw_go" android:value="recognize" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="mix" android:enabled="true" android:icon="@drawable/ic_note"
+        android:shortcutShortLabel="@string/sc_mix" android:shortcutLongLabel="@string/sc_mix_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.petalwave.app" android:targetClass="com.petalwave.app.MainActivity">
+            <extra android:name="pw_go" android:value="mix" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="disc" android:enabled="true" android:icon="@drawable/ic_note"
+        android:shortcutShortLabel="@string/sc_disc" android:shortcutLongLabel="@string/sc_disc_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.petalwave.app" android:targetClass="com.petalwave.app.MainActivity">
+            <extra android:name="pw_go" android:value="disc" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="liked" android:enabled="true" android:icon="@drawable/ic_note"
+        android:shortcutShortLabel="@string/sc_liked" android:shortcutLongLabel="@string/sc_liked_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.petalwave.app" android:targetClass="com.petalwave.app.MainActivity">
+            <extra android:name="pw_go" android:value="liked" />
+        </intent>
+    </shortcut>
+</shortcuts>
