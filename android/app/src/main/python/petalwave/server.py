@@ -29,6 +29,7 @@ except Exception:  # noqa: BLE001
 
 AUDIO_EXT = {".mp3", ".flac", ".wav", ".ogg", ".oga", ".opus", ".m4a", ".aac", ".weba"}
 VIDEO_EXT = {".mp4", ".m4v", ".webm", ".3gp", ".mkv"}
+AUDD = None
 TOKEN = ""   # clave del servidor interno (la elige la app de Android al arrancar)
 
 MIME = {".mp3": "audio/mpeg", ".flac": "audio/flac", ".wav": "audio/wav", ".ogg": "audio/ogg", ".oga": "audio/ogg", ".opus": "audio/ogg",
@@ -461,6 +462,48 @@ def clean_event(e):
     if re.fullmatch(r"[\w-]{11}", str(e.get("yt") or "")):
         out["yt"] = e["yt"]
     return {k: v for k, v in out.items() if v is not None}
+
+
+# ---------- ¿qué suena? (AudD, con la clave de cada usuario) ----------
+def audd_status():
+    t = (AUDD.data.get("token") or "") if AUDD else ""
+    return {"configured": bool(t), "hint": ("…" + t[-4:]) if t else ""}
+
+
+def audd_recognize(audio, mime):
+    token = AUDD.data.get("token") or ""
+    if not token:
+        raise LookupError("Falta tu clave de AudD: ajustes → cuentas → reconocer canciones")
+    ext = "ogg" if "ogg" in mime else "m4a" if re.search(r"mp4|aac|m4a", mime) else "wav" if "wav" in mime else "webm"
+    bnd = "----petalwave" + hashlib.md5(audio[:64] + str(time.time()).encode()).hexdigest()
+    parts = []
+    for k, v in (("api_token", token), ("return", "apple_music,spotify")):
+        parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % (bnd, k, v)).encode())
+    parts.append(("--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"muestra.%s\"\r\nContent-Type: %s\r\n\r\n" % (bnd, ext, mime)).encode() + audio + b"\r\n")
+    parts.append(("--%s--\r\n" % bnd).encode())
+    req = urllib.request.Request("https://api.audd.io/", data=b"".join(parts), headers={"Content-Type": "multipart/form-data; boundary=" + bnd, "User-Agent": "Petalwave-Android"})
+    try:
+        r = json.loads(urllib.request.urlopen(req, timeout=30).read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError("No se pudo hablar con AudD (¿sin internet?): %s" % e)
+    if r.get("status") == "error":
+        code = (r.get("error") or {}).get("error_code")
+        msg = ("Tu clave de AudD no es válida o se terminaron las consultas gratis" if code in (900, 901)
+               else "Se terminaron las consultas de tu clave de AudD" if code == 902
+               else "El audio grabado no sirvió: probá de nuevo más cerca del parlante" if code in (300, 400)
+               else (r.get("error") or {}).get("error_message") or "AudD devolvió un error")
+        raise RuntimeError(msg)
+    x = r.get("result")
+    if not x:
+        return {"found": False}
+    am, sp = x.get("apple_music") or {}, x.get("spotify") or {}
+    art = ((am.get("artwork") or {}).get("url") or "").replace("{w}", "600").replace("{h}", "600")
+    if not art:
+        imgs = (sp.get("album") or {}).get("images") or []
+        art = imgs[0].get("url", "") if imgs else ""
+    return {"found": True, "title": x.get("title") or "", "artist": x.get("artist") or "", "album": x.get("album") or "",
+            "year": str(x.get("release_date") or "")[:4], "label": x.get("label") or "", "timecode": x.get("timecode") or "",
+            "link": x.get("song_link") or "", "art": art}
 
 
 def playlist_op(b):
@@ -1297,6 +1340,28 @@ class H(BaseHTTPRequestHandler):
                 return self.send_json(200, playlist_op(self.body()))
             except ValueError as e:
                 return self.send_json(400, {"error": str(e)})
+        if p == "/api/recognize/config" and M == "GET":
+            return self.send_json(200, audd_status())
+        if p == "/api/recognize/config" and M == "POST":
+            t = str(self.body().get("token") or "").strip()
+            if t and not re.fullmatch(r"[A-Za-z0-9]{16,64}", t):
+                return self.send_json(400, {"error": "Esa no parece una clave de AudD (son letras y números, la copiás de dashboard.audd.io)"})
+            AUDD.data["token"] = t
+            AUDD.save(True)
+            return self.send_json(200, audd_status())
+        if p == "/api/recognize" and M == "POST":
+            audio = self.body(raw=True)
+            if len(audio) < 2000 or len(audio) > 5 * 1024 * 1024:
+                return self.send_json(400, {"error": "La grabación salió vacía: revisá el micrófono" if len(audio) < 2000 else "Grabación demasiado larga"})
+            mime = (self.headers.get("Content-Type") or "audio/webm").split(";")[0]
+            if not (mime.startswith("audio/") or mime == "video/webm"):
+                return self.send_json(400, {"error": "Formato de audio no soportado"})
+            try:
+                return self.send_json(200, audd_recognize(audio, mime))
+            except LookupError as e:
+                return self.send_json(412, {"error": str(e), "needToken": True})
+            except Exception as e:  # noqa: BLE001
+                return self.send_json(502, {"error": str(e)})
         if p == "/api/taste" and M == "GET":
             return self.send_json(200, {"events": TASTE.data["events"]})
         if p == "/api/taste" and M == "POST":
@@ -1519,7 +1584,7 @@ httpd = None
 
 def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs=None, token=""):
     """la llama MainActivity (Kotlin) al abrir la app; devuelve cuando el servidor ya escucha"""
-    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN, TASTE
+    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN, TASTE, AUDD
     if httpd:
         return port
     APP_VERSION = version
@@ -1542,6 +1607,7 @@ def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs
     LIB, ST, DL = Library(), Stats(), Downloads()
     PL = JsonStore(os.path.join(data_dir, "playlists.json"), lambda: {"items": []})
     TASTE = JsonStore(os.path.join(data_dir, "taste.json"), lambda: {"events": []})
+    AUDD = JsonStore(os.path.join(data_dir, "audd.json"), lambda: {"token": ""})
     httpd = ThreadingHTTPServer(("127.0.0.1", port), H)
     httpd.daemon_threads = True
     threading.Thread(target=httpd.serve_forever, daemon=True).start()

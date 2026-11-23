@@ -81,13 +81,13 @@ export const DEFAULT_SHORTCUTS = {
   toggle: 'Space', next: 'n', prev: 'p', fwd: 'ArrowRight', back: 'ArrowLeft', fwdLong: 'Shift+ArrowRight', backLong: 'Shift+ArrowLeft',
   volUp: 'ArrowUp', volDown: 'ArrowDown', mute: 'm', repeat: 'r', shuffle: 's', search: '/', vol: 'v', eq: 'e',
   full: 'f', mini: 'Shift+M', compact: 'k', theme: 't', dyn: 'c', viz: 'z', lyrics: 'l', queue: 'q', radio: 'Shift+R', peek: 'b', like: 'h',
-  ws0: '0', ws1: '1', ws2: '2', ws3: '3', ws4: '4', ws5: '5',
+  recognize: 'w', ws0: '0', ws1: '1', ws2: '2', ws3: '3', ws4: '4', ws5: '5',
 };
 export const SHORTCUT_LABELS = {
   toggle: 'play / pausa', next: 'siguiente', prev: 'anterior', fwd: 'adelantar 10 s', back: 'retroceder 10 s', fwdLong: 'adelantar 30 s', backLong: 'retroceder 30 s',
   volUp: 'subir volumen', volDown: 'bajar volumen', mute: 'silenciar', repeat: 'repetir', shuffle: 'aleatorio', search: 'buscar', vol: 'panel de volumen', eq: 'ecualizador',
   full: 'pantalla completa', mini: 'mini reproductor', compact: 'modo compacto', theme: 'cambiar tema', dyn: 'colores de la carátula', viz: 'cambiar visualizador',
-  lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', like: 'me gusta', ws0: 'inicio', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
+  lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', like: 'me gusta', recognize: '¿qué suena?', ws0: 'inicio', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
 };
 const DEFAULT_PREFS = {
   theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true, autoRecs: true, autoLevel: true, smartGaps: true, smartDl: false, smartDlMax: 50, smartDlWifi: true,

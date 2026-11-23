@@ -50,6 +50,7 @@ export async function renderHome() {
   const empty = !D.tracks.length && !recent.length;
   box.innerHTML = `
     <div class="hhero"><h2>${greet()} <span class="petal">❀</span></h2>
+      <button class="go rc-home" data-recog>❀ ¿qué suena? <span>reconocé una canción con el micrófono</span></button>
       <div class="hquick"><button class="cb sm" data-goto="gsearch">${icon('search')} buscar</button><button class="cb sm" data-more="pl:liked">${icon('heart')} me gusta</button><button class="cb sm" data-goto="stats">${icon('stats')} estadísticas</button><button class="cb sm" data-year>❀ tu ${new Date().getFullYear()}</button></div>
       <div class="m">${p.topArtists.length ? 'hoy te puede gustar algo de ' + esc(p.topArtists.slice(0, 2).map((a) => a.name).join(' o ')) : 'escuchá, tocá ♥ y saltá lo que no te guste: Petalwave aprende tus gustos'}</div></div>
     ${empty ? `<div class="hempty"><div class="big">❀</div><h3>Tu música va a aparecer acá</h3><div class="m">Pegá un link de YouTube en <b>descargas</b>, agregá una carpeta con música en <b>ajustes</b> o buscá algo para escuchar online.</div>
@@ -66,6 +67,7 @@ export function initHome() {
   box.addEventListener('click', (e) => {
     const goto = e.target.closest('[data-goto]');
     if (goto) { const g = goto.dataset.goto; return g === 'search' || g === 'gsearch' ? bus.emit('gsearch') : bus.emit('ws', g); }
+    if (e.target.closest('[data-recog]')) return bus.emit('recognize');
     if (e.target.closest('[data-year]')) return import('./wrapped.js').then((m) => m.showYear());
     const more = e.target.closest('[data-more]');
     if (more) { bus.emit('ws', 'music'); const [type, key] = more.dataset.more.split(':'); return go(key ? { type, key } : { type }); }

@@ -19,6 +19,7 @@ import { initSmartDl } from './smartdl.js';
 import { renderHome, initHome } from './home.js';
 import { initGsearch, open as openSearch } from './gsearch.js';
 import { initCfgNav } from './cfgnav.js';
+import { listen as listenSong, initRecognize } from './recognize.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
 import { initUpdate } from './update.js';
@@ -126,7 +127,7 @@ const ACTIONS = {
   },
   theme: () => { const had = P.get('dyn'); const n = cycleTheme(); if (!had) toast('tema: ' + n, { ms: 1200 }); }, dyn: () => { setDyn(!P.get('dyn')); toast(P.get('dyn') ? 'colores de la carátula ◐' : 'colores del tema ◑', { ms: 1300 }); },
   viz: () => toast('visualizador: ' + cycleMode(), { ms: 1100 }), lyrics: () => setSideTab('lyrics'), queue: () => setSideTab('queue'),
-  search: () => openSearch(), gsearch: () => openSearch(),
+  search: () => openSearch(), gsearch: () => openSearch(), recognize: () => listenSong(),
   ws0: () => setWs('home'), ws1: () => setWs('music'), ws2: () => setWs('dl'), ws3: () => setWs('sync'), ws4: () => setWs('stats'), ws5: () => setWs('cfg'),
 };
 document.addEventListener('click', (e) => {
@@ -323,6 +324,7 @@ async function boot() {
   initHome();
   initGsearch();
   initCfgNav();
+  initRecognize();
   initViz();
   initBg();
   initUpdate();

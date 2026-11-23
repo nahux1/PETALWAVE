@@ -113,6 +113,8 @@ const annotateList = (o) => { if (o && o.tracks) annotate(o.tracks); return o; }
 const ytmErr = (res, e) => U.json(res, e.auth ? 401 : 502, { error: e.message, auth: !!e.auth });
 const playlists = new U.JsonStore(path.join(DATA, 'playlists.json'), () => ({ items: [] }));
 // gustos: señales de escucha (escuchada entera, saltada, me gusta, "no me interesa"…) para las recomendaciones (ui/js/taste.js)
+const { Recognizer } = require('./src/recognize');
+const recognizer = new Recognizer({ dataDir: DATA });
 const taste = new U.JsonStore(path.join(DATA, 'taste.json'), () => ({ events: [] }));
 const TASTE_KINDS = new Set(['play', 'skip', 'like', 'unlike', 'nope', 'pl']);
 const cleanEvent = (e) => {
@@ -403,6 +405,19 @@ async function route(req, res) {
   if ((mm = m(/^\/api\/similar\/([0-9a-f]{16})$/))) return U.json(res, 200, { ids: stats.similar(mm[1], +u.searchParams.get('n') || 25) });
 
   // ---------- estadísticas ----------
+  // ---------- ¿qué suena? (AudD) ----------
+  if (p === '/api/recognize/config' && M === 'GET') return U.json(res, 200, recognizer.status());
+  if (p === '/api/recognize/config' && M === 'POST') {
+    try { recognizer.setToken((await body()).token); return U.json(res, 200, recognizer.status()); } catch (e) { return U.json(res, 400, { error: e.message }); }
+  }
+  if (p === '/api/recognize' && M === 'POST') {
+    const buf = await U.readRaw(req, 5 * 1024 * 1024);
+    if (!buf || buf.length < 2000) return U.json(res, 400, { error: buf ? 'La grabación salió vacía: revisá el micrófono' : 'Grabación demasiado larga' });
+    const mime = String(req.headers['content-type'] || 'audio/webm').split(';')[0];
+    if (!/^audio\/|^video\/webm$/.test(mime)) return U.json(res, 400, { error: 'Formato de audio no soportado' });
+    try { return U.json(res, 200, await recognizer.recognize(buf, mime)); }
+    catch (e) { return U.json(res, e.code === 'NO_TOKEN' ? 412 : 502, { error: e.message, needToken: e.code === 'NO_TOKEN' }); }
+  }
   if (p === '/api/taste' && M === 'GET') return U.json(res, 200, { events: taste.data.events });
   if (p === '/api/taste' && M === 'POST') {
     const b = await body();

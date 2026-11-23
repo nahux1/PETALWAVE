@@ -36,7 +36,8 @@ class MainActivity : Activity() {
     private var pendingShare: String? = null
     private var pickId: String? = null
     private var pendingCmd: String? = null                       // botón del widget con la app cerrada
-    private var camRequest: android.webkit.PermissionRequest? = null   // la cámara para leer códigos QR
+    private var camRequest: android.webkit.PermissionRequest? = null   // cámara (QR) o micrófono (¿qué suena?) pendiente
+    private var camRes: Array<String> = emptyArray()
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,11 +73,14 @@ class MainActivity : Activity() {
                 // cámara (solo para leer códigos QR de playlists compartidas, y solo desde la interfaz de Petalwave)
                 override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
                     runOnUiThread {
-                        val wantsCam = request.resources.contains(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)
+                        // cámara (leer QR) y micrófono ("¿qué suena?"): solo para la interfaz de Petalwave y pidiendo permiso a Android
                         val ours = request.origin?.host == "127.0.0.1"
-                        if (!wantsCam || !ours) { request.deny(); return@runOnUiThread }
-                        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) request.grant(arrayOf(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE))
-                        else { camRequest?.deny(); camRequest = request; requestPermissions(arrayOf(Manifest.permission.CAMERA), 8) }
+                        val res = request.resources.filter { it == android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE || it == android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE }
+                        if (!ours || res.isEmpty()) { request.deny(); return@runOnUiThread }
+                        val perms = res.map { if (it == android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE) Manifest.permission.CAMERA else Manifest.permission.RECORD_AUDIO }
+                        val missing = perms.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+                        if (missing.isEmpty()) request.grant(res.toTypedArray())
+                        else { camRequest?.deny(); camRequest = request; camRes = res.toTypedArray(); requestPermissions(missing.toTypedArray(), 8) }
                     }
                 }
                 // elegir archivos (cookies.txt, wallpaper, letras .lrc)
@@ -124,7 +128,7 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(code, perms, res)
         if (code == 8) {
             val r = camRequest; camRequest = null
-            if (res.isNotEmpty() && res[0] == PackageManager.PERMISSION_GRANTED) r?.grant(arrayOf(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)) else r?.deny()
+            if (res.isNotEmpty() && res.all { it == PackageManager.PERMISSION_GRANTED }) r?.grant(camRes) else r?.deny()
             return
         }
         // con permiso nuevo para leer música, volver a buscar canciones

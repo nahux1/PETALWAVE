@@ -1,6 +1,7 @@
 # petalwave — registro de cambios
 
-## 2.10.0 — Inicio, buscador único, celular más cómodo y seguridad
+## 2.10.0 — ¿qué suena?, Inicio, buscador único, celular más cómodo y seguridad
+- **¿Qué suena?** (`ui/js/recognize.js`, `src/recognize.js`, tecla `w`): graba 8 s con el micrófono (MediaRecorder, opus) y el servidor los reenvía a AudD con la clave del usuario (`data/audd.json`, solo para tu usuario; nunca vuelve a la interfaz). Muestra título, artista, álbum y carátula, con escuchar (YouTube Music), me gusta, descargar y link, y un historial local. Pausa Petalwave mientras escucha. En Android pide RECORD_AUDIO recién al usarlo y el WebView solo concede el micrófono a la interfaz propia. `/api/recognize` acepta solo audio, de 2 KB a 5 MB.
 - **Inicio** (`ui/js/home.js`, workspace `home`, tecla `0`, se abre por defecto): seguir escuchando, mixes, descubrí, playlists y recién agregadas, en filas de tarjetas.
 - **Buscador único** (`ui/js/gsearch.js`, tecla `/`): biblioteca, artistas, playlists y YouTube Music en un mismo lugar, con teclado (↑ ↓ Enter) y búsquedas recientes.
 - **Celular:** barra de navegación fija abajo con nombres; deslizar la barra de la canción hacia arriba abre el reproductor; en pantalla completa, a los costados cambia de canción y hacia abajo cierra; fondo con movimiento lento.

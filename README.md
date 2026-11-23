@@ -21,6 +21,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 **Si tu PC es lenta:** tocá el botón **✦** de la barra hasta que diga **⚡ máximo rendimiento** (apaga efectos y gasta hasta un 27% menos de memoria).
 **Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*.
 **Recomendaciones:** Petalwave aprende de lo que escuchás entero, lo que saltás y tus ♥. En la biblioteca → *para vos*: **recomendadas** (de tus canciones) y **descubrí** (canciones nuevas de YouTube Music que no tenés). Cuando se termina la cola sigue solo con canciones a tu gusto.
+**¿Qué suena?:** tocá el botón (o la tecla w) y Petalwave reconoce la canción que suena cerca. Necesita una clave gratis de [AudD](https://dashboard.audd.io) (ajustes → cuentas); solo graba 8 segundos cuando tocás.
 **Inicio y buscador:** al abrir ves tus mixes, lo último que escuchaste y canciones nuevas; la tecla / (o 🔍) busca en tu música y en YouTube Music a la vez.
 **Mixes:** *mix de la noche/mañana/tarde*, *para entrenar*, *para relajarte* y *para concentrarte* (biblioteca → para vos).
 **Sin internet:** ajustes → descargas → *descargas inteligentes* baja solas tus favoritas.

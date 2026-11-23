@@ -44,6 +44,7 @@ export async function renderSettings() {
     ${customizerHtml()}
     <div class="cfgsec"><h3>👤 cuentas ${tip('Una sola sesión de Google sirve para YouTube y YouTube Music. La contraseña la escribís en la página de Google; petalwave no la ve ni la guarda.')}</h3>
       <div class="acc-card" id="cAcc"><span class="m">consultando la sesión…</span></div>
+      <div id="cAudd"></div>
       <label class="cfrow"><span>usar mi sesión para descargar<span class="m">mejor calidad (Premium: AAC 256 kbps) y menos bloqueos</span></span><input type="checkbox" id="cDlSes" ${p.dlSession !== false ? 'checked' : ''}></label>
       <div class="cfrow"><span>Spotify<span class="m">se conecta aparte, en YouTube Music (3) → pestaña Spotify</span></span><button class="cb" id="cSpot">abrir</button></div>
     </div>
@@ -118,6 +119,7 @@ export async function renderSettings() {
     if (k === 'dyn') return setDyn(c.checked);
     P.set(k, c.checked); bus.emit('prefs', k);
   }));
+  import('./recognize.js').then((m) => m.auddSettings($('#cAudd')));
   // cuentas
   const paintAcc = (st) => {
     const el = $('#cAcc'); if (!el) return;
