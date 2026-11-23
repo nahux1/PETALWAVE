@@ -1,5 +1,23 @@
 # petalwave — registro de cambios
 
+## 2.12.0 — motor nativo (beta) y Android Auto
+- **Android 1.7.0: motor nativo** (`NativeService.kt`, `ui/js/nativeengine.js`), opcional en ajustes → reproducción. Se activa con `PetalwaveNative.nativeEngine` y se aplica al reiniciar.
+  - **Reproductor:** ExoPlayer (Media3 1.4.1) en un `MediaLibraryService`.
+  - **Cola:** la interfaz manda la canción actual con hasta 20 anteriores y 80 siguientes (`nPlay`). Los cambios de cola se sincronizan sin cortar lo que suena (`nSync`).
+  - **Estado:** el servicio avisa cada segundo y en cada cambio (`nstate:`). Si pasa solo a otra canción, la interfaz la adopta sin recargarla (`eng:advance`).
+  - **Mismos controles que el motor de siempre**, así el resto de la interfaz no cambia.
+  - **Ecualizador de Android:** las 10 bandas se interpolan a las bandas del teléfono.
+  - **Visualizador:** usa el `Visualizer` de Android (necesita el permiso de micrófono).
+  - **Sin** fundido ni volumen parejo por ahora.
+- **Android Auto:** `MediaLibrarySession` con carpetas (me gusta, recién agregadas, playlists, todas). Al elegir una canción sigue el resto de la carpeta. El servicio arranca el servidor interno solo.
+  - `onConnect` solo acepta a Petalwave, apps de confianza del sistema, Android Auto, el Asistente y Wear.
+  - El manifiesto declara `automotive_app_desc` (media).
+- **Cambiar de motor** apaga el otro servicio (antes quedaban dos notificaciones).
+- **Arreglos encontrados probando en el emulador de Android 14:**
+  - El ecualizador y el visualizador nativos no se conectaban: ExoPlayer crea la sesión de audio antes de que llegue el aviso.
+  - El servidor de Android dejaba `/proc/meminfo` abierto en cada consulta.
+- **Versión de prueba (debug):** permite inspeccionar la WebView desde la PC. La publicada no está marcada como depurable.
+
 ## 2.11.0 — comodidad
 - **Bienvenida** (`ui/js/welcome.js`): 3 pasos la primera vez (tema, de dónde sale la música, consejos). No aparece si ya había música o escuchas.
 - **Pantallas vacías** (`emptyState` en `core.js`) con botones para descargar, agregar carpeta o buscar; en biblioteca, recomendaciones, playlists y cola.

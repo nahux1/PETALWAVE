@@ -34,8 +34,8 @@ android {
         applicationId = "com.petalwave.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 10
-        versionName = "1.6.0"
+        versionCode = 11
+        versionName = "1.7.0"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
     signingConfigs {
@@ -59,6 +59,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+}
+
+// motor nativo (beta) y Android Auto: Media3 de Google (ExoPlayer + sesiÃ³n de medios)
+dependencies {
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-session:1.4.1")
 }
 
 chaquopy {

@@ -1,6 +1,7 @@
 // motor de audio: 2 reproductores (para fundir canciones) + video, cadena EQ 10 bandas, normalizador y limitador.
 // Cadena: deck(s) → mezcla → preamp → graves → 10 bandas → agudos → balance → [normalizar] → analizador → volumen → limitador → salida
 import { bus, mediaUrl, local } from './core.js';
+import { NativeEngine, nativeAvailable } from './nativeengine.js';
 
 // ---------- volumen parejo ----------
 // Se mide el volumen real de cada canción mientras suena (RMS sin contar silencios) y se ajusta su ganancia
@@ -249,4 +250,5 @@ class Engine {
 }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-export const engine = new Engine();
+// en Android con el motor nativo (beta) activado, suena con ExoPlayer; si no, con Web Audio como siempre
+export const engine = nativeAvailable() ? new NativeEngine() : new Engine();

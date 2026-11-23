@@ -134,6 +134,7 @@ function hostMsg(m) {
   else if (m.startsWith('win:')) bus.emit('host:win', m.slice(4));
   else if (m.startsWith('upd:')) bus.emit('host:upd', m.slice(4));
   else if (m.startsWith('go:')) bus.emit('host:go', m.slice(3));
+  else if (m.startsWith('nstate:')) bus.emit('host:nstate', m.slice(7));
 }
 if (wv) wv.addEventListener('message', (e) => hostMsg(e.data));
 window.__pwHost = hostMsg;   // Android manda los mensajes por acá

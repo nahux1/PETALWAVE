@@ -52,6 +52,7 @@ export async function renderSettings() {
     </div>
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
+      ${isAndroid && window.PetalwaveNative.nativeOn ? `<label class="cfrow"><span>motor nativo de Android (beta)${tip('Hace sonar la música con el reproductor de Android (ExoPlayer) en vez del de la app: gasta menos batería, no se corta con la pantalla apagada y es necesario para Android Auto. Por ahora: ecualizador de Android (las bandas que tenga tu teléfono), sin fundido entre canciones ni volumen parejo, y el visualizador necesita el permiso de micrófono. Se aplica al reiniciar la app.')}<span class="m">necesario para Android Auto · menos batería</span></span><input type="checkbox" id="cNative" ${window.PetalwaveNative.nativeOn() ? 'checked' : ''}></label>` : ''}
       ${chk('karaoke', 'letra estilo karaoke', 'la línea que se canta se va llenando de color')}
       ${chk('batterySaver', 'ahorro de batería', 'con menos de 20% y sin cargar, apaga efectos', 'En celulares y notebooks: con poca batería pasa solo a "máximo rendimiento" (sin efectos ni animaciones) y vuelve cuando cargás.')}
       ${chk('autoLevel', 'volumen parejo', 'todas las canciones suenan a un volumen parecido', 'Petalwave mide el volumen real de cada canción mientras suena y la sube o la baja (hasta 8 dB) para que no haya saltos entre una muy baja y una muy fuerte. La medida se recuerda para la próxima vez.')}
@@ -118,6 +119,10 @@ export async function renderSettings() {
   };
   if (box._offTheme) box._offTheme();
   box._offTheme = bus.on('theme:changed', syncTheme);
+  const nv = $('#cNative'); if (nv) nv.onchange = async () => {
+    window.PetalwaveNative.nativeEngine(nv.checked);
+    if (await confirm2('Motor nativo', nv.checked ? 'Para usar el motor nativo hay que reiniciar Petalwave. ¿Reiniciar ahora? (la música se corta un segundo)' : 'Para volver al motor de siempre hay que reiniciar Petalwave. ¿Reiniciar ahora?', 'reiniciar')) location.reload();
+  };
   box.querySelectorAll('[data-ps]').forEach((s) => (s.onchange = () => { P.set(s.dataset.ps, s.value); bus.emit('prefs', s.dataset.ps); }));
   box.querySelectorAll('[data-p]').forEach((c) => (c.onchange = () => {
     const k = c.dataset.p;

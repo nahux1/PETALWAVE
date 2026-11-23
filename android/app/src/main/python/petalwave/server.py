@@ -1571,9 +1571,10 @@ class H(BaseHTTPRequestHandler):
 def sys_stats():
     try:
         mem = {}
-        for ln in open("/proc/meminfo"):
-            k, v = ln.split(":", 1)
-            mem[k] = int(v.split()[0])
+        with open("/proc/meminfo") as fh:   # cerrar el archivo (antes quedaba abierto cada vez que se pedían los datos)
+            for ln in fh:
+                k, v = ln.split(":", 1)
+                mem[k] = int(v.split()[0])
         tot, free = mem.get("MemTotal", 1), mem.get("MemAvailable", 0)
         return {"cpu": 0, "ram": round(100 * (1 - free / tot)), "ramUsed": (tot - free) // 1024, "ramTotal": tot // 1024, "host": "android", "appMem": 0}
     except Exception:  # noqa: BLE001

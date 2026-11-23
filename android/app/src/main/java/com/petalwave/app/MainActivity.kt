@@ -25,6 +25,8 @@ class MainActivity : Activity() {
     companion object {
         @Volatile private var current: MainActivity? = null
         // botones de la notificación / auriculares / pantalla bloqueada → la interfaz (evento pw-cmd)
+        // el motor nativo avisa su estado a la interfaz (canción, play/pausa, posición)
+        fun nativeEvent(json: String) { current?.hostMsg("nstate:$json") }
         fun alive(): Boolean { val a = current; return a != null && a::web.isInitialized && App.serverReady }
         fun cmd(c: String) {
             val a = current ?: return
@@ -44,6 +46,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         current = this
+        // solo en la versión de prueba (debug): permitir inspeccionar la interfaz desde la PC. La publicada no lo tiene.
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         web = WebView(this).apply {
             setBackgroundColor(Color.parseColor("#0B0708"))
             settings.javaScriptEnabled = true
@@ -104,8 +108,8 @@ class MainActivity : Activity() {
         pendingCmd = trustedCmd(intent)
         pendingGo = goOf(intent)
         // el servicio mantiene viva la música con la pantalla apagada y arranca el servidor interno
-        val svc = Intent(this, PlayerService::class.java)
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
+        if (getSharedPreferences("petalwave", MODE_PRIVATE).getBoolean("native", false)) startService(Intent(this, NativeService::class.java))
+        else { val svc = Intent(this, PlayerService::class.java); if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc) }
         Thread {
             App.ctx.startServer()
             runOnUiThread {
@@ -207,7 +211,17 @@ class MainActivity : Activity() {
         return if (i.getStringExtra("pw_key") == WidgetButtons.key(this)) c else null
     }
 
-    private fun hostMsg(m: String) {
+    // ExoPlayer se maneja desde el hilo principal; si el servicio todavía no arrancó, se lo arranca y se reintenta
+    private fun withNative(fn: (NativeService) -> Unit) {
+        runOnUiThread {
+            val s = NativeService.instance
+            if (s != null) { try { fn(s) } catch (_: Exception) { } ; return@runOnUiThread }
+            startService(Intent(this, NativeService::class.java))
+            web.postDelayed({ NativeService.instance?.let { try { fn(it) } catch (_: Exception) { } } }, 600)
+        }
+    }
+
+    fun hostMsg(m: String) {
         if (::web.isInitialized) runOnUiThread { web.evaluateJavascript("window.__pwHost&&window.__pwHost(" + JSONObject.quote(m) + ")", null) }
     }
 
@@ -269,6 +283,30 @@ class MainActivity : Activity() {
             "ok"
         } catch (e: Exception) { "no se pudo guardar la imagen: " + (e.message ?: "error") }
         // actualizar desde la app (ver Updater): baja el APK de GitHub, verifica el SHA-256 y abre el instalador
+        // ---------- motor nativo (beta) ----------
+        // la preferencia queda guardada en Android: con el motor nativo no hace falta el servicio viejo
+        // cambiar de motor: se apaga el otro servicio (si no, quedaban dos notificaciones)
+        @JavascriptInterface fun nativeEngine(on: Boolean) = runOnUiThread {
+            getSharedPreferences("petalwave", MODE_PRIVATE).edit().putBoolean("native", on).apply()
+            if (on) { stopService(Intent(this@MainActivity, PlayerService::class.java)); startService(Intent(this@MainActivity, NativeService::class.java)) }
+            else {
+                NativeService.instance?.cmd("stop"); stopService(Intent(this@MainActivity, NativeService::class.java))
+                val svc = Intent(this@MainActivity, PlayerService::class.java); if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
+            }
+        }
+        // solo en la versión de prueba: ver qué mostraría Android Auto en una carpeta
+        @JavascriptInterface fun nBrowseTest(parent: String): String {
+            if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE == 0) return ""
+            val s = NativeService.instance ?: return "sin servicio"
+            return try { org.json.JSONArray(s.childrenFor(parent).map { (it.mediaMetadata.title ?: "").toString() + (if (it.mediaMetadata.isBrowsable == true) " ▸" else "") + " | " + (it.localConfiguration?.uri ?: "") }).toString() } catch (e: Exception) { "error: " + e.message }
+        }
+        @JavascriptInterface fun nativeOn(): Boolean = getSharedPreferences("petalwave", MODE_PRIVATE).getBoolean("native", false)
+        @JavascriptInterface fun nPlay(json: String) = withNative { it.play(json) }
+        @JavascriptInterface fun nSync(json: String) = withNative { it.sync(json) }
+        @JavascriptInterface fun nCmd(c: String) = withNative { it.cmd(c) }
+        @JavascriptInterface fun nEq(json: String) = withNative { it.setEq(json) }
+        @JavascriptInterface fun nFft(): String = NativeService.instance?.fftCsv() ?: ""
+        @JavascriptInterface fun nQueue(): String = NativeService.instance?.let { s -> var r = ""; val l = java.util.concurrent.CountDownLatch(1); runOnUiThread { r = s.queueIds(); l.countDown() }; l.await(2, java.util.concurrent.TimeUnit.SECONDS); r } ?: ""
         @JavascriptInterface fun installUpdate(url: String, sha256: String) = Updater.start(this@MainActivity, url, sha256) { m -> hostMsg("upd:$m") }
         @JavascriptInterface fun login() = runOnUiThread {
             LoginActivity.onResult = { r -> hostMsg("login:" + r) }

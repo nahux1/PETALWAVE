@@ -58,7 +58,7 @@ function endSession(completed) {
 }
 
 // ---------- reproducir ----------
-async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false } = {}) {
+async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false, adopt = false } = {}) {
   let id = S.queue[i];
   let t = T(id);
   if (!t) return;
@@ -77,7 +77,7 @@ async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false
   bus.emit('np', t);
   mediaSession(t);
   if (!silent && autoplay) notifyChange(t);
-  await engine.load(t, { fade, autoplay, startAt });
+  if (!adopt) await engine.load(t, { fade, autoplay, startAt });   // adopt: el motor nativo ya la está reproduciendo
   persist();
   prefetchNext();
 }
@@ -185,6 +185,7 @@ export function seekBy(s) { engine.seek(engine.time + s); }
 export function toggleRepeat() {
   S.repeat = S.repeat === 'off' ? 'all' : S.repeat === 'all' ? 'one' : 'off';
   renderModes(); persist();
+  if (engine.setRepeat) engine.setRepeat(S.repeat);
   toast('repetir: ' + { off: 'no', all: 'toda la cola', one: 'esta canción' }[S.repeat], { ms: 1400 });
 }
 export function toggleShuffle() {
@@ -250,6 +251,19 @@ async function stopForSleep() {
   applySound();                                                  // volver al volumen normal (en pausa)
   renderSleep();
   toast('temporizador: música detenida ⏾ que descanses', { ms: 3500 });
+}
+
+// ---------- motor nativo (Android, beta) ----------
+if (engine.native) {
+  engine.queueOf = () => ({ queue: S.queue, qi: S.qi, repeat: S.repeat, T });
+  bus.on('eng:advance', (id) => {
+    const i = S.queue.indexOf(id);
+    if (i >= 0) { if (i !== S.qi) start(i, { adopt: true }); return; }
+    // sonó algo que la interfaz no tenía (por ejemplo, elegido en Android Auto): adoptar la cola del servicio
+    const nq = engine.nativeQueue();
+    const ids = (nq.ids || []).filter((x) => T(x));
+    if (ids.length) { S.queue = ids; const k = ids.indexOf(id); if (k >= 0) start(k, { adopt: true }); bus.emit('queue'); }
+  });
 }
 
 // ---------- eventos del motor ----------
