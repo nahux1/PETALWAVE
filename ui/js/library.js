@@ -298,7 +298,7 @@ function renderTable(body) {
     for (let i = a; i < b; i++) {
       const t = T(ids[i]); if (!t) continue;
       const recommended = ['recs', 'disc', 'mix'].includes(view.type);
-      html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}" draggable="true">
+      html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}"${t.remote && t.ytId ? ` data-warm="${esc(t.ytId)}"` : ''} draggable="true">
         <span class="ix"><span class="num">${t.id === cur ? '♪' : view.type === 'album' && t.trackNo ? t.trackNo : i + 1}</span><span class="pi" data-play>${icon('play')}</span></span>
         <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t"><span class="rtxt">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</span>${recommended ? `<button class="rec-nope" data-nope aria-label="no recomendar ${esc(t.title)}" title="no me interesa">${icon('x')}</button>` : ''}</div><div class="a">${esc(t.artist || '—')}${recommended && WHY.get(t.id) ? `<span class="why"> · ${esc(WHY.get(t.id))}</span>` : ''}</div></span></span>
         <span class="c2">${esc(t.album || '')}</span>

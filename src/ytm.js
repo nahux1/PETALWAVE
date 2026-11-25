@@ -23,11 +23,12 @@ function findPython(root) {
 }
 
 class YTM {
-  constructor({ root, cookiesTxt }) {
+  constructor({ root, cookiesTxt, script = 'ytm_bridge.py', need = 'ytmusicapi', args = [] }) {
     this.py = findPython(root);
-    this.script = path.join(root, 'src', 'ytm_bridge.py');
-    this.libOk = fs.existsSync(path.join(root, 'lib', 'py', 'ytmusicapi'));
+    this.script = path.join(root, 'src', script);
+    this.libOk = fs.existsSync(path.join(root, 'lib', 'py', need));
     this.cookiesTxt = cookiesTxt;
+    this.args = args;
     this.proc = null;
     this.pending = new Map();
     this.n = 0;
@@ -38,7 +39,7 @@ class YTM {
 
   start() {
     if (this.proc) return;
-    this.proc = spawn(this.py, ['-I', '-u', this.script, this.cookiesTxt], { windowsHide: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
+    this.proc = spawn(this.py, ['-I', '-u', this.script, this.cookiesTxt, ...this.args], { windowsHide: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
     this.proc.stdout.on('data', (c) => {
       this.buf += c.toString('utf8');
       let i;

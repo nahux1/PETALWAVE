@@ -691,10 +691,25 @@ def stream_file(vid):
     return f
 
 
+_resolving = {}
+_resolving_lock = threading.Lock()
+
+
 def resolve(vid, force=False):
     c = _streams.get(vid)
     if c and not force and c["exp"] - time.time() > 600:
         return c
+    # la misma canción pedida dos veces a la vez (preparada al tocarla + el play): una sola búsqueda
+    with _resolving_lock:
+        lk = _resolving.setdefault(vid, threading.Lock())
+    with lk:
+        c = _streams.get(vid)
+        if c and not force and c["exp"] - time.time() > 600:
+            return c
+        return _resolve(vid)
+
+
+def _resolve(vid):
     import yt_dlp
     err = None
     for alt in (None, {"youtube": {"player_client": ["tv", "mweb", "web_safari"]}}):

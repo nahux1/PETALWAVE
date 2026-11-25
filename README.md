@@ -197,7 +197,8 @@ petalwave usa **[ytmusicapi](https://ytmusicapi.readthedocs.io)** (librería de 
 
 Cada canción descargada guarda su ID de YouTube, y así se conecta con YouTube Music. Búsqueda, radio y letras funcionan sin sesión. Me gusta, playlists e historial necesitan un `cookies.txt` **completo**: tiene que incluir `SID`, `SAPISID` y `LOGIN_INFO`, y el estado arriba te avisa si falta alguna.
 Si YouTube cambia algo y deja de andar, actualizá con:
-`%LOCALAPPDATA%\Programs\Python\Python312\python.exe -m pip install --upgrade --target lib\py ytmusicapi`
+`%LOCALAPPDATA%\Programs\Python\Python312\python.exe -m pip install --upgrade --target lib\py ytmusicapi yt-dlp`
+(`yt-dlp` en `lib\py` es el que deja el audio listo en ~1 s; conviene que sea la misma versión que `bin\yt-dlp.exe`).
 
 ## Tu YouTube Music en el reproductor, sin descargar
 Con la sesión iniciada, el workspace 1 tiene una sección **youtube music** con tus **me gusta** y todas tus **playlists**, que se sincronizan solas cada 5 minutos o con ⟳.

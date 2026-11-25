@@ -1,5 +1,12 @@
 # petalwave — registro de cambios
 
+## 2.19.0 — canciones online más rápidas
+- **Medido:** en Windows, encontrar el audio con `yt-dlp.exe` tardaba ~4 s por canción (~1 s solo en arrancar). El modo `player_skip=webpage` ahorraba 1,5 s, pero YouTube pide "no soy un robot" en algunas canciones, así que se descartó.
+- **`src/resolve_bridge.py`:** proceso Python persistente con `yt_dlp` en memoria (en `lib/py`, misma versión que el exe). Atiende 3 canciones a la vez, con un YoutubeDL por hilo y por modo, y resuelve en ~1 s. `Streamer.resolveFast()` lo usa primero; si no está o falla, vuelve a `yt-dlp.exe`. Se cierra tras 15 minutos sin uso (~60 MB).
+- **`YTM` (`src/ytm.js`)** sirve para cualquier puente Python (`script`, `need`, `args`).
+- **Preparar al apuntar:** las canciones online tienen `data-warm="<id>"` (Explorar, Inicio, buscador, biblioteca). Con el mouse encima 300 ms o al apoyar el dedo se pide `?prefetch=1`, con hasta 2 a la vez. Con el mouse 4 s antes, el clic suena en 0,06 s.
+- **Android:** `resolve()` con un candado por canción: el prefetch y el play de la misma canción comparten una sola búsqueda.
+
 ## 2.18.0 — mini reproductor nuevo y arreglo en Android
 - **Mini reproductor** (`build/Launcher.cs` + `ui/js/app.js` + `index.html`):
   - `MainForm` intercepta SC_MINIMIZE: con `minimizeTo: 'mini'` la ventana se anima (cúbica, 340 ms) hasta una pastilla sin bordes, con esquinas redondeadas (DWM) y siempre visible.

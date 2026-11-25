@@ -85,6 +85,24 @@ async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false
   prefetchNext();
 }
 // la primera vez que suena una canción online, yt-dlp tarda unos segundos: se resuelve la siguiente por adelantado
+// preparar una canción online antes de tocarla: al dejar el mouse encima un momento (o al apoyar el dedo),
+// el servidor ya busca su audio; cuando hacés clic, buena parte de la espera ya pasó
+const warmed = new Map();
+let warmT = 0, warmBusy = 0;
+export function warmSong(yt) {
+  if (!yt || !/^[\w-]{11}$/.test(yt) || warmBusy >= 2) return;
+  const at = warmed.get(yt); if (at && Date.now() - at < 30 * 60e3) return;
+  warmed.set(yt, Date.now()); if (warmed.size > 300) warmed.delete(warmed.keys().next().value);
+  warmBusy++;
+  fetch(`/stream/${yt}?prefetch=1`).catch(() => {}).finally(() => { warmBusy--; });
+}
+document.addEventListener('pointerover', (e) => {
+  const el = e.target.closest && e.target.closest('[data-warm]'); if (!el) return;
+  clearTimeout(warmT); warmT = setTimeout(() => warmSong(el.dataset.warm), e.pointerType === 'mouse' ? 300 : 0);
+});
+document.addEventListener('pointerout', (e) => { if (e.target.closest && e.target.closest('[data-warm]')) clearTimeout(warmT); });
+document.addEventListener('pointerdown', (e) => { const el = e.target.closest && e.target.closest('[data-warm]'); if (el) warmSong(el.dataset.warm); }, true);
+
 function prefetchNext() {
   for (let k = 1; k <= 2; k++) {
     const n = T(S.queue[S.qi + k]);

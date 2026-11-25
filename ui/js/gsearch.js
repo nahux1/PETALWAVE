@@ -26,7 +26,7 @@ function render() {
   const box = $('#gsRes');
   const q = $('#gsQ').value.trim();
   items = [];
-  const it = (kind, html, act) => { items.push(act); return `<div class="gs-it" data-i="${items.length - 1}">${html}</div>`; };
+  const it = (kind, html, act, warm) => { items.push(act); return `<div class="gs-it" data-i="${items.length - 1}"${warm ? ` data-warm="${esc(warm)}"` : ''}>${html}</div>`; };
   const songRow = (t, sub) => `<img src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><div class="gs-t"><b>${esc(t.title)}</b><span>${esc(sub || t.artist || '')}</span></div>`;
   if (!q) {
     const hist = local.get(HIST, []) || [];
@@ -42,7 +42,7 @@ function render() {
   const have = new Set(D.tracks.map((t) => t.ytId).filter(Boolean));
   const on = onlineFor === q ? online.filter((x) => !have.has(x.videoId)).slice(0, 8) : [];
   html += '<div class="gs-h">youtube music' + (onlineFor !== q ? ' · buscando…' : '') + '</div>';
-  if (on.length) html += on.map((x, i) => { const t = T('yt_' + x.videoId) || remoteTrack(x); return it('o', songRow(t, '☁ ' + (t.artist || 'online')), () => { playList(on.map((y) => 'yt_' + y.videoId), i); remember(q); }); }).join('');
+  if (on.length) html += on.map((x, i) => { const t = T('yt_' + x.videoId) || remoteTrack(x); return it('o', songRow(t, '☁ ' + (t.artist || 'online')), () => { playList(on.map((y) => 'yt_' + y.videoId), i); remember(q); }, x.videoId); }).join('');
   else if (onlineFor === q) html += '<div class="gs-empty sm">sin resultados online</div>';
   box.innerHTML = html || '<div class="gs-empty">nada por acá</div>';
   paintSel();

@@ -67,7 +67,7 @@ async function popularForYou() {
 }
 
 const card = (k, img, title, sub, round) => `<div class="card ${round ? 'round' : ''}" data-x="${esc(k)}"><div class="cimg">❀${img ? `<img loading="lazy" src="${esc(img)}" referrerpolicy="no-referrer" onerror="this.classList.add('x')">` : ''}<button class="cplay" data-xp="${esc(k)}">${icon('play')}</button></div><div class="cn">${esc(title)}</div><div class="cs">${esc(sub || '')}</div></div>`;
-const songRow = (id, i) => { const t = T(id); return t ? `<div class="xrow" data-xs="${i}"><span class="ix">${i + 1}</span><img src="/ytcover/${esc(t.ytId || '')}?s=t" onerror="this.style.visibility='hidden'"><div><b>${esc(t.title)}</b><span>${esc(t.artist || '')}</span></div></div>` : ''; };
+const songRow = (id, i) => { const t = T(id); return t ? `<div class="xrow" data-xs="${i}"${t.ytId ? ` data-warm="${esc(t.ytId)}"` : ''}><span class="ix">${i + 1}</span><img src="/ytcover/${esc(t.ytId || '')}?s=t" onerror="this.style.visibility='hidden'"><div><b>${esc(t.title)}</b><span>${esc(t.artist || '')}</span></div></div>` : ''; };
 
 export async function renderExplore() {
   const box = $('#exploreBody'); if (!box) return;

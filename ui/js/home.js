@@ -9,7 +9,7 @@ import { sceneUrl, GALLERY } from './wallgallery.js';
 
 const greet = () => { const h = new Date().getHours(); return h < 6 ? 'Buenas noches' : h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const cover = (id) => (id ? `<img loading="lazy" src="${coverUrl(id, 'm')}" onerror="this.classList.add('x')">` : '');
-const card = (o) => `<div class="card hcard" data-k="${esc(o.k)}">
+const card = (o) => `<div class="card hcard" data-k="${esc(o.k)}"${o.warm ? ` data-warm="${esc(o.warm)}"` : ''}>
   <div class="cimg">${o.glyph || '❀'}${cover(o.cover)}<button class="cplay" data-play="${esc(o.k)}" title="reproducir">${icon('play')}</button></div>
   <div class="cn">${esc(o.title)}</div><div class="cs">${esc(o.sub || '')}</div></div>`;
 const row = (title, items, more, key = '') => items.length ? `<section class="hsec" data-sec="${key}"><div class="hsec-h"><h3>${title}</h3>${more ? `<button class="cb sm" data-more="${more}">ver todo</button>` : ''}</div><div class="home-row">${items.map(card).join('')}</div></section>` : '';
@@ -25,7 +25,7 @@ export async function renderHome() {
 
   // seguir escuchando: lo último que sonó
   const recent = [...new Set(PS.history || [])].map(T).filter(Boolean).slice(0, 10)
-    .map((t) => ({ k: add('h:' + t.id, { play: () => playList([t.id, ...recsLocal(20).map((r) => r.id).filter((x) => x !== t.id)], 0) }), title: t.title, sub: t.artist, cover: t.id }));
+    .map((t) => ({ k: add('h:' + t.id, { play: () => playList([t.id, ...recsLocal(20).map((r) => r.id).filter((x) => x !== t.id)], 0) }), title: t.title, sub: t.artist, cover: t.id, warm: t.remote ? t.ytId : '' }));
 
   // mixes
   const slot = slotNow();
@@ -38,7 +38,7 @@ export async function renderHome() {
 
   // descubrí (lo que ya está calculado; si no, se busca en segundo plano)
   const disc = cachedDiscover();
-  const discItems = (disc ? disc.items : []).slice(0, 10).map((it) => ({ k: add('d:' + it.videoId, { play: () => playList(disc.items.map((x) => 'yt_' + x.videoId).filter(T), disc.items.indexOf(it)) }), title: it.title, sub: it.why || (it.artists || []).join(', '), cover: 'yt_' + it.videoId }));
+  const discItems = (disc ? disc.items : []).slice(0, 10).map((it) => ({ k: add('d:' + it.videoId, { play: () => playList(disc.items.map((x) => 'yt_' + x.videoId).filter(T), disc.items.indexOf(it)) }), title: it.title, sub: it.why || (it.artists || []).join(', '), cover: 'yt_' + it.videoId, warm: it.videoId }));
   if (!disc) recsOnline().then(() => { if (!$('#homeBody').closest('.ws').hidden) renderHome(); }).catch(() => {});
 
   // playlists

@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
 const { run, YT_JS, serveRange } = require('./util');
+const { YTM } = require('./ytm');
 
 // si YouTube rechaza el enlace directo (403) aunque se vuelva a pedir, la canción se baja entera con yt-dlp
 // (que sí puede) a una caché chica y se sirve desde el disco, con Range para poder adelantar
@@ -21,6 +22,9 @@ class Streamer {
     this.coverDir = path.join(dataDir, 'covers');
     this.fileDir = path.join(dataDir, 'stream-cache');
     this.dl = new Map();
+    // yt-dlp ya cargado en memoria (src/resolve_bridge.py): ~1 s por canción en vez de ~4
+    this.fast = new YTM({ root: path.join(__dirname, '..'), cookiesTxt, script: 'resolve_bridge.py', need: 'yt_dlp', args: [process.execPath] });
+    this.fastOff = false;
   }
 
   cachedFile(id) { for (const ext of ['m4a', 'webm', 'mp4']) { const f = path.join(this.fileDir, `${id}.${ext}`); if (fs.existsSync(f)) return f; } return null; }
@@ -56,10 +60,12 @@ class Streamer {
     if (!force && c && c.exp - Date.now() > 10 * 60e3) return c;
     if (this.pending.has(id)) return this.pending.get(id);
     const job = (async () => {
+      let url = await this.resolveFast(id);
+      if (url) return this.remember(id, url);
       if (!this.ytdlp) throw new Error('yt-dlp no encontrado');
       // con sesión (Premium = AAC 256k) si hay; si la sesión falla o no hay, sin cookies y después con otros clientes
       const tries = fs.existsSync(this.cookiesTxt) ? ['cookies', 'plain', 'alt'] : ['plain', 'alt'];
-      let r, url;
+      let r;
       for (const mode of tries) {
         // si YouTube no entrega formatos de solo audio (pasa sin sesión), usar el mp4 combinado (#18)
         const args = ['-f', 'bestaudio[format_id=141]/bestaudio[ext=m4a]/bestaudio/best[acodec!=none]/best', '--get-url', '--no-playlist', '--no-warnings', '--encoding', 'utf-8'];
@@ -74,16 +80,41 @@ class Streamer {
         const err = (r.err.split('\n').find((l) => l.startsWith('ERROR')) || 'no se pudo obtener el audio').replace(/^ERROR:\s*(\[[^\]]+\]\s*)?/, '');
         throw new Error(err.slice(0, 300));
       }
-      const u = new URL(url);
-      const exp = (+u.searchParams.get('expire') || 0) * 1000 || Date.now() + 5 * 3600e3;
-      const mime = decodeURIComponent(u.searchParams.get('mime') || 'audio/mp4');
-      const info = { url, exp, mime, itag: u.searchParams.get('itag'), at: Date.now() };
-      this.cache.set(id, info);
-      if (this.cache.size > 400) this.cache.delete(this.cache.keys().next().value);
-      return info;
+      return this.remember(id, url);
     })().finally(() => this.pending.delete(id));
     this.pending.set(id, job);
     return job;
+  }
+
+  remember(id, url) {
+    const u = new URL(url);
+    const exp = (+u.searchParams.get('expire') || 0) * 1000 || Date.now() + 5 * 3600e3;
+    const mime = decodeURIComponent(u.searchParams.get('mime') || 'audio/mp4');
+    const info = { url, exp, mime, itag: u.searchParams.get('itag'), at: Date.now() };
+    this.cache.set(id, info);
+    if (this.cache.size > 400) this.cache.delete(this.cache.keys().next().value);
+    return info;
+  }
+
+  // con el proceso de yt-dlp en memoria (mismos modos que yt-dlp.exe); null si no está o no pudo
+  async resolveFast(id) {
+    if (this.fastOff || !this.fast.available()) return null;
+    // si no se escucha nada online por 15 minutos, se cierra (libera ~60 MB de RAM); vuelve solo cuando haga falta
+    clearTimeout(this.fastIdle);
+    this.fastIdle = setTimeout(() => this.fast.stop(), 15 * 60e3);
+    if (this.fastIdle.unref) this.fastIdle.unref();
+    const tries = fs.existsSync(this.cookiesTxt) ? ['cookies', 'plain', 'alt'] : ['plain', 'alt'];
+    for (const mode of tries) {
+      try {
+        const r = await this.fast.call('resolve', { id, mode }, { timeout: 30000 });
+        if (r && /^https?:\/\//.test(r.url || '')) return r.url;
+      } catch (e) {
+        if (/Video unavailable|Private video|removed/i.test(e.message)) throw e;
+        // el proceso no arrancó (p. ej. falta algo de Python): no insistir, queda yt-dlp.exe
+        if (/se cerró|no está instalado/.test(e.message)) { this.fastOff = true; return null; }
+      }
+    }
+    return null;
   }
 
   // reenvía el audio respetando Range (el reproductor pide pedazos al adelantar/retroceder)
