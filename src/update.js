@@ -113,7 +113,7 @@ class Updater {
       fullUrl: m.full && ok(m.full.url) ? m.full.url : m.page, page: ok(m.page) ? m.page : `https://github.com/${REPO}/releases/latest`,
       title: m.title || 'petalwave ' + latest, notes: String(m.notes || '').slice(0, 4000), date: m.date, via: 'manifest',
       support: supportUrl(m.support),
-      // varios links (Cafecito, Patreon…): [{ name, url }]
+      // uno o varios links para donar (por ahora, Cafecito): [{ name, url }]
       supportLinks: (Array.isArray(m.supportLinks) ? m.supportLinks : []).slice(0, 4).map((l) => ({ name: String((l && l.name) || '').slice(0, 30), url: supportUrl(l && l.url) })).filter((l) => l.name && l.url),
     };
     this.lastAt = Date.now();
