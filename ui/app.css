@@ -640,6 +640,25 @@ body.vinyl .cover.video img,body.vinyl .cover.video::after{display:none}
 .fx-stars{background:radial-gradient(1px 1px at 20% 30%,var(--ac2),transparent),radial-gradient(1px 1px at 70% 60%,var(--fg),transparent),radial-gradient(1.5px 1.5px at 45% 80%,var(--sec),transparent),radial-gradient(1px 1px at 85% 20%,var(--ac2),transparent),radial-gradient(1px 1px at 10% 75%,var(--fg),transparent),var(--deep)}
 .fx-rain{background:repeating-linear-gradient(90deg,transparent 0 6px,color-mix(in srgb,var(--ac) 50%,transparent) 6px 8px,transparent 8px 13px),var(--deep);-webkit-mask:linear-gradient(180deg,transparent,#000 40%,transparent);background-size:100% 200%;animation:fxFall 2s linear infinite}
 .fx-bokeh{background:radial-gradient(circle at 25% 40%,color-mix(in srgb,var(--ac) 55%,transparent) 0 9px,transparent 10px),radial-gradient(circle at 65% 65%,color-mix(in srgb,var(--sec) 45%,transparent) 0 13px,transparent 14px),radial-gradient(circle at 80% 25%,color-mix(in srgb,var(--ac2) 40%,transparent) 0 6px,transparent 7px),var(--deep)}
+.fx-sakura{background:radial-gradient(ellipse 4px 2px at 20% 30%,var(--ac2),transparent),radial-gradient(ellipse 4px 2px at 60% 55%,var(--ac),transparent),radial-gradient(ellipse 3px 2px at 80% 20%,var(--ac2),transparent),radial-gradient(ellipse 4px 2px at 40% 80%,var(--ac2),transparent),var(--deep);background-size:100% 200%;animation:fxFall 5s linear infinite}
+.fx-grid{background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--ac) 60%,transparent) 0 1px,transparent 1px 7px) bottom/100% 45% no-repeat,linear-gradient(180deg,var(--deep) 50%,color-mix(in srgb,var(--ac3) 40%,var(--deep)) 55%,var(--deep) 56%);animation:fxFall 1.6s linear infinite}
+.fx-fireflies{background:radial-gradient(circle at 25% 60%,var(--ac2) 0 1.5px,transparent 4px),radial-gradient(circle at 55% 75%,var(--ac3) 0 1.5px,transparent 4px),radial-gradient(circle at 80% 50%,var(--ac2) 0 1.5px,transparent 4px),var(--deep);animation:fxBlink 2.4s ease-in-out infinite alternate}
+.fx-drizzle{background:repeating-linear-gradient(100deg,transparent 0 7px,color-mix(in srgb,var(--fg) 30%,transparent) 7px 8px),var(--deep);background-size:100% 200%;animation:fxFall 1s linear infinite}
+.fx-snow{background:radial-gradient(circle at 20% 30%,var(--fg) 0 1.3px,transparent 2px),radial-gradient(circle at 60% 60%,var(--fg) 0 1px,transparent 2px),radial-gradient(circle at 85% 20%,var(--fg) 0 1.3px,transparent 2px),radial-gradient(circle at 40% 85%,var(--fg) 0 1px,transparent 2px),var(--deep);background-size:100% 200%;animation:fxFall 6s linear infinite}
+@keyframes fxBlink{from{filter:brightness(.6)}to{filter:brightness(1.4)}}
+/* galería de fondos */
+.wl-wp .wpg{max-height:210px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.wpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin:6px 0 10px;max-height:min(60vh,520px);overflow:auto;padding:2px}
+.wpt{position:relative;display:flex;flex-direction:column;gap:5px;padding:5px;border:1px solid var(--bd);border-radius:var(--r-sm);background:color-mix(in srgb,var(--ink) 40%,transparent);color:var(--fg);font-size:12px;cursor:pointer;text-align:left;transition:.15s}
+.wpt:hover{border-color:var(--bd-on);background:var(--hl2)}
+.wpt.on{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac);color:var(--ac2)}
+.wpt i{display:block;aspect-ratio:16/9;border-radius:4px;background:center/cover no-repeat var(--deep)}
+.wpt i.none{background:linear-gradient(135deg,var(--g1),var(--g2) 40%,var(--g3) 75%,var(--g4))}
+.wpt em{position:absolute;top:9px;left:9px;font-style:normal;font-size:10px;padding:1px 6px;border-radius:9px;background:color-mix(in srgb,var(--deep) 75%,transparent);color:var(--ac2)}
+.wpt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+/* los fondos incluidos ya vienen con los colores del tema: sin el tinte de color encima, solo el oscurecido */
+body.wptint.wp-builtin #wp.img::after{background:color-mix(in srgb,var(--deep) var(--wp-dim,18%),transparent);mix-blend-mode:normal;opacity:1}
+body.wptint.wp-builtin #wp.img::before{display:none}
 .fx-nebula{background:radial-gradient(circle at 30% 50%,color-mix(in srgb,var(--ac) 60%,transparent),transparent 45%),radial-gradient(circle at 70% 40%,color-mix(in srgb,var(--sec) 50%,transparent),transparent 45%),var(--deep);background-size:160% 160%;animation:fxSlide 7s ease-in-out infinite alternate}
 @keyframes fxSlide{to{background-position:100% 0}}
 @keyframes fxFall{to{background-position:0 100%}}

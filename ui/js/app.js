@@ -24,6 +24,7 @@ import { listen as listenSong, initRecognize } from './recognize.js';
 import { initComfort, toggleCar } from './comfort.js';
 import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js';
 import { initBg, loadWallpaper } from './bgfx.js';
+import { openGallery } from './wallgallery.js';
 import { initUpdate } from './update.js';
 import { applyCaps } from './caps.js';
 import { initLayout } from './layout.js';
@@ -290,6 +291,7 @@ async function uploadWallpaper(file) {
     const send = () => api.raw('/api/wallpaper', blob, { 'Content-Type': type, 'x-filename': encodeURIComponent(file.name || '') });
     try { await send(); }
     catch (e) { if (!/fetch|network/i.test(e.message)) throw e; await new Promise(r => setTimeout(r, 600)); await send(); }
+    setC('wpPick', 'mine');
     await loadWallpaper();
     toast(video ? 'fondo animado activado ❀' : type === 'image/gif' ? 'GIF de fondo activado ❀' : 'wallpaper actualizado ❀', { sub: video ? 'sin sonido, en loop · ajustes → fondo para pausarlo con la música' : '' });
   } catch (e) { toast(e.message, { kind: 'err' }); }
@@ -299,8 +301,8 @@ export function pickWallpaper() {
 }
 bus.on('wallpaper:pick', pickWallpaper);
 $('#tWp').onclick = (e) => {
-  if (e.shiftKey) return api.del('/api/wallpaper').then(() => { loadWallpaper(); toast('wallpaper por defecto'); });
-  pickWallpaper();
+  if (e.shiftKey) return api.del('/api/wallpaper').then(() => { setC('wpPick', 'auto'); loadWallpaper(); toast('wallpaper por defecto'); });
+  openGallery({ upload: pickWallpaper });
 };
 $('#tTheme').onclick = () => ACTIONS.theme();
 $('#tTheme').oncontextmenu = (e) => { e.preventDefault(); ACTIONS.dyn(); };

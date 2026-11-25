@@ -39,8 +39,14 @@ async function stepTheme() {
     title: '❀ Bienvenido a Petalwave',
     html: `<div class="wl-sub">Tu música, tus descargas y canciones nuevas según tus gustos. Primero, elegí cómo querés que se vea:</div>
       <div class="wl-themes">${keys.map((k) => `<button class="th-card ${P.get('theme') === k ? 'on' : ''}" data-wt="${k}">${sw(th[k])}<b>${esc(th[k].name || k)}</b></button>`).join('')}</div>
+      <div class="wl-sub" style="margin-top:12px">Y un fondo de pantalla (los ✺ se mueven):</div>
+      <div class="wl-wp" id="wlWp"></div>
       <div class="m">Lo podés cambiar cuando quieras en ajustes → apariencia.</div>`,
-    onOpen: (box) => box.querySelectorAll('[data-wt]').forEach((b) => (b.onclick = () => { setTheme(b.dataset.wt); box.querySelectorAll('[data-wt]').forEach((x) => x.classList.toggle('on', x === b)); })),
+    onOpen: (box) => {
+      const gal = () => import('./wallgallery.js').then((m) => m.fillGalleryRow(box.querySelector('#wlWp')));
+      gal();
+      box.querySelectorAll('[data-wt]').forEach((b) => (b.onclick = () => { setTheme(b.dataset.wt); box.querySelectorAll('[data-wt]').forEach((x) => x.classList.toggle('on', x === b)); setTimeout(gal, 900); }));
+    },
     actions: [{ label: 'saltar todo', value: 'skip' }, { label: 'siguiente', primary: true, value: 'next' }],
   });
 }

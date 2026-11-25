@@ -10,7 +10,8 @@ export const FULL_VIZ = [['spectrum', 'spectrum'], ['wave', 'waveform'], ['circl
 export const FX = [
   { id: 'none', name: 'ninguno' }, { id: 'aurora', name: 'aurora' }, { id: 'waves', name: 'ondas' },
   { id: 'stars', name: 'estrellas' }, { id: 'rain', name: 'lluvia digital' }, { id: 'bokeh', name: 'bokeh' },
-  { id: 'nebula', name: 'nebulosa' },
+  { id: 'nebula', name: 'nebulosa' }, { id: 'sakura', name: 'pétalos' }, { id: 'grid', name: 'grilla synthwave' },
+  { id: 'fireflies', name: 'luciérnagas' }, { id: 'drizzle', name: 'lluvia' }, { id: 'snow', name: 'nieve' },
 ];
 
 export const DEF = {
@@ -22,6 +23,8 @@ export const DEF = {
   rowH: 56,
   vizBars: 0, vizPeaks: true, vizReflect: true, vizColor: 'theme', vizCustom: '#ff4d8d',
   petals: 'theme', scan: 'theme', wpDim: 18, wpBlur: 0,
+  // fondo de pantalla: 'auto' (el tuyo si subiste uno; si no, uno incluido), 'mine', 'none' o un fondo de la galería
+  wpPick: 'auto',
   // fondos animados (bgfx.js)
   sharpBg: false,
   // pantalla completa
@@ -236,6 +239,10 @@ export function customizerHtml() {
     ${sel('vizColor', 'color', '', [['theme', 'del tema'], ['rainbow', 'arcoíris'], ['custom', 'uno fijo']])}
     <div class="cfrow" data-row="vizCustom"><span>color fijo<span class="m">si elegiste "uno fijo"</span></span><span class="cctl"><input type="color" data-c="vizCustom"><button class="rs" data-rs="vizCustom" title="volver al predeterminado">↺</button></span></div>
   </div>
+  <div class="cfgsec"><h3>❀ fondo de pantalla ${tip('Fondos incluidos que se pintan con los colores de tu tema. Los ✺ animados se mueven solos y laten con la música. También podés subir tu imagen, GIF o video.')}</h3>
+    <div id="kWpGal"></div>
+    <div class="cfrow"><span>tu propio fondo<span class="m">imagen, GIF o video · también arrastrándolo a la ventana</span></span><span><button class="cb" id="kWpOwn">subir el mío</button></span></div>
+  </div>
   <div class="cfgsec"><h3>▧ fondo</h3>
     ${sel('petals', 'pétalos cayendo', '', [['theme', 'según el tema'], ['on', 'siempre'], ['off', 'nunca']])}
     ${sel('scan', 'líneas de escaneo', 'efecto monitor CRT', [['theme', 'según el tema'], ['on', 'siempre'], ['off', 'nunca']])}
@@ -299,6 +306,8 @@ export function bindCustomizer(box, rerender) {
   box.querySelectorAll('[data-rs]').forEach((b) => (b.onclick = () => { setC(b.dataset.rs, undefined); syncControls(box); }));
   box.querySelectorAll('[data-fx]').forEach((b) => (b.onclick = () => { setC('bgFx', b.dataset.fx); syncControls(box); }));
   $('#kWpVid').onclick = () => bus.emit('wallpaper:pick');
+  $('#kWpOwn').onclick = () => bus.emit('wallpaper:pick');
+  import('./wallgallery.js').then((m) => m.fillGalleryRow($('#kWpGal')));
   box.querySelectorAll('[data-lay]').forEach((b) => (b.onclick = () => { setMany(LAYOUTS[b.dataset.lay].v, true); syncControls(box); toast('diseño ' + LAYOUTS[b.dataset.lay].name, { ms: 1400 }); }));
   $('#kExp').onclick = () => { exportConfig(); toast('estilo exportado: petalwave-estilo.json', { sub: 'queda en tu carpeta de descargas' }); };
   $('#kImp').onclick = () => $('#kFile').click();

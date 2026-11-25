@@ -1,5 +1,12 @@
 # petalwave — registro de cambios
 
+## 2.14.0 — fondos de pantalla incluidos
+- **Galería** (`ui/js/wallgallery.js`): 9 escenas SVG generadas con los colores del tema (cerezo, montañas, atardecer, ciudad, mar, bosque, planeta, vinilo, degradado). Se rehacen al cambiar de tema.
+- **Animados:** escena + efecto en vivo de `bgfx.js`. Efectos nuevos: `sakura`, `grid`, `fireflies`, `drizzle`, `snow` (también elegibles sueltos en "fondo animado").
+- **Preferencia `wpPick`:** `auto` (el propio si hay; si no, "lluvia de pétalos"), `mine`, `none` o un id de la galería. Subir un fondo propio la pone en `mine`.
+- El efecto elegido en "fondo animado" tiene prioridad sobre el del fondo incluido. En máximo rendimiento los incluidos quedan quietos.
+- Galería en el botón de wallpaper, en ajustes → personalizar y en la bienvenida.
+
 ## 2.13.0 — Explorar y gustos
 - **Explorar** (`ui/js/explore.js`, workspace `explore`): rankings por país, artistas populares y ánimos/géneros, sin cuenta.
   - Puente: `m_explore` y `m_mood` en `src/ytm_bridge.py`, con un lector de tarjetas propio (el `get_mood_playlists` de ytmusicapi se rompe con el diseño nuevo de YouTube).

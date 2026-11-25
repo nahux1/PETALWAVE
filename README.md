@@ -79,6 +79,10 @@ El zip de la Release además trae `runtime\node.exe`, `runtime\python\` (embebib
 | `5` | ajustes | temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento |
 |  | explorar | rankings de tu país, artistas populares, ánimos y géneros (sin cuenta) |
 
+## Fondos de pantalla
+- Trae una galería de **17 fondos** (8 animados: pétalos, synthwave, luciérnagas, aurora, lluvia, nieve, espacio, burbujas) que se pintan con los colores de tu tema. Si no elegiste ninguno, usa "lluvia de pétalos".
+- Se eligen con el botón de wallpaper de arriba o en ajustes → personalizar → fondo de pantalla. También podés subir tu imagen, GIF o video.
+
 ## Explorar y tus gustos (sin música ni cuenta)
 - **Explorar** (brújula): lo más escuchado en tu país, artistas populares y playlists por ánimo y género, todo online con un toque.
 - La primera vez Petalwave te pregunta **qué te gusta** (géneros y artistas; se cambia en ajustes → mis gustos). Con eso *Descubrí* recomienda desde el primer día y Explorar pone primero lo tuyo.
