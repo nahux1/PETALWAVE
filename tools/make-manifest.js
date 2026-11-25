@@ -17,7 +17,7 @@ const m = {
   page: 'https://github.com/nahux1/PETALWAVE/releases/latest',
   notes: fs.readFileSync(notesFile, 'utf8').replace(/^﻿/, ''),
   update: { url: base + 'petalwave-update.zip', size: u.size, sha256: u.sha256 },
-  full: { url: base + 'petalwave-windows.zip', size: fs.statSync(path.join(rel, 'petalwave-windows.zip')).size },
+  full: { url: base + 'petalwave-windows.zip', ...info('petalwave-windows.zip') },
 };
 if (apkVersion) {
   const name = `Petalwave-android-${apkVersion}.apk`;

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petalwave · música gratis, sin publicidad y sin cuenta</title>
+<meta name="description" content="Reproductor de música gratis para Windows y Android: lo más escuchado de tu país, recomendaciones según tus gustos, reconocé canciones y fondos animados que laten con la música. Sin publicidad y sin cuenta.">
+<meta property="og:title" content="Petalwave · música gratis, sin publicidad y sin cuenta">
+<meta property="og:description" content="Reproductor de música gratis para Windows y Android. Sin publicidad y sin cuenta.">
+<meta property="og:image" content="https://nahux1.github.io/PETALWAVE/capturas/inicio.jpg">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#140a0d">
+<link rel="icon" type="image/png" href="icono.png">
+<style>
+  :root {
+    --bg: #0e0709; --bg2: #170b0f; --card: #1d0e13; --line: #3a1a22; --fg: #f1e6e9; --dim: #b39aa1;
+    --ac: #e8466a; --ac2: #ff9db2; --r: 16px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; overflow-x: hidden; }
+  a { color: var(--ac2); }
+  img, video { max-width: 100%; display: block; }
+  .wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+  /* barra */
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--fg); text-decoration: none; }
+  .logo img { width: 30px; height: 30px; border-radius: 8px; }
+  nav .links { margin-left: auto; display: flex; gap: 18px; font-size: 14.5px; }
+  nav .links a { color: var(--dim); text-decoration: none; }
+  nav .links a:hover { color: var(--fg); }
+  @media (max-width: 720px) { nav .links a:not(.dl) { display: none; } }
+  /* portada */
+  .hero { position: relative; padding: 70px 0 40px; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 120%; background: radial-gradient(ellipse 50% 45% at 25% 30%, rgba(232,70,106,.28), transparent 70%), radial-gradient(ellipse 40% 40% at 80% 20%, rgba(255,157,178,.14), transparent 70%); pointer-events: none; }
+  .hero .wrap { position: relative; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+  @media (max-width: 900px) { .hero .wrap { grid-template-columns: 1fr; } }
+  h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -.02em; }
+  h1 span { color: var(--ac2); }
+  .lead { font-size: 19px; color: var(--dim); margin: 0 0 28px; max-width: 34em; }
+  .btns { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 16.5px; border: 1px solid transparent; transition: transform .15s, box-shadow .15s; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.main { background: var(--ac); color: #fff; box-shadow: 0 10px 30px rgba(232,70,106,.35); }
+  .btn.alt { background: var(--card); color: var(--fg); border-color: var(--line); }
+  .btn small { display: block; font-weight: 400; font-size: 12.5px; opacity: .8; }
+  .btn svg { width: 22px; height: 22px; flex: none; }
+  .note { font-size: 13.5px; color: var(--dim); margin-top: 14px; }
+  .phone { justify-self: center; width: min(320px, 80vw); border-radius: 28px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 8px #0a0507; background: #000; }
+  .phone video { width: 100%; aspect-ratio: 9/16; object-fit: cover; }
+  /* secciones */
+  section { padding: 70px 0; }
+  section.alt { background: var(--bg2); border-block: 1px solid var(--line); }
+  h2 { font-size: clamp(28px, 4vw, 40px); margin: 0 0 10px; letter-spacing: -.01em; }
+  .sub { color: var(--dim); margin: 0 0 36px; font-size: 17px; }
+  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-bottom: 70px; }
+  .feat:last-child { margin-bottom: 0; }
+  .feat.rev .shot { order: 2; }
+  @media (max-width: 860px) { .feat { grid-template-columns: 1fr; gap: 20px; } .feat.rev .shot { order: 0; } }
+  .shot { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+  .feat h3 { font-size: 26px; margin: 0 0 10px; }
+  .feat p { color: var(--dim); margin: 0 0 12px; }
+  .feat ul { margin: 0; padding-left: 20px; color: var(--dim); }
+  .tag { display: inline-block; font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: rgba(232,70,106,.15); color: var(--ac2); margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; }
+  .card > b { display: block; margin-bottom: 6px; font-size: 17px; }
+  .card > span { color: var(--dim); font-size: 14.5px; display: block; margin-top: 8px; }
+  .grid .card > span { margin-top: 0; }
+  .card .ic { font-size: 26px; margin-bottom: 8px; display: block; }
+  /* instalar */
+  .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .steps ol { margin: 10px 0 0; padding-left: 22px; color: var(--dim); }
+  .steps li { margin-bottom: 8px; }
+  .steps li b { color: var(--fg); }
+  /* preguntas */
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 16.5px; }
+  details p { color: var(--dim); margin: 10px 0 0; }
+  .phones { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .phones img { width: min(240px, 44vw); border-radius: 20px; border: 1px solid var(--line); box-shadow: 0 20px 40px rgba(0,0,0,.5); }
+  footer { padding: 40px 0 60px; color: var(--dim); font-size: 14px; border-top: 1px solid var(--line); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
+  footer .right { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a class="logo" href="#"><img src="icono.png" alt="">Petalwave</a>
+  <div class="links">
+    <a href="#funciones">Funciones</a><a href="#instalar">Instalar</a><a href="#preguntas">Preguntas</a>
+    <a href="https://github.com/nahux1/PETALWAVE">GitHub</a>
+    <a class="dl" href="#descargar" style="color:var(--ac2)">Descargar</a>
+  </div>
+</div></nav>
+
+<header class="hero" id="descargar"><div class="wrap">
+  <div>
+    <h1>Tu música,<br><span>gratis y sin publicidad.</span></h1>
+    <p class="lead">Escuchá lo más escuchado de tu país, descubrí canciones según tus gustos, reconocé la que suena cerca y disfrutala con fondos animados que laten con la música. <b>Sin cuenta.</b></p>
+    <div class="btns">
+      <a class="btn main" href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3zm8.5-1.2L21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zm8.5 0H21V21l-9.5-1.3z"/></svg>
+        <span>Descargar para Windows<small>Windows 10 y 11 · instalador de un clic</small></span></a>
+      <a class="btn alt" href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48 19.44 6.3a.38.38 0 0 0-.66-.38l-1.86 3.22a11.5 11.5 0 0 0-9.84 0L5.22 5.92a.38.38 0 1 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52M7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5m10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5"/></svg>
+        <span>Descargar para Android<small>APK · Android 8 o más nuevo</small></span></a>
+    </div>
+    <p class="note">¿Preferís el zip sin instalador? <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/petalwave-windows.zip">petalwave-windows.zip</a> · <a href="https://github.com/nahux1/PETALWAVE/releases/latest">todas las descargas y novedades</a></p>
+  </div>
+  <div class="phone"><video src="video/petalwave.mp4" poster="video/portada.jpg" autoplay muted loop playsinline aria-label="Video de 30 segundos mostrando Petalwave"></video></div>
+</div></header>
+
+<section id="funciones"><div class="wrap">
+  <h2>Todo lo que tiene</h2>
+  <p class="sub">Funciona aunque no tengas música descargada ni ninguna cuenta.</p>
+
+  <div class="feat">
+    <img class="shot" src="capturas/explorar.jpg" alt="Explorar: rankings, artistas y géneros" loading="lazy">
+    <div><span class="tag">🧭 Explorar</span><h3>Música para escuchar ya</h3>
+      <p>Lo más escuchado de tu país, artistas populares y playlists por ánimo y género. Tocás y suena.</p>
+      <ul><li>Rankings de cada país</li><li>Ánimos: entrenar, fiesta, relax, concentrarse…</li><li>Ordenado según lo que te gusta</li></ul></div>
+  </div>
+
+  <div class="feat rev">
+    <img class="shot" src="capturas/inicio.jpg" alt="Inicio con mixes y recomendaciones" loading="lazy">
+    <div><span class="tag">❀ Aprende tus gustos</span><h3>Recomendaciones que te conocen</h3>
+      <p>Petalwave aprende de lo que escuchás entero, lo que saltás, tus ♥ y tus 👎. Desde el primer día, si le contás qué te gusta.</p>
+      <ul><li>Mixes por momento del día y por ánimo</li><li>"Descubrí": canciones nuevas parecidas a tus favoritas</li><li>El look de la app sigue a tu música</li></ul></div>
+  </div>
+
+  <div class="feat">
+    <img class="shot" src="capturas/que-suena.jpg" alt="¿Qué suena? reconoce canciones" loading="lazy">
+    <div><span class="tag">🎙️ ¿Qué suena?</span><h3>Reconocé la canción que suena</h3>
+      <p>Tocás el botón, escucha 10 segundos y te dice qué canción es. Sin clave ni cuenta. La grabación no sale de tu equipo: solo se manda una huella del audio.</p></div>
+  </div>
+
+  <div class="feat rev">
+    <img class="shot" src="capturas/fondo-animado.jpg" alt="Fondo animado synthwave" loading="lazy">
+    <div><span class="tag">✺ Fondos y efectos</span><h3>Fondos que laten con la música</h3>
+      <p>17 fondos (8 animados) que se pintan con los colores de tu tema. Con los efectos activados, el fondo tiembla y late con cada golpe de la canción. Se apagan con un toque.</p></div>
+  </div>
+
+  <div class="feat">
+    <img class="shot" src="capturas/pantalla-completa.jpg" alt="Pantalla completa con letra y visualizador" loading="lazy">
+    <div><span class="tag">♪ Pantalla completa</span><h3>Letras sincronizadas y visualizador</h3>
+      <p>Letra al ritmo de la canción, visualizador que lee el audio real y modo karaoke.</p></div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><span class="ic">🎚️</span><b>Ecualizador de 10 bandas</b><span>Con presets (bass boost, phonk, voces, noche…) y volumen parejo entre canciones.</span></div>
+    <div class="card"><span class="ic">🕘</span><b>Historial</b><span>Todo lo que escuchaste, por día, con cuánto escuchaste de cada canción.</span></div>
+    <div class="card"><span class="ic">⇣</span><b>Descargas</b><span>Bajá canciones y playlists en mp3, m4a, opus o mp4 para escuchar sin internet.</span></div>
+    <div class="card"><span class="ic">🎨</span><b>A tu gusto</b><span>Temas, tipografías, diseño de ventanas, fondos propios (imagen, GIF o video).</span></div>
+    <div class="card"><span class="ic">📱</span><b>Windows y Android</b><span>Mismo diseño en la PC y en el celular, con controles en la notificación y Android Auto.</span></div>
+    <div class="card"><span class="ic">🔒</span><b>Privada</b><span>Sin publicidad, sin cuenta y sin rastreo. Tus gustos se calculan en tu equipo.</span></div>
+  </div>
+</div></section>
+
+<section class="alt"><div class="wrap">
+  <h2>También en el celular</h2>
+  <p class="sub">La misma experiencia, pensada para el dedo.</p>
+  <div class="phones">
+    <img src="capturas/celular-inicio.jpg" alt="Inicio en el celular" loading="lazy">
+    <img src="capturas/celular-explorar.jpg" alt="Explorar en el celular" loading="lazy">
+    <img src="capturas/celular-reproductor.jpg" alt="Reproductor en el celular" loading="lazy">
+  </div>
+</div></section>
+
+<section id="instalar"><div class="wrap">
+  <h2>Cómo instalarla</h2>
+  <p class="sub">Dos minutos, sin saber nada de computación.</p>
+  <div class="steps">
+    <div class="card"><b>💻 Windows</b>
+      <ol>
+        <li>Descargá <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe"><b>Instalar-Petalwave.exe</b></a>.</li>
+        <li>Abrilo. Si aparece <b>"Windows protegió su PC"</b>, tocá <b>Más información → Ejecutar de todas formas</b> (sale porque el programa es nuevo y no tiene una firma paga).</li>
+        <li>Tocá <b>Instalar</b>. Baja la última versión, la verifica y crea los accesos directos.</li>
+      </ol>
+      <span>Se actualiza sola desde la app (botón ⬆) y se desinstala desde <b>Configuración → Aplicaciones</b>.</span></div>
+    <div class="card"><b>📱 Android</b>
+      <ol>
+        <li>Desde el celular, descargá <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk"><b>Petalwave-android.apk</b></a>.</li>
+        <li>Abrilo. Si el teléfono pregunta, activá <b>Permitir de esta fuente</b> y volvé.</li>
+        <li>Si aparece <b>Play Protect</b>, tocá <b>Más detalles → Instalar de todas formas</b> (sale porque no está en Play Store).</li>
+      </ol>
+      <span>Las actualizaciones se instalan desde la app (botón ⬆).</span></div>
+  </div>
+</div></section>
+
+<section class="alt" id="preguntas"><div class="wrap">
+  <h2>Preguntas frecuentes</h2>
+  <p class="sub">Y si tu duda no está, <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">preguntanos</a>.</p>
+  <details><summary>¿Es gratis de verdad?</summary><p>Sí. Es gratis, sin publicidad y sin partes pagas. Todo lo que tiene es para todos.</p></details>
+  <details><summary>¿Necesito una cuenta?</summary><p>No. Explorar, las recomendaciones y "¿qué suena?" funcionan sin cuenta. Si tenés YouTube Music, podés iniciar sesión para ver tus playlists, pero es opcional.</p></details>
+  <details><summary>¿Por qué Windows o el celular me avisan que no es seguro?</summary><p>Porque Petalwave es nuevo, no tiene una firma digital paga y no está en Play Store. El código es abierto: cualquiera puede revisarlo en GitHub. Las actualizaciones se verifican con una huella (SHA-256) antes de instalarse.</p></details>
+  <details><summary>¿De dónde sale la música?</summary><p>De tu propia biblioteca y, online, de YouTube Music. Petalwave no aloja música: es un reproductor. Lo que no está disponible para tu cuenta o tu país no suena.</p></details>
+  <details><summary>¿Gasta mucho?</summary><p>No. Si tu PC es lenta, el modo <b>⚡ máximo rendimiento</b> apaga los efectos. En el celular, el ahorro de batería se activa solo.</p></details>
+  <details><summary>Encontré un error o tengo una idea</summary><p>¡Contanos! <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=error.yml">Avisar un error</a> · <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=sugerencia.yml">Sugerir algo</a>. También desde la app: ajustes → acerca de.</p></details>
+</div></section>
+
+<footer><div class="wrap">
+  <a class="logo" href="#"><img src="icono.png" alt="">Petalwave</a>
+  <span>Código abierto · licencia Apache 2.0</span>
+  <div class="right">
+    <a href="https://github.com/nahux1/PETALWAVE/releases/latest">Novedades</a>
+    <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">Errores e ideas</a>
+    <a href="https://github.com/nahux1/PETALWAVE">GitHub</a>
+  </div>
+</div></footer>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: 🐞 Algo no funciona
+description: Contanos qué pasó y lo arreglamos
+title: "[error] "
+labels: ["error"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Gracias por avisar! Con estos datos es mucho más fácil encontrar el problema.
+        **No pegues contraseñas, cookies ni claves.**
+  - type: textarea
+    id: que
+    attributes:
+      label: ¿Qué pasó?
+      description: Contalo como te salga. Si hay un mensaje de error, copialo acá.
+      placeholder: Toqué una canción de Explorar y no sonó, apareció "no se pudo reproducir"…
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: ¿Cómo lo hacemos pasar?
+      description: Los pasos para que nos pase a nosotros también (si sabés).
+      placeholder: |
+        1. Abrí Explorar
+        2. Toqué la primera canción
+        3. …
+  - type: dropdown
+    id: donde
+    attributes:
+      label: ¿Dónde?
+      options:
+        - Windows
+        - Android
+        - En los dos
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Petalwave
+      description: Está en ajustes → acerca de. Si usaste el botón de la app, ya viene completada.
+      placeholder: "2.17.0"
+  - type: textarea
+    id: capturas
+    attributes:
+      label: Capturas (opcional)
+      description: Arrastrá acá una captura de pantalla si ayuda a entender.

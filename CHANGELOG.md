@@ -1,6 +1,14 @@
 # petalwave — registro de cambios
 
-## 2.17.0 — apoyar el proyecto
+## 2.17.0 — instalador, web, feedback y apoyo
+- **Instalador** (`build/Installer.cs` → `release/Instalar-Petalwave.exe` con `build/build-installer.bat`):
+  - Baja `latest.json` → zip completo (solo de GitHub) y verifica el SHA-256, que ahora trae `full.sha256` en el manifiesto.
+  - Instala en `%LOCALAPPDATA%\Programs\petalwave` (si ya existía, actualiza sin tocar `data/` ni `descargas/`), crea los accesos directos y se registra en "Aplicaciones instaladas".
+  - `/uninstall` pregunta si borrar los datos. Para pruebas: `PW_INSTALL_ROOT` + `PW_INSTALL_MANIFEST` + `/silent`.
+- **Página web** en `docs/` (GitHub Pages): video, capturas, descargas directas con nombres fijos (`latest/download/Instalar-Petalwave.exe`, `Petalwave-android.apk`) y preguntas frecuentes.
+- **Errores e ideas:** formularios de GitHub (`.github/ISSUE_TEMPLATE`) y botones en ajustes → acerca de (con la versión completada).
+- **Releases:** `tools/release-body.js` agrega un bloque estándar de descargas, `tools/notes/_plantilla.md` da el formato de las notas, y `tools/publicar.ps1` sube todo (también el APK con nombre fijo y el instalador).
+- **Video promocional** de 30 s (11 diapositivas) y más capturas por sección.
 - **`ui/js/support.js`:** botón "apoyar Petalwave" sin nada exclusivo.
   - El link viene en `latest.json` (`support`, desde `tools/support.json` al armar el manifiesto), así se cambia sin sacar versión.
   - Los dos servidores solo aceptan https de plataformas de donación conocidas (Cafecito, Mercado Pago, Ko-fi, GitHub Sponsors, PayPal…).

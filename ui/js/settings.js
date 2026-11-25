@@ -101,6 +101,7 @@ export async function renderSettings() {
     <div class="cfgsec"><h3>❀ acerca de</h3>
       <div class="cfrow"><span>versión <b id="cVer">…</b><span class="m" id="cVerSub">buscando actualizaciones…</span></span><span><button class="cb" id="cUpd">buscar actualizaciones</button></span></div>
       <label class="cfrow"><span>avisarme si hay versión nueva<span class="m">consulta GitHub al abrir (no manda datos tuyos)</span></span><input type="checkbox" id="cAutoUpd" ${p.autoUpdate !== false ? 'checked' : ''}></label>
+      <div class="cfrow"><span>¿algo no anda o tenés una idea?<span class="m">se abre un formulario en GitHub (necesitás una cuenta gratis) · no manda datos tuyos, solo la versión</span></span><span><button class="cb sm" id="cBug">🐞 avisar un error</button> <button class="cb sm" id="cIdea">💡 sugerir algo</button></span></div>
       <div id="cSupportBox">${supportRowHtml()}</div>
       <div class="m">ventana ${host.native ? 'nativa (WebView2)' : 'en navegador'} · datos en <code>petalwave\\data</code></div>
       <div class="m" style="margin-top:6px">usalo con música propia, libre o con permiso. No esquiva DRM ni restricciones de las plataformas.</div>
@@ -127,6 +128,10 @@ export async function renderSettings() {
     if (await confirm2('Motor nativo', nv.checked ? 'Para usar el motor nativo hay que reiniciar Petalwave. ¿Reiniciar ahora? (la música se corta un segundo)' : 'Para volver al motor de siempre hay que reiniciar Petalwave. ¿Reiniciar ahora?', 'reiniciar')) location.reload();
   };
   const ct = $('#cTaste'); if (ct) ct.onclick = () => import('./welcome.js').then((m) => m.askTaste());
+  // avisar errores y sugerencias: formularios de GitHub con la versión ya completada
+  const issue = (tpl) => { const v = (($('#cVer') || {}).textContent || '').trim(); window.open('https://github.com/nahux1/PETALWAVE/issues/new?template=' + tpl + (/^[\d.]+$/.test(v) ? '&version=' + encodeURIComponent(v + (window.PetalwaveNative ? ' (Android)' : ' (Windows)')) : ''), '_blank'); };
+  const cb = $('#cBug'); if (cb) cb.onclick = () => issue('error.yml');
+  const ci = $('#cIdea'); if (ci) ci.onclick = () => issue('sugerencia.yml');
   const sb = $('#cSupportBox'); if (sb) { bindSupportRow(sb); if (!sb._on) { sb._on = true; bus.on('support', () => { const x = $('#cSupportBox'); if (x) { x.innerHTML = supportRowHtml(); bindSupportRow(x); } }); } }
   box.querySelectorAll('[data-ps]').forEach((s) => (s.onchange = () => { P.set(s.dataset.ps, s.value); bus.emit('prefs', s.dataset.ps); }));
   box.querySelectorAll('[data-p]').forEach((c) => (c.onchange = () => {

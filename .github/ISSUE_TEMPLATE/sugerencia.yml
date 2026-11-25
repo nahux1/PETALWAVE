@@ -1,0 +1,25 @@
+name: 💡 Tengo una idea
+description: Algo que te gustaría que Petalwave tenga o haga distinto
+title: "[idea] "
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: ¿Qué te gustaría?
+      placeholder: Que se pueda armar una playlist con las canciones que reconocí con "¿qué suena?"…
+    validations:
+      required: true
+  - type: textarea
+    id: para
+    attributes:
+      label: ¿Para qué te serviría?
+      description: Contanos cómo lo usarías; ayuda a hacerlo bien.
+  - type: dropdown
+    id: donde
+    attributes:
+      label: ¿Dónde lo usarías?
+      options:
+        - Windows
+        - Android
+        - En los dos

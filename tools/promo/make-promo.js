@@ -1,4 +1,4 @@
-// arma un video vertical corto (1080×1920, ~25 s, sin música) para TikTok / Reels / Shorts con las capturas de docs/capturas
+// arma un video vertical corto (1080×1920, ~30 s, sin música) para TikTok / Reels / Shorts con las capturas de docs/capturas
 // uso: node tools/promo/make-promo.js [ruta a ffmpeg]   → promo/petalwave-promo.mp4 (la música se agrega en la app de cada red)
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -24,7 +24,10 @@ const SLIDES = [
   { img: 'celular-reproductor.jpg', kind: 'phone', lines: [['Letras y visualizador', 74, 70, 'white'], ['en el celular y en la PC', 52, 160, PINK]] },
   { img: 'inicio.jpg', kind: 'desk', lines: [['Aprende tus gustos', 80, 330, 'white'], ['recomendaciones con lo que', 54, 1400, PINK], ['escuchás, saltás y te gusta', 54, 1470, PINK]] },
   { img: 'fondos.jpg', kind: 'desk', lines: [['17 fondos', 90, 330, 'white'], ['8 animados que laten', 54, 1400, PINK], ['con la música', 54, 1470, PINK]] },
+  { img: 'fondo-animado.jpg', kind: 'desk', lines: [['Fondos que laten', 90, 330, 'white'], ['con la música', 90, 430, 'white'], ['sacudida, pulso y destello', 54, 1400, PINK], ['(se apagan con un toque)', 48, 1470, 'white']] },
+  { img: 'ecualizador.jpg', kind: 'desk', crop: 'crop=380:720:1020:50', w: 640, lines: [['Ecualizador', 90, 170, 'white'], ['10 bandas y presets', 54, 1640, PINK]] },
   { img: 'historial.jpg', kind: 'desk', lines: [['Tu historial', 90, 330, 'white'], ['todo lo que escuchaste, por día', 54, 1400, PINK]] },
+  { img: 'descargas.jpg', kind: 'desk', lines: [['Bajá tu música', 90, 330, 'white'], ['mp3, m4a, opus o mp4', 54, 1400, PINK], ['para escuchar sin internet', 54, 1470, PINK]] },
   { img: 'que-suena.jpg', kind: 'desk', crop: 'crop=470:490:565:205', w: 820, lines: [['¿Qué suena?', 90, 250, 'white'], ['reconoce la canción', 54, 1560, PINK], ['que suena cerca tuyo', 54, 1630, PINK]] },
   { img: 'celular-inicio.jpg', kind: 'end', lines: [['Petalwave', 130, 650, 'white'], ['gratis para Windows y Android', 58, 830, PINK], ['github.com/nahux1/PETALWAVE', 50, 940, 'white']] },
 ];

@@ -1,6 +1,26 @@
-# ❀ Petalwave
+<p align="center"><img src="docs/icono.png" alt="" width="96"></p>
+<h1 align="center">Petalwave</h1>
 
-**Reproductor de música gratis para Windows y Android, sin publicidad y sin cuenta.**
+<p align="center"><b>Reproductor de música gratis para Windows y Android, sin publicidad y sin cuenta.</b></p>
+
+<p align="center">
+  <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe"><img alt="Descargar para Windows" src="https://img.shields.io/badge/Descargar-Windows-e8466a?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk"><img alt="Descargar para Android" src="https://img.shields.io/badge/Descargar-Android-3a1a22?style=for-the-badge&logo=android&logoColor=white"></a>
+</p>
+<p align="center">
+  <a href="https://nahux1.github.io/PETALWAVE/">🌐 Página web</a> ·
+  <a href="../../releases/latest">📝 Novedades</a> ·
+  <a href="../../issues/new?template=error.yml">🐞 Avisar un error</a> ·
+  <a href="../../issues/new?template=sugerencia.yml">💡 Sugerir algo</a>
+</p>
+<p align="center">
+  <img alt="versión" src="https://img.shields.io/github/v/release/nahux1/PETALWAVE?label=versi%C3%B3n&color=e8466a">
+  <img alt="descargas" src="https://img.shields.io/github/downloads/nahux1/PETALWAVE/total?label=descargas&color=3a1a22">
+  <img alt="licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-3a1a22">
+</p>
+
+**En esta página:** [Instalar](#instalar) · [Android](#android) · [Actualizar](#actualizar) · [Funciones](#funciones) · [Privacidad](#privacidad)
+
 Escuchá lo más escuchado de tu país, descubrí música según tus gustos, reconocé la canción que suena,
 y disfrutalo con fondos animados que laten con la música.
 
@@ -27,17 +47,27 @@ y disfrutalo con fondos animados que laten con la música.
 - 🎚️ Ecualizador de 10 bandas, visualizadores, letras, temas y diseño a tu gusto.
 - ⇣ Descargas de YouTube en mp3, m4a, opus o mp4, y todo tu YouTube Music sin descargar.
 
+<a id="instalar"></a>
+
 ## ⬇️ Descargar e instalar (sin saber nada de informática)
 
-1. Entrá a **[Releases](../../releases/latest)** y descargá **`petalwave-windows.zip`** (está abajo, en "Assets").
+**La forma más fácil (instalador):**
+1. Descargá **[Instalar-Petalwave.exe](https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe)** y abrilo.
+2. Si aparece el cartel azul **"Windows protegió su PC"**: tocá **Más información** → **Ejecutar de todas formas**.
+   Sale porque el programa es nuevo y no tiene firma digital paga; es normal.
+3. Tocá **Instalar**. Baja la última versión, la verifica y crea los accesos directos en el menú Inicio y el escritorio.
+   No pide permisos de administrador. Se desinstala desde *Configuración → Aplicaciones* (te pregunta si querés guardar tu música).
+
+<details><summary><b>Sin instalador (zip portable)</b></summary>
+
+1. Descargá **[petalwave-windows.zip](https://github.com/nahux1/PETALWAVE/releases/latest/download/petalwave-windows.zip)**.
 2. Andá a tu carpeta **Descargas**, hacé **clic derecho** en el zip → **Extraer todo…** → **Extraer**.
 3. Abrí la carpeta **petalwave** y hacé **doble clic** en **`petalwave.exe`** (el ícono de la flor).
-4. Si aparece el cartel azul **"Windows protegió su PC"**: tocá **Más información** → **Ejecutar de todas formas**.
-   Sale porque el programa es nuevo y no tiene firma digital paga; es normal.
+4. Para un acceso directo: clic derecho en `petalwave.exe` → *Mostrar más opciones* → *Enviar a* → *Escritorio*.
+</details>
 
 No hay que instalar nada más: Node.js, yt-dlp, ffmpeg y Python ya vienen adentro.
-Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho en `petalwave.exe` →
-*Mostrar más opciones* → *Enviar a* → *Escritorio*.
+Funciona en **Windows 10 y 11 de 64 bits**.
 
 **La ✕ minimiza a la bandeja:** la música sigue sonando; clic en la flor ❀ junto al reloj para volver, clic derecho → *Salir* para cerrar.
 **Mover ventanas:** mantené apretada una ventana medio segundo y arrastrala: al costado para ordenarla o a cualquier lugar para dejarla flotando. Doble clic en su título la devuelve.
@@ -56,9 +86,11 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 **Lo básico:** `1` música · `2` descargas (pegá un link y listo, sin cookies) · `3` YouTube Music y Spotify ·
 `5` ajustes (temas, diseño, fondos animados) · `espacio` play/pausa · `f` pantalla completa · `b` ver el fondo.
 
+<a id="android"></a>
+
 ## 📱 Android (APK)
 
-1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá el archivo **`Petalwave-android-….apk`** (en "Assets").
+1. Desde el celular, descargá **[Petalwave-android.apk](https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk)**.
 2. Abrí el archivo descargado. Si el teléfono pregunta, tocá **Ajustes** → activá **Permitir de esta fuente** → volvé atrás → **Instalar**.
 3. Si aparece **Play Protect** ("app no verificada"): tocá **Más detalles** → **Instalar de todas formas**. Sale porque la app no está en Play Store; es normal.
 4. Abrí **Petalwave** y aceptá los permisos de música y notificaciones.
@@ -72,6 +104,8 @@ Para actualizar, instalá el APK nuevo encima: no se pierde nada.
 **Android Auto (beta):** activá *ajustes → reproducción → motor nativo de Android (beta)*; en la app Android Auto: Configuración → tocá 10 veces la versión → menú ⋮ → Configuración para desarrolladores → **Fuentes desconocidas**. Petalwave aparece en el auto.
 **Widget:** mantené apretada la pantalla de inicio → *Widgets* → *Petalwave*.
 Por ahora en Android no hay Spotify ni sync.
+
+<a id="actualizar"></a>
 
 ### 🔄 Actualizar
 - **Desde la versión 2.4:** cuando sale una versión nueva aparece un botón **⬆** arriba a la derecha. Tocalo → **actualizar ahora**: petalwave baja solo lo nuevo, se cierra, se actualiza y se vuelve a abrir. Tu música y tus ajustes no se tocan.
@@ -91,6 +125,8 @@ Desde el código: instalá Node.js, `yt-dlp` y `ffmpeg` (`instalar.bat`), y corr
 YouTube Music necesita Python 3.12 y `pip install --target lib\py ytmusicapi`.
 El zip de la Release además trae `runtime\node.exe`, `runtime\python\` (embebible), `bin\yt-dlp.exe`, `ffmpeg.exe` y `ffprobe.exe`.
 </details>
+
+<a id="funciones"></a>
 
 ## Workspaces (como en Hyprland)
 | tecla | workspace | qué hay |
@@ -228,6 +264,8 @@ Todos se cambian en ajustes → atajos. Por defecto: `espacio` play, `n`/`p` sig
 - `%LOCALAPPDATA%\petalwave`: perfil de la ventana y logs.
 
 Usá petalwave con música propia, libre o con permiso del autor.
+
+<a id="privacidad"></a>
 
 ## Seguridad y privacidad
 - Petalwave funciona con un servidor que solo escucha en tu propia PC o celular (`127.0.0.1`) y solo le responde a su ventana: las páginas web y (en Android) las otras apps no pueden usarlo.
