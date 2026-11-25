@@ -28,3 +28,6 @@ android/keystore.properties
 android/keystore/
 android/app/src/main/python/petalwave/www/
 android/app/src/main/python/petalwave/ytm_bridge.py
+
+# video promocional (se arma con tools/promo/armar-video.bat)
+/promo/

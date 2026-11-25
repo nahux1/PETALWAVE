@@ -24,5 +24,7 @@ if (apkVersion) {
   const a = info(name);
   m.android = { version: apkVersion, url: base + name, size: a.size, sha256: a.sha256 };
 }
+// link para donar (botón "apoyar Petalwave" de la app): tools/support.json { "url": "https://..." }
+try { const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'support.json'), 'utf8')); if (s.url) m.support = s.url; } catch {}
 fs.writeFileSync(path.join(rel, 'latest.json'), JSON.stringify(m, null, 2));
 console.log('latest.json', v, '·', (u.size / 1048576).toFixed(1), 'MB', m.android ? '· android ' + m.android.version : '');

@@ -1,5 +1,15 @@
 # petalwave — registro de cambios
 
+## 2.17.0 — apoyar el proyecto
+- **`ui/js/support.js`:** botón "apoyar Petalwave" sin nada exclusivo.
+  - El link viene en `latest.json` (`support`, desde `tools/support.json` al armar el manifiesto), así se cambia sin sacar versión.
+  - Los dos servidores solo aceptan https de plataformas de donación conocidas (Cafecito, Mercado Pago, Ko-fi, GitHub Sponsors, PayPal…).
+  - Recordatorios: nunca la primera semana, como mucho uno cada 60 días (después de actualizar o a las 100 horas escuchadas); se apagan con `supportAsk`. También aparece en "Tu año".
+- **README:** capturas en `docs/capturas`.
+- **Herramientas:**
+  - `tools/descargas.bat`: descargas por versión.
+  - `tools/promo/armar-video.bat`: video vertical para redes, con el texto para publicar en `tools/promo/texto-para-publicar.txt`.
+
 ## 2.16.0 — efectos con la música
 - **`ui/js/musicfx.js`:** detecta los golpes con el analizador de graves.
   - El analizador da decibeles, así que un golpe es un salto de +13 o más sobre el mínimo de los últimos 150 ms, con 200 ms entre golpes.

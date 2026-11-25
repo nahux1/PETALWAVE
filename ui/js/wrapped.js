@@ -1,6 +1,7 @@
 // "Tu año en Petalwave": un resumen de tu año en una imagen tipo historia (1080×1920) para guardar o compartir.
 // Junta las estadísticas de tu biblioteca (/api/stats?range=year) con lo que escuchaste online (señales de taste.js).
 import { api, esc, toast, modal, fmtLong, coverUrl } from './core.js';
+import { supportUrl, supportLinkHtml } from './support.js';
 import { D, T, mainArtist } from './data.js';
 import { tasteEvents, profile, SLOTS } from './taste.js';
 
@@ -119,7 +120,8 @@ export async function showYear() {
   await modal({
     title: 'Tu ' + d.year + ' en Petalwave',
     html: `<img src="${url}" alt="" style="display:block;width:min(300px,70vw);margin:0 auto;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5)">
-      <div class="m" style="text-align:center;margin-top:8px">${esc(fmtLong(d.seconds))} de música este año</div>`,
+      <div class="m" style="text-align:center;margin-top:8px">${esc(fmtLong(d.seconds))} de música este año</div>
+      ${supportUrl() ? `<div class="m" style="text-align:center;margin-top:10px">Petalwave es gratis y sin publicidad · ${supportLinkHtml('❀ apoyar el proyecto')}</div>` : ''}`,
     actions: [
       ...(nat && nat.saveImage ? [
         { label: 'compartir', fn: () => { const r = nat.saveImage(b64(), name, true); if (r !== 'ok') toast(r, { kind: 'err' }); return false; } },

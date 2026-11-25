@@ -27,6 +27,7 @@ import { initBg, loadWallpaper } from './bgfx.js';
 import { openGallery } from './wallgallery.js';
 import { initAdapt } from './adapt.js';
 import { initMusicFx } from './musicfx.js';
+import { initSupport } from './support.js';
 import { initUpdate } from './update.js';
 import { applyCaps } from './caps.js';
 import { initLayout } from './layout.js';
@@ -367,6 +368,7 @@ async function boot() {
   initExplore();
   initAdapt();
   initMusicFx();
+  initSupport();
   initGsearch();
   initCfgNav();
   initRecognize();

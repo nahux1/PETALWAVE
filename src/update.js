@@ -60,6 +60,12 @@ function get(url, { json, file, onProgress, redirects = 6, accept } = {}) {
   });
 }
 
+// link para donar (botón "apoyar Petalwave"): solo https y de plataformas de donación conocidas
+const SUPPORT_HOSTS = /^(?:www\.)?(?:cafecito\.app|mpago\.la|link\.mercadopago\.com\.ar|mercadopago\.com\.ar|ko-fi\.com|buymeacoffee\.com|liberapay\.com|paypal\.me|paypal\.com|github\.com)$/i;
+function supportUrl(u) {
+  try { const x = new URL(String(u || '')); if (x.protocol !== 'https:' || !SUPPORT_HOSTS.test(x.hostname)) return ''; if (/github\.com$/i.test(x.hostname) && !x.pathname.startsWith('/sponsors/')) return ''; return x.href; } catch { return ''; }
+}
+
 class Updater {
   constructor({ root, dataDir, broadcast }) {
     Object.assign(this, { root, broadcast });
@@ -95,7 +101,7 @@ class Updater {
     return this.last;
   }
 
-  // latest.json: { version, title, date, page, notes, update: { url, size, sha256 }, full: { url, size } }
+  // latest.json: { version, title, date, page, notes, update: { url, size, sha256 }, full: { url, size }, support }
   fromManifest(m) {
     const latest = String(m.version || '').replace(/^v/, '');
     if (!latest) throw new Error('latest.json sin versión');
@@ -106,6 +112,7 @@ class Updater {
       canAuto: !!(upd && /^[a-f0-9]{64}$/.test(upd.sha256 || '')), size: upd ? upd.size : 0, url: upd ? upd.url : null, sha256: upd && /^[a-f0-9]{64}$/.test(upd.sha256 || '') ? upd.sha256 : null,
       fullUrl: m.full && ok(m.full.url) ? m.full.url : m.page, page: ok(m.page) ? m.page : `https://github.com/${REPO}/releases/latest`,
       title: m.title || 'petalwave ' + latest, notes: String(m.notes || '').slice(0, 4000), date: m.date, via: 'manifest',
+      support: supportUrl(m.support),
     };
     this.lastAt = Date.now();
     return this.last;

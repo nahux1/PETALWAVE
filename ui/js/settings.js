@@ -1,5 +1,6 @@
 // workspace de ajustes: temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento
 import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2 } from './core.js';
+import { supportRowHtml, bindSupportRow } from './support.js';
 import { runSmartDl, smartDone } from './smartdl.js';
 const isAndroid = !!window.PetalwaveNative;
 const niceAndroid = (f) => f.replace(/^\/storage\/emulated\/0\/?/, 'Teléfono › ').replace(/^\/storage\/([\w-]+)\/?/, 'Tarjeta SD › ').replace(/\//g, ' › ');
@@ -100,6 +101,7 @@ export async function renderSettings() {
     <div class="cfgsec"><h3>❀ acerca de</h3>
       <div class="cfrow"><span>versión <b id="cVer">…</b><span class="m" id="cVerSub">buscando actualizaciones…</span></span><span><button class="cb" id="cUpd">buscar actualizaciones</button></span></div>
       <label class="cfrow"><span>avisarme si hay versión nueva<span class="m">consulta GitHub al abrir (no manda datos tuyos)</span></span><input type="checkbox" id="cAutoUpd" ${p.autoUpdate !== false ? 'checked' : ''}></label>
+      <div id="cSupportBox">${supportRowHtml()}</div>
       <div class="m">ventana ${host.native ? 'nativa (WebView2)' : 'en navegador'} · datos en <code>petalwave\\data</code></div>
       <div class="m" style="margin-top:6px">usalo con música propia, libre o con permiso. No esquiva DRM ni restricciones de las plataformas.</div>
     </div>
@@ -125,6 +127,7 @@ export async function renderSettings() {
     if (await confirm2('Motor nativo', nv.checked ? 'Para usar el motor nativo hay que reiniciar Petalwave. ¿Reiniciar ahora? (la música se corta un segundo)' : 'Para volver al motor de siempre hay que reiniciar Petalwave. ¿Reiniciar ahora?', 'reiniciar')) location.reload();
   };
   const ct = $('#cTaste'); if (ct) ct.onclick = () => import('./welcome.js').then((m) => m.askTaste());
+  const sb = $('#cSupportBox'); if (sb) { bindSupportRow(sb); if (!sb._on) { sb._on = true; bus.on('support', () => { const x = $('#cSupportBox'); if (x) { x.innerHTML = supportRowHtml(); bindSupportRow(x); } }); } }
   box.querySelectorAll('[data-ps]').forEach((s) => (s.onchange = () => { P.set(s.dataset.ps, s.value); bus.emit('prefs', s.dataset.ps); }));
   box.querySelectorAll('[data-p]').forEach((c) => (c.onchange = () => {
     const k = c.dataset.p;

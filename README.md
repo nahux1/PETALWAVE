@@ -1,8 +1,31 @@
-# ❀ petalwave
+# ❀ Petalwave
 
-🌸〰️ Reproductor de música para Windows con estética de terminal / rice de Hyprland:
-tu biblioteca, descargas de YouTube, YouTube Music y Spotify en mp3/mp4, letras sincronizadas,
-ecualizador, visualizadores, temas y fondos animados.
+**Reproductor de música gratis para Windows y Android, sin publicidad y sin cuenta.**
+Escuchá lo más escuchado de tu país, descubrí música según tus gustos, reconocé la canción que suena,
+y disfrutalo con fondos animados que laten con la música.
+
+<p align="center"><img src="docs/capturas/inicio.jpg" alt="Inicio de Petalwave" width="100%"></p>
+
+| | |
+|---|---|
+| <img src="docs/capturas/explorar.jpg" alt="Explorar"> | <img src="docs/capturas/pantalla-completa.jpg" alt="Pantalla completa con letra"> |
+| **Explorar:** rankings de tu país, artistas y géneros, sin cuenta | **Pantalla completa** con letra sincronizada y visualizador |
+| <img src="docs/capturas/historial.jpg" alt="Historial"> | <img src="docs/capturas/fondos.jpg" alt="Fondos de pantalla"> |
+| **Historial:** todo lo que escuchaste, por día | **17 fondos** (8 animados) con los colores de tu tema |
+
+<p align="center">
+  <img src="docs/capturas/celular-inicio.jpg" alt="Inicio en el celular" width="30%">
+  <img src="docs/capturas/celular-explorar.jpg" alt="Explorar en el celular" width="30%">
+  <img src="docs/capturas/celular-reproductor.jpg" alt="Reproductor en el celular" width="30%">
+</p>
+
+**Lo que tiene:**
+- 🧭 **Explorar:** música para escuchar ya, aunque no tengas nada descargado ni cuenta.
+- ❀ **Aprende tus gustos:** recomendaciones según lo que escuchás entero, lo que saltás, tus ♥ y tus 👎.
+- 🎙️ **¿Qué suena?:** reconoce la canción que suena cerca, sin clave ni cuenta.
+- ♪ **Efectos con la música:** el fondo tiembla y late con cada golpe (se apagan con un toque).
+- 🎚️ Ecualizador de 10 bandas, visualizadores, letras, temas y diseño a tu gusto.
+- ⇣ Descargas de YouTube en mp3, m4a, opus o mp4, y todo tu YouTube Music sin descargar.
 
 ## ⬇️ Descargar e instalar (sin saber nada de informática)
 
@@ -35,7 +58,7 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 
 ## 📱 Android (APK)
 
-1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá **`Petalwave-android-1.7.0.apk`** (en "Assets").
+1. Desde el celular, entrá a **[Releases](../../releases/latest)** y tocá el archivo **`Petalwave-android-….apk`** (en "Assets").
 2. Abrí el archivo descargado. Si el teléfono pregunta, tocá **Ajustes** → activá **Permitir de esta fuente** → volvé atrás → **Instalar**.
 3. Si aparece **Play Protect** ("app no verificada"): tocá **Más detalles** → **Instalar de todas formas**. Sale porque la app no está en Play Store; es normal.
 4. Abrí **Petalwave** y aceptá los permisos de música y notificaciones.

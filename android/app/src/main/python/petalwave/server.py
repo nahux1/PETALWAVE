@@ -1092,6 +1092,20 @@ def fmt_eta(s):
 
 
 # ======================= servidor HTTP =======================
+def support_url(u):
+    """link para donar (botón "apoyar Petalwave"): solo https y de plataformas de donación conocidas"""
+    try:
+        x = urllib.parse.urlparse(str(u or ""))
+    except Exception:  # noqa: BLE001
+        return ""
+    host = (x.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    ok = host in ("cafecito.app", "mpago.la", "link.mercadopago.com.ar", "mercadopago.com.ar", "ko-fi.com", "buymeacoffee.com",
+                  "liberapay.com", "paypal.me", "paypal.com") or (host == "github.com" and x.path.startswith("/sponsors/"))
+    return x.geturl() if x.scheme == "https" and ok else ""
+
+
 def update_info(force=False):
     try:
         m = get_json("https://github.com/nahux1/PETALWAVE/releases/latest/download/latest.json")
@@ -1101,7 +1115,8 @@ def update_info(force=False):
             return [int(p) if p.isdigit() else 0 for p in str(x).split(".")]
         apk = {"url": a.get("url"), "sha256": a.get("sha256"), "size": a.get("size")} if a.get("url") and re.fullmatch(r"[a-f0-9]{64}", str(a.get("sha256") or "")) else None
         return {"current": APP_VERSION, "latest": latest or APP_VERSION, "hasUpdate": bool(latest) and v(latest) > v(APP_VERSION), "canAuto": False, "apk": apk,
-                "page": a.get("url") or "https://github.com/nahux1/PETALWAVE/releases/latest", "notes": m.get("notes", ""), "title": "Petalwave " + (latest or APP_VERSION)}
+                "page": a.get("url") or "https://github.com/nahux1/PETALWAVE/releases/latest", "notes": m.get("notes", ""), "title": "Petalwave " + (latest or APP_VERSION),
+                "support": support_url(m.get("support"))}
     except Exception as e:  # noqa: BLE001
         return {"current": APP_VERSION, "error": "no se pudo consultar GitHub: " + str(e)[:120]}
 
