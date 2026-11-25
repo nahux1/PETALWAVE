@@ -1,5 +1,14 @@
 # petalwave — registro de cambios
 
+## 2.15.0 — historial y adaptación
+- **Historial** (`ui/js/history.js`, vista `hist` de la biblioteca): escuchas y saltos de las señales de gustos, por día, con hora y cuánto sonó; filtros, búsqueda, volver a escuchar y borrar.
+  - `DELETE /api/taste?only=listens` (los dos servidores) borra solo `play`/`skip`; `forgetListens()` en taste.js.
+- **Adaptación** (`ui/js/adapt.js`):
+  - `dominantLook()` busca en el perfil el estilo que domina (6 grupos) y propone tema + fondo. Pide al menos 6 positivos y un ganador claro.
+  - Preferencia `adaptLook`: `suggest` | `auto` | `off`. Como máximo un cambio cada 3 días; nunca toca un fondo propio.
+  - "Lo que más abrís": `recordNav()` anota las vistas abiertas (con olvido ×0,97) y Inicio muestra las 6 más usadas.
+- Pruebas: borrar el historial deja los me gusta (24).
+
 ## 2.14.0 — fondos de pantalla incluidos
 - **Galería** (`ui/js/wallgallery.js`): 9 escenas SVG generadas con los colores del tema (cerezo, montañas, atardecer, ciudad, mar, bosque, planeta, vinilo, degradado). Se rehacen al cambiar de tema.
 - **Animados:** escena + efecto en vivo de `bgfx.js`. Efectos nuevos: `sakura`, `grid`, `fireflies`, `drizzle`, `snow` (también elegibles sueltos en "fondo animado").

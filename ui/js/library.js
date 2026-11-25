@@ -39,6 +39,8 @@ function tasteLine() {
   return bits.join(' · ');
 }
 import { C } from './custom.js';
+import { renderHistory } from './history.js';
+import { recordNav } from './adapt.js';
 
 const ROW_H = () => (document.body.classList.contains('compact') ? 38 : C().rowH);
 const COLS = '44px minmax(0,2.6fr) minmax(0,1.3fr) 60px 42px 64px 32px';
@@ -50,8 +52,18 @@ let dupes = [];
 export const lib = { view: () => view, ids: () => ids };
 
 // ---------- navegación ----------
+// nombre de una vista (para "tus accesos" de Inicio)
+function viewName(v) {
+  if (v.type === 'pl') { const p = D.playlists.find((x) => x.id === v.key); return p ? p.name : v.key === 'liked' ? 'Me gusta' : ''; }
+  if (v.type === 'auto') { const a = D.auto.find((x) => x.id === v.key); return a ? a.name : ''; }
+  if (v.type === 'mix') return mixInfo(v.key).name;
+  if (v.type === 'ytm') { if (v.key === 'liked') return 'Me gusta (YouTube Music)'; const p = (ytm.playlists || []).find((x) => x.playlistId === v.key); return p ? p.title : ''; }
+  if (v.type === 'album') return v.key.album;
+  return '';
+}
 export function go(v) {
   view = v;
+  try { if (v.key || ['recs', 'disc', 'hist'].includes(v.type)) recordNav(v, viewName(v)); } catch {}
   if (v.type === 'recs') { REC.local = recsLocal(60); for (const r of REC.local) WHY.set(r.id, r.why); }
   if (v.type === 'mix') loadMix(v.key);
   $$('#lnav [data-mix]').forEach((b) => b.classList.toggle('on', v.type === 'mix' && b.dataset.mix === v.key));
@@ -159,6 +171,7 @@ export function render() {
   const q = $('#q').value.trim();
   if (['artists', 'albums', 'genres', 'years'].includes(view.type) && !q) return renderGroups(head, body);
   if (view.type === 'dupes') return renderDupes(head, body);
+  if (view.type === 'hist') { ids = []; return renderHistory(head, body); }
   // con búsqueda escrita en una vista de grupos, mostrar canciones
   const list = ['artists', 'albums', 'genres', 'years'].includes(view.type) ? sorted(filtered(D.tracks), P.get('libSort')) : viewTracks();
   ids = list.map((t) => t.id);

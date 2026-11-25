@@ -79,6 +79,10 @@ El zip de la Release además trae `runtime\node.exe`, `runtime\python\` (embebib
 | `5` | ajustes | temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento |
 |  | explorar | rankings de tu país, artistas populares, ánimos y géneros (sin cuenta) |
 
+## Historial y adaptación
+- **Historial** (biblioteca → historial, o desde Inicio): todo lo que escuchaste, por día, con la hora y cuánto escuchaste de cada canción. Se puede filtrar, buscar, volver a escuchar o borrar (tus ♥ y playlists quedan).
+- **Se adapta a vos:** si un estilo empieza a dominar lo que escuchás, Petalwave te sugiere un tema y un fondo que le quedan (o los cambia solo, si lo elegís en ajustes). En Inicio aparece "lo que más abrís". Todo se calcula en tu equipo.
+
 ## Fondos de pantalla
 - Trae una galería de **17 fondos** (8 animados: pétalos, synthwave, luciérnagas, aurora, lluvia, nieve, espacio, burbujas) que se pintan con los colores de tu tema. Si no elegiste ninguno, usa "lluvia de pétalos".
 - Se eligen con el botón de wallpaper de arriba o en ajustes → personalizar → fondo de pantalla. También podés subir tu imagen, GIF o video.

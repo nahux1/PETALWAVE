@@ -83,6 +83,10 @@ async function req(method, p, body, headers = {}) {
       check('"Me gusta" no se puede borrar', r.status >= 400);
       r = await req('POST', '/api/taste', JSON.stringify({ events: [{ k: 'play', id: 'x', s: 100, d: 120 }, { k: 'hackeo' }] }));
       check('señales de gustos (solo válidas)', r.status === 200 && r.j && r.j.n === 1);
+      await req('POST', '/api/taste', JSON.stringify({ events: [{ k: 'like', id: 'y', a: 'z' }] }));
+      await req('DELETE', '/api/taste?only=listens');
+      r = await req('GET', '/api/taste');
+      check('borrar historial deja los me gusta', r.status === 200 && r.j && r.j.events.length > 0 && r.j.events.every((e) => e.k !== 'play' && e.k !== 'skip'));
       r = await req('POST', '/api/recognize', 'hola', { 'Content-Type': 'audio/webm' });
       check('¿qué suena? rechaza grabaciones vacías', r.status === 400);
       r = await req('GET', '/api/recognize/config');

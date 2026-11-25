@@ -4,6 +4,8 @@ import { D, T } from './data.js';
 import { playList, S as PS } from './player.js';
 import { go } from './library.js';
 import { recsLocal, recsOnline, cachedDiscover, recsMood, recsTime, MOODS, SLOTS, slotNow, profile } from './taste.js';
+import { pendingLook, applyLook, dismissLook, topNav } from './adapt.js';
+import { sceneUrl, GALLERY } from './wallgallery.js';
 
 const greet = () => { const h = new Date().getHours(); return h < 6 ? 'Buenas noches' : h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const cover = (id) => (id ? `<img loading="lazy" src="${coverUrl(id, 'm')}" onerror="this.classList.add('x')">` : '');
@@ -13,6 +15,7 @@ const card = (o) => `<div class="card hcard" data-k="${esc(o.k)}">
 const row = (title, items, more, key = '') => items.length ? `<section class="hsec" data-sec="${key}"><div class="hsec-h"><h3>${title}</h3>${more ? `<button class="cb sm" data-more="${more}">ver todo</button>` : ''}</div><div class="home-row">${items.map(card).join('')}</div></section>` : '';
 
 let actions = new Map();   // clave de tarjeta → { open, play }
+let navUse = [];
 
 export async function renderHome() {
   const box = $('#homeBody'); if (!box) return;
@@ -66,13 +69,25 @@ export async function renderHome() {
   ].sort((a, b) => (use[b.key] || 0) - (use[a.key] || 0) || base.indexOf(a.key) - base.indexOf(b.key));
   const p = profile();
   const empty = !D.tracks.length && !recent.length;
+  // el look que le queda a lo que escuchás (si cambió tu estilo)
+  const lk = pendingLook();
+  const lkG = lk && GALLERY.find((g) => g.id === lk.wp);
+  const lookCard = lk ? `<div class="hlook">${lkG ? `<i style="background-image:url(&quot;${sceneUrl(lkG)}&quot;)"></i>` : ''}<div><b>Últimamente escuchás mucho ${esc(lk.name)} ✺</b>
+      <span>¿Probás el look "${esc(lk.look)}"? Cambia el tema y el fondo; lo deshacés con un toque.</span>
+      <div class="acts"><button class="go" data-adapt="yes">probar</button><button class="cb" data-adapt="no">no, gracias</button></div></div></div>` : '';
+  // tus accesos: lo que más abrís
+  const nav = topNav(6);
+  navUse = nav;
+  const navRow = nav.length ? `<div class="hnav"><span class="m">lo que más abrís</span>${nav.map((x, i) => `<button class="cb sm" data-nav="${i}">${esc(x.name)}</button>`).join('')}</div>` : '';
   box.innerHTML = `
     <div class="hhero"><h2>${greet()} <span class="petal">❀</span></h2>
       <button class="go rc-home" data-recog>❀ ¿qué suena? <span>reconocé una canción con el micrófono</span></button>
-      <div class="hquick"><button class="cb sm" data-goto="gsearch">${icon('search')} buscar</button><button class="cb sm" data-more="pl:liked">${icon('heart')} me gusta</button><button class="cb sm" data-goto="stats">${icon('stats')} estadísticas</button><button class="cb sm" data-year>❀ tu ${new Date().getFullYear()}</button></div>
+      <div class="hquick"><button class="cb sm" data-goto="gsearch">${icon('search')} buscar</button><button class="cb sm" data-more="pl:liked">${icon('heart')} me gusta</button><button class="cb sm" data-goto="stats">${icon('stats')} estadísticas</button><button class="cb sm" data-more="hist">${icon('hist')} historial</button><button class="cb sm" data-year>❀ tu ${new Date().getFullYear()}</button></div>
+      ${navRow}
       <div class="m">${p.topArtists.length ? 'hoy te puede gustar algo de ' + esc(p.topArtists.slice(0, 2).map((a) => a.name).join(' o ')) : 'escuchá, tocá ♥ y saltá lo que no te guste: Petalwave aprende tus gustos'}</div></div>
     ${empty ? `<div class="hempty"><div class="big">❀</div><h3>Tu música va a aparecer acá</h3><div class="m">Pegá un link de YouTube en <b>descargas</b>, agregá una carpeta con música en <b>ajustes</b> o buscá algo para escuchar online.</div>
       <div class="acts"><button class="go" data-goto="dl">${icon('dl')} descargar música</button><button class="cb" data-goto="search">${icon('search')} buscar</button></div></div>` : ''}
+    ${lookCard}
     ${sections.map((x) => x.html).join('')}`;
 }
 
@@ -83,6 +98,10 @@ export function initHome() {
     if (goto) { const g = goto.dataset.goto; return g === 'search' || g === 'gsearch' ? bus.emit('gsearch') : bus.emit('ws', g); }
     if (e.target.closest('[data-recog]')) return bus.emit('recognize');
     if (e.target.closest('[data-year]')) return import('./wrapped.js').then((m) => m.showYear());
+    const ad = e.target.closest('[data-adapt]');
+    if (ad) { const l = pendingLook(); if (ad.dataset.adapt === 'yes' && l) applyLook(l); else dismissLook(); return; }
+    const nv = e.target.closest('[data-nav]');
+    if (nv) { const x = navUse[+nv.dataset.nav]; if (x) { bus.emit('ws', 'music'); go(x.v); } return; }
     // contar qué secciones usás (para ordenarlas)
     const sec = e.target.closest('[data-sec]');
     if (sec && sec.dataset.sec) { const u = { ...(P.get('homeUse') || {}) }; u[sec.dataset.sec] = (u[sec.dataset.sec] || 0) * 0.95 + 1; P.set('homeUse', u); }
@@ -97,4 +116,5 @@ export function initHome() {
     bus.emit('ws', 'music'); a.open();
   });
   bus.on('pl:loaded', () => { if (!box.closest('.ws').hidden) renderHome(); });
+  bus.on('adapt', () => { if (!box.closest('.ws').hidden) renderHome(); });
 }

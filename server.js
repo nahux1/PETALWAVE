@@ -466,7 +466,11 @@ async function route(req, res) {
     taste.save();
     return U.json(res, 200, { ok: true, n: evs.length });
   }
-  if (p === '/api/taste' && M === 'DELETE') { taste.data.events = []; taste.save(true); return U.json(res, 200, { ok: true }); }
+  if (p === '/api/taste' && M === 'DELETE') {
+    // ?only=listens: solo el historial de escuchas (play/skip); sin nada: todo el perfil de gustos
+    taste.data.events = u.searchParams.get('only') === 'listens' ? taste.data.events.filter((e) => e.k !== 'play' && e.k !== 'skip') : [];
+    taste.save(true); return U.json(res, 200, { ok: true });
+  }
   if (p === '/api/stats/play' && M === 'POST') { stats.record(await body()); return U.json(res, 200, { ok: true }); }
   if (p === '/api/stats') return U.json(res, 200, stats.summary(u.searchParams.get('range') || 'month'));
 

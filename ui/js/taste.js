@@ -374,3 +374,10 @@ export function recsTime(slot = slotNow(), n = 40) {
 
 export const tasteReady = () => loaded;
 export const tasteEvents = () => events;
+// borrar el historial: se olvidan las escuchas y los saltos (los ♥, playlists y "no me interesa" quedan)
+export function forgetListens() {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].k === 'play' || events[i].k === 'skip') events.splice(i, 1);
+  pending = pending.filter((e) => e.k !== 'play' && e.k !== 'skip');
+  prof = null;
+  bus.emit('taste');
+}

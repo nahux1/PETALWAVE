@@ -1458,7 +1458,11 @@ class H(BaseHTTPRequestHandler):
             TASTE.save()
             return self.send_json(200, {"ok": True, "n": len(evs)})
         if p == "/api/taste" and M == "DELETE":
-            TASTE.data["events"] = []
+            # ?only=listens: solo el historial de escuchas (play/skip); sin nada: todo el perfil de gustos
+            if q.get("only") == "listens":
+                TASTE.data["events"] = [e for e in TASTE.data["events"] if e.get("k") not in ("play", "skip")]
+            else:
+                TASTE.data["events"] = []
             TASTE.save(True)
             return self.send_json(200, {"ok": True})
         if p == "/api/autoplaylists":

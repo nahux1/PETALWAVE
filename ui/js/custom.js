@@ -25,6 +25,8 @@ export const DEF = {
   petals: 'theme', scan: 'theme', wpDim: 18, wpBlur: 0,
   // fondo de pantalla: 'auto' (el tuyo si subiste uno; si no, uno incluido), 'mine', 'none' o un fondo de la galería
   wpPick: 'auto',
+  // el look sigue a tu música (adapt.js): 'suggest' te pregunta, 'auto' lo cambia solo, 'off' nunca
+  adaptLook: 'suggest',
   // fondos animados (bgfx.js)
   sharpBg: false,
   // pantalla completa
@@ -241,6 +243,7 @@ export function customizerHtml() {
   </div>
   <div class="cfgsec"><h3>❀ fondo de pantalla ${tip('Fondos incluidos que se pintan con los colores de tu tema. Los ✺ animados se mueven solos y laten con la música. También podés subir tu imagen, GIF o video.')}</h3>
     <div id="kWpGal"></div>
+    ${sel('adaptLook', 'adaptar el look a tu música', 'si cambia lo que más escuchás, tema y fondo que le quedan', [['suggest', 'sugerirme'], ['auto', 'cambiarlo solo'], ['off', 'nunca']])}
     <div class="cfrow"><span>tu propio fondo<span class="m">imagen, GIF o video · también arrastrándolo a la ventana</span></span><span><button class="cb" id="kWpOwn">subir el mío</button></span></div>
   </div>
   <div class="cfgsec"><h3>▧ fondo</h3>
