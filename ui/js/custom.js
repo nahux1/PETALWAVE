@@ -31,6 +31,8 @@ export const DEF = {
   sharpBg: false,
   // pantalla completa
   fullBg: 'cover', fullBlur: 50, fullDim: 32, fullViz: 'spectrum', fullVizH: 30, fullVizOp: 38, fullCover: 46,
+  // efectos con la música (musicfx.js)
+  mfxOn: true, mfxShake: true, mfxZoom: true, mfxFlash: false, mfxVig: false, mfxWin: false, mfxAmt: 60,
   bgFx: 'none', bgSpeed: 1, bgOpacity: 90, bgReact: true, bgCalm: false, bgFps: 30, wpVidSync: false, wpRate: 1,
 };
 export const FONTS = ['JetBrains Mono', 'Quicksand', 'Outfit', 'Cascadia Mono', 'Cascadia Code', 'Consolas', 'Fira Code', 'Source Code Pro', 'Courier New', 'Segoe UI', 'Bahnschrift', 'Georgia', 'system-ui'];
@@ -260,6 +262,15 @@ export function customizerHtml() {
     ${rng('fullVizH', 'altura del visualizador', '', 10, 100, 1, '%')}
     ${rng('fullVizOp', 'intensidad del visualizador', '', 10, 100, 1, '%')}
     ${rng('fullCover', 'tamaño de la carátula', '', 24, 64, 1, 'vh')}
+  </div>
+  <div class="cfgsec"><h3>♪ efectos con la música ${tip('El fondo late con los golpes de lo que suena (el bombo y los graves). Se apagan solos en pausa, en máximo rendimiento y con "sin animaciones".')}</h3>
+    ${tgl('mfxOn', 'efectos con la música', 'el fondo reacciona a lo que suena · apagalo si te marea o distrae')}
+    ${tgl('mfxShake', 'sacudida', 'el fondo tiembla con cada golpe')}
+    ${tgl('mfxZoom', 'pulso', 'el fondo se acerca un poco con los graves')}
+    ${tgl('mfxFlash', 'destello', 'un brillo del color del tema en cada golpe')}
+    ${tgl('mfxVig', 'viñeta', 'los bordes se oscurecen y respiran con la música')}
+    ${tgl('mfxWin', 'también las ventanas', 'tiemblan un poquito (menos que el fondo)')}
+    ${rng('mfxAmt', 'intensidad', '', 10, 100, 1, '%')}
   </div>
   <div class="cfgsec"><h3>✺ fondo animado ${tip('Un efecto dibujado en vivo con los colores del tema, encima de tu wallpaper. También podés usar un GIF o un video (mp4 / webm) como wallpaper.')}</h3>
     ${tgl('sharpBg', 'fondo nítido', 'sin desenfoque: el wallpaper y el fondo animado se ven claros detrás de las ventanas', 'Apaga el efecto vidrio de las ventanas y el desenfoque del wallpaper. Para mirar el fondo sin ventanas: tecla b o el ojo de la barra.')}

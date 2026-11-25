@@ -79,6 +79,9 @@ El zip de la Release además trae `runtime\node.exe`, `runtime\python\` (embebib
 | `5` | ajustes | temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento |
 |  | explorar | rankings de tu país, artistas populares, ánimos y géneros (sin cuenta) |
 
+## Efectos con la música
+- El fondo late con los golpes de lo que suena: **sacudida**, **pulso**, **destello** y **viñeta** (y, si querés, que tiemblen un poco las ventanas). Se eligen, se regula la intensidad o se apagan en ajustes → personalizar → efectos con la música.
+
 ## Historial y adaptación
 - **Historial** (biblioteca → historial, o desde Inicio): todo lo que escuchaste, por día, con la hora y cuánto escuchaste de cada canción. Se puede filtrar, buscar, volver a escuchar o borrar (tus ♥ y playlists quedan).
 - **Se adapta a vos:** si un estilo empieza a dominar lo que escuchás, Petalwave te sugiere un tema y un fondo que le quedan (o los cambia solo, si lo elegís en ajustes). En Inicio aparece "lo que más abrís". Todo se calcula en tu equipo.

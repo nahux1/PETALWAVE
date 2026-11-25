@@ -199,8 +199,9 @@ export async function openGallery({ upload } = {}) {
   try { hasOwn = !!(await api.get('/api/wallpaper')).has; } catch {}
   return modal({
     title: '❀ fondos de pantalla', wide: true,
-    html: `<div class="m" style="margin-bottom:8px">Se pintan con los colores de tu tema. Los <b>✺ animados</b> se mueven solos (y laten con la música); en <i>máximo rendimiento</i> quedan quietos.</div>${tilesHtml(hasOwn)}`,
-    onOpen: (box) => bindTiles(box),
+    html: `<div class="m" style="margin-bottom:8px">Se pintan con los colores de tu tema. Los <b>✺ animados</b> se mueven solos (y laten con la música); en <i>máximo rendimiento</i> quedan quietos.</div>${tilesHtml(hasOwn)}
+      <label class="wpmfx"><input type="checkbox" id="wgMfx" ${C().mfxOn ? 'checked' : ''}> <span><b>efectos con la música</b> · el fondo tiembla y late con los golpes (más opciones en ajustes → personalizar)</span></label>`,
+    onOpen: (box) => { bindTiles(box); const m = box.querySelector('#wgMfx'); if (m) m.onchange = () => setC('mfxOn', m.checked); },
     actions: [
       ...(upload ? [{ label: 'subir el mío (imagen, GIF o video)', fn: () => { upload(); return true; } }] : []),
       { label: 'listo', primary: true, value: true },

@@ -26,6 +26,7 @@ import { applyCustom, C, setC, FULL_BG, FULL_VIZ, cyclePerf } from './custom.js'
 import { initBg, loadWallpaper } from './bgfx.js';
 import { openGallery } from './wallgallery.js';
 import { initAdapt } from './adapt.js';
+import { initMusicFx } from './musicfx.js';
 import { initUpdate } from './update.js';
 import { applyCaps } from './caps.js';
 import { initLayout } from './layout.js';
@@ -365,6 +366,7 @@ async function boot() {
   initHome();
   initExplore();
   initAdapt();
+  initMusicFx();
   initGsearch();
   initCfgNav();
   initRecognize();

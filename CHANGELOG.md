@@ -1,5 +1,12 @@
 # petalwave — registro de cambios
 
+## 2.16.0 — efectos con la música
+- **`ui/js/musicfx.js`:** detecta los golpes con el analizador de graves.
+  - El analizador da decibeles, así que un golpe es un salto de +13 o más sobre el mínimo de los últimos 150 ms, con 200 ms entre golpes.
+  - Mueve `#wp` y `#bgfx` con `translate`/`scale` (sacudida, pulso) y la opacidad de `#mfxFlash`/`#mfxVig` (destello, viñeta). Opcional: `#shell` al 30%.
+- **Preferencias:** `mfxOn`, `mfxShake`, `mfxZoom`, `mfxFlash`, `mfxVig`, `mfxWin`, `mfxAmt`. Interruptor también en la galería de fondos.
+- **Se frena** en pausa, oculto, en modo mini, en máximo rendimiento y con "sin animaciones". No usa `prefers-reduced-motion` porque tiene su propio interruptor; muchos Windows lo tienen activado solo por rendimiento.
+
 ## 2.15.0 — historial y adaptación
 - **Historial** (`ui/js/history.js`, vista `hist` de la biblioteca): escuchas y saltos de las señales de gustos, por día, con hora y cuánto sonó; filtros, búsqueda, volver a escuchar y borrar.
   - `DELETE /api/taste?only=listens` (los dos servidores) borra solo `play`/`skip`; `forgetListens()` en taste.js.

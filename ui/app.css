@@ -77,6 +77,13 @@ body.wptint #wp::before{z-index:2}
 body.mini #bgfx,body.mini #wpVid{display:none}
 /* efectos animados dibujados en vivo, sobre el wallpaper y debajo de las ventanas */
 #bgfx{position:fixed;inset:0;width:100%;height:100%;z-index:-3;pointer-events:none;transition:opacity .4s}
+/* efectos con la música (musicfx.js): destello y viñeta encima del fondo, debajo de las ventanas */
+#mfx{position:fixed;inset:0;z-index:-2;pointer-events:none}
+#mfx i{position:absolute;inset:0;opacity:0;will-change:opacity}
+#mfxFlash{background:radial-gradient(ellipse at 50% 55%,color-mix(in srgb,var(--ac2) 70%,#fff),color-mix(in srgb,var(--ac) 45%,transparent) 55%,transparent 80%);mix-blend-mode:screen}
+#mfxVig{background:radial-gradient(ellipse at center,transparent 45%,color-mix(in srgb,var(--deep) 92%,#000) 100%)}
+#wp,#bgfx{will-change:translate,scale}
+body.mini #mfx{display:none}
 #wp::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--deep) var(--wp-dim,18%),transparent)}
 #wp{filter:blur(var(--wp-blur,0px));inset:calc(var(--wp-blur,0px) * -2)}
 /* wallpaper propio teñido con los colores del tema (o de la carátula): así el tema se nota aunque la imagen sea de otro color */
@@ -672,6 +679,8 @@ body.vinyl .cover.video img,body.vinyl .cover.video::after{display:none}
 .hlook .acts{display:flex;gap:6px;margin-top:8px}
 @media (max-width:700px){.hlook>i{flex-basis:90px}}
 /* galería de fondos */
+.wpmfx{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--dim);margin:2px 2px 6px;cursor:pointer}
+.wpmfx b{color:var(--fg);font-weight:500}
 .wl-wp .wpg{max-height:210px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 .wpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin:6px 0 10px;max-height:min(60vh,520px);overflow:auto;padding:2px}
 .wpt{position:relative;display:flex;flex-direction:column;gap:5px;padding:5px;border:1px solid var(--bd);border-radius:var(--r-sm);background:color-mix(in srgb,var(--ink) 40%,transparent);color:var(--fg);font-size:12px;cursor:pointer;text-align:left;transition:.15s}
