@@ -191,15 +191,21 @@ class Engine {
     }
     if (!autoplay) { next.gain.gain.value = this.level(); bus.emit('eng:state', 'pause'); return; }
     try { await next.el.play(); }
-    catch (e) { if (token === this.fadeToken) bus.emit('eng:error', { id: track.id, message: e.message }); return; }
+    catch (e) { if (token === this.fadeToken) this.playFailed(e, track.id); return; }
     if (token !== this.fadeToken) return;
     this.ramp(next, this.level(), fade > 0 ? fade : 0.03);
   }
 
+  // play() rechazado: si lo cortó una pausa o una carga nueva (AbortError) o el navegador pide un toque
+  // (NotAllowedError), no es que la canción no suene: queda en pausa y no se salta a la siguiente
+  playFailed(e, id) {
+    if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) { bus.emit('eng:state', 'pause'); return; }
+    bus.emit('eng:error', { id, message: e ? e.message : 'error' });
+  }
   async play() {
     const d = this.active; if (!d || !d.el.src) return false;
     if (this.ctx.state === 'suspended') await this.ctx.resume();
-    try { await d.el.play(); } catch (e) { bus.emit('eng:error', { id: this.track && this.track.id, message: e.message }); return false; }
+    try { await d.el.play(); } catch (e) { this.playFailed(e, this.track && this.track.id); return false; }
     this.ramp(d, this.level(), 0.12);
     return true;
   }
