@@ -17,6 +17,7 @@ import { initLikes, likeCurrent } from './likes.js';
 import { loadTaste, recsOnline, recsLocal } from './taste.js';
 import { initSmartDl } from './smartdl.js';
 import { renderHome, initHome } from './home.js';
+import { renderExplore, initExplore } from './explore.js';
 import { initGsearch, open as openSearch } from './gsearch.js';
 import { initCfgNav } from './cfgnav.js';
 import { listen as listenSong, initRecognize } from './recognize.js';
@@ -28,13 +29,14 @@ import { applyCaps } from './caps.js';
 import { initLayout } from './layout.js';
 
 // ---------- workspaces (como Hyprland: 1..5) ----------
-const WS = ['home', 'music', 'dl', 'sync', 'stats', 'cfg'];
+const WS = ['home', 'explore', 'music', 'dl', 'sync', 'stats', 'cfg'];
 function setWs(ws) {
   if (!WS.includes(ws)) ws = 'music';
   $$('#wsNav [data-ws]').forEach((b) => b.classList.toggle('on', b.dataset.ws === ws));
   $$('#wsa > .ws').forEach((w) => (w.hidden = w.dataset.ws !== ws));
   P.set('ws', ws);
   if (ws === 'home') renderHome();
+  if (ws === 'explore') renderExplore();
   if (ws === 'stats') renderStats();
   if (ws === 'cfg') renderSettings();
   if (ws === 'music') renderLib();
@@ -313,7 +315,13 @@ const clock = () => { $('#tClock').textContent = new Date().toTimeString().slice
 clock(); setInterval(clock, 10000);
 async function sys() {
   if (document.hidden || miniOn) return;
-  try { const s = await api.get('/api/sys'); $('#tCpu').textContent = s.cpu + '%'; $('#tRam').textContent = s.ram + '%'; } catch {}
+  try {
+    const s = await api.get('/api/sys');
+    $('#tCpu').textContent = s.cpu + '%';
+    $('#tRam').textContent = s.host === 'android' ? '—' : s.appMem + ' MB';
+    $('#tRam').title = s.host === 'android' ? 'memoria del proceso no disponible' : `memoria de Petalwave${s.appMemComplete ? '' : ' (medición parcial)'} · RAM del sistema: ${s.ram}%`;
+    bus.emit('sys', s);
+  } catch {}
 }
 sys(); setInterval(sys, 3000);
 
@@ -351,6 +359,7 @@ async function boot() {
   initLikes();
   initSmartDl();
   initHome();
+  initExplore();
   initGsearch();
   initCfgNav();
   initRecognize();

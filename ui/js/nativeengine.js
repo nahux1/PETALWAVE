@@ -50,7 +50,7 @@ export class NativeEngine {
     const w = this.windowOf();
     this.sentIds = w.items.map((x) => x.id).join(',');
     Object.assign(this.st, { id: track.id, pos: startAt || 0, dur: track.duration || 0, playing: false, want: autoplay, ended: false, at: performance.now() });
-    try { nat.nPlay(JSON.stringify({ ...w, startAt: startAt || 0, autoplay })); } catch (e) { bus.emit('eng:error', e.message); return; }
+    try { nat.nPlay(JSON.stringify({ ...w, startAt: startAt || 0, autoplay })); } catch (e) { bus.emit('eng:error', { id: track.id, message: e.message }); return; }
     this.cmd('repeat:' + (this.queueOf().repeat === 'one' ? 'one' : 'off'));
     bus.emit('eng:track', track);
     bus.emit('eng:state', autoplay ? 'wait' : 'pause');
@@ -94,8 +94,8 @@ export class NativeEngine {
     if (s !== this.lastState) { this.lastState = s; bus.emit('eng:state', s); }
     if (j.dur && !this._metaFor) { this._metaFor = j.id; bus.emit('eng:meta'); }
     if (j.id !== this._metaFor) this._metaFor = null;
-    if (j.ended && !wasEnded) bus.emit('eng:ended');
-    if (j.err && j.err !== this._lastErr) { this._lastErr = j.err; bus.emit('eng:error', j.err); }
+    if (j.ended && !wasEnded) bus.emit('eng:ended', j.id || prevId);
+    if (j.err && j.err !== this._lastErr) { this._lastErr = j.err; bus.emit('eng:error', { id: j.id || prevId, message: j.err }); }
     if (!j.err) this._lastErr = '';
   }
 

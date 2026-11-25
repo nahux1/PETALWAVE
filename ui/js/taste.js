@@ -85,6 +85,7 @@ function weightOf(e) {
     case 'unlike': return -2;
     case 'pl': return 1.5;
     case 'nope': return -3;
+    case 'seed': return 1.5;   // lo que elegiste en "¿qué te gusta?" (pesa como un par de canciones escuchadas enteras)
     default: return 0;
   }
 }
@@ -130,7 +131,7 @@ function buildProfile(keep, withPrior) {
     if (!w) continue;
     const k = e.yt ? 'yt:' + e.yt : 'id:' + e.id;
     feed({ artist: e.a, title: e.ti, genre: e.g, year: e.y }, w);
-    own.set(k, (own.get(k) || 0) + w);
+    if (e.k !== 'seed') own.set(k, (own.get(k) || 0) + w);
     if (e.k === 'play' || e.k === 'skip') lastPlay.set(k, Math.max(lastPlay.get(k) || 0, e.t));
     if (e.k === 'nope') nope.add(k); else if (e.k === 'like') nope.delete(k);
   }
@@ -138,7 +139,7 @@ function buildProfile(keep, withPrior) {
   const A = new Map([...aff].map(([k, v]) => [k, sq(v / 2)]));
   const O = new Map([...own].map(([k, v]) => [k, sq(v / 2)]));
   const top = (pfx, n) => [...A].filter(([k, v]) => k.startsWith(pfx) && v > 0.15).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => ({ name: k.slice(2), v }));
-  const positives = [...O].filter(([, v]) => v > 0).length;
+  const positives = [...O].filter(([, v]) => v > 0).length + (keep === undefined ? 0 : events.filter((e) => e.k === 'seed' && keep(e)).length);
   return { A, O, lastPlay, nope, positives, signals: events.length, topArtists: top('a:', 8), topGenres: top('g:', 5), topTags: top('t:', 5) };
 }
 
@@ -229,6 +230,8 @@ export async function recsOnline({ force = false, n = 40 } = {}) {
     for (const t of D.tracks) if (t.ytId && seedPool.length < 10 && (p.O.get('id:' + t.id) || 0) > 0.2 && !seedPool.includes(t.ytId)) seedPool.push(t.ytId);
     const seeds = seedPool.sort((a, b) => dayRand(a) - dayRand(b)).slice(0, 3);
     const artists = p.topArtists.slice(0, 3).map((a) => prettyArtist(a.name));
+    // todavía sin canciones favoritas: buscar por los géneros/estilos que elegiste
+    const genreQ = seeds.length < 2 ? [...p.topGenres, ...p.topTags].slice(0, 3).map((g) => g.name) : [];
     const cand = new Map();
     const take = (items, src, w) => (items || []).forEach((it, i) => {
       if (!it || !it.videoId || it.isVideo || /MUSIC_VIDEO_TYPE_UGC/.test(it.type || '') || isCompilation(it)) return;
@@ -238,8 +241,17 @@ export async function recsOnline({ force = false, n = 40 } = {}) {
     const jobs = [
       ...seeds.map((v) => api.get('/api/ytm/radio/' + v).then((r) => take(r.tracks || r.items, 'radio', 1)).catch(() => {})),
       ...artists.map((a) => api.get('/api/ytm/search?filter=songs&q=' + encodeURIComponent(a)).then((r) => take((r.items || []).slice(0, 15), 'artista', 0.7)).catch(() => {})),
+      ...genreQ.map((g) => api.get('/api/ytm/search?filter=songs&q=' + encodeURIComponent(g + ' hits')).then((r) => take((r.items || []).slice(0, 15), 'género', 0.6)).catch(() => {})),
     ];
     await Promise.all(jobs);
+    // nadie te conoce todavía: lo más escuchado de tu país (Explorar)
+    if (cand.size < 10) {
+      try {
+        const ex = await import('./explore.js'); const d = await ex.loadExplore();
+        const top = (d.trending || [])[0];
+        if (top) { const l = await api.get('/api/ytm/playlist/' + encodeURIComponent(top.playlistId)); take((l.tracks || []).slice(0, 40), 'popular', 0.5); }
+      } catch {}
+    }
     const scored = [];
     for (const [vid, c] of cand) {
       if (have.has(vid) || recent.has(vid) || seeds.includes(vid) || p.nope.has('yt:' + vid)) continue;

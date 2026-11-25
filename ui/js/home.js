@@ -1,5 +1,5 @@
 // pantalla de Inicio: lo que más usás, a un toque (seguir escuchando, mixes, descubrí, playlists, recién agregadas)
-import { $, bus, esc, icon, coverUrl } from './core.js';
+import { $, bus, esc, icon, coverUrl, P } from './core.js';
 import { D, T } from './data.js';
 import { playList, S as PS } from './player.js';
 import { go } from './library.js';
@@ -10,7 +10,7 @@ const cover = (id) => (id ? `<img loading="lazy" src="${coverUrl(id, 'm')}" oner
 const card = (o) => `<div class="card hcard" data-k="${esc(o.k)}">
   <div class="cimg">${o.glyph || '❀'}${cover(o.cover)}<button class="cplay" data-play="${esc(o.k)}" title="reproducir">${icon('play')}</button></div>
   <div class="cn">${esc(o.title)}</div><div class="cs">${esc(o.sub || '')}</div></div>`;
-const row = (title, items, more) => items.length ? `<section class="hsec"><div class="hsec-h"><h3>${title}</h3>${more ? `<button class="cb sm" data-more="${more}">ver todo</button>` : ''}</div><div class="home-row">${items.map(card).join('')}</div></section>` : '';
+const row = (title, items, more, key = '') => items.length ? `<section class="hsec" data-sec="${key}"><div class="hsec-h"><h3>${title}</h3>${more ? `<button class="cb sm" data-more="${more}">ver todo</button>` : ''}</div><div class="home-row">${items.map(card).join('')}</div></section>` : '';
 
 let actions = new Map();   // clave de tarjeta → { open, play }
 
@@ -46,6 +46,24 @@ export async function renderHome() {
   const added = [...D.tracks].filter((t) => !t.video).sort((a, b) => b.added - a.added).slice(0, 10)
     .map((t) => ({ k: add('a:' + t.id, { play: () => playList([...D.tracks].sort((a, b) => b.added - a.added).map((x) => x.id), [...D.tracks].sort((a, b) => b.added - a.added).findIndex((x) => x.id === t.id)) }), title: t.title, sub: t.artist, cover: t.id }));
 
+  // explorar: lo más escuchado del país (sirve aunque no tengas nada)
+  let exItems = [];
+  try {
+    const ex = await import('./explore.js'); const d = await ex.loadExplore();
+    exItems = (d.trending || []).map((t) => ({ k: add('x:' + t.playlistId, { open: () => { bus.emit('ws', 'music'); go({ type: 'ytm', key: t.playlistId }); }, play: async () => { const { loadYtmList } = await import('./data.js'); const l = await loadYtmList(t.playlistId); if (l && l.ids.length) playList(l.ids, 0); } }), title: t.title, sub: 'lo más escuchado', glyph: '★' }));
+  } catch {}
+  // las secciones que más tocás suben solas (sin historial, lo más útil para empezar va primero)
+  const use = P.get('homeUse') || {};
+  const fresh = !D.tracks.length && !recent.length;
+  const base = fresh ? ['explore', 'mixes', 'disc', 'recent', 'pls', 'added'] : ['recent', 'mixes', 'disc', 'explore', 'pls', 'added'];
+  const sections = [
+    { key: 'recent', html: row('Seguir escuchando', recent, '', 'recent') },
+    { key: 'mixes', html: row('Tus mixes', mixes, '', 'mixes') },
+    { key: 'disc', html: row('Descubrí · canciones nuevas', discItems, 'disc', 'disc') },
+    { key: 'explore', html: row('Lo más escuchado', exItems, 'explore', 'explore') },
+    { key: 'pls', html: row('Tus playlists', pls, '', 'pls') },
+    { key: 'added', html: row('Recién agregadas', added, 'recent', 'added') },
+  ].sort((a, b) => (use[b.key] || 0) - (use[a.key] || 0) || base.indexOf(a.key) - base.indexOf(b.key));
   const p = profile();
   const empty = !D.tracks.length && !recent.length;
   box.innerHTML = `
@@ -55,11 +73,7 @@ export async function renderHome() {
       <div class="m">${p.topArtists.length ? 'hoy te puede gustar algo de ' + esc(p.topArtists.slice(0, 2).map((a) => a.name).join(' o ')) : 'escuchá, tocá ♥ y saltá lo que no te guste: Petalwave aprende tus gustos'}</div></div>
     ${empty ? `<div class="hempty"><div class="big">❀</div><h3>Tu música va a aparecer acá</h3><div class="m">Pegá un link de YouTube en <b>descargas</b>, agregá una carpeta con música en <b>ajustes</b> o buscá algo para escuchar online.</div>
       <div class="acts"><button class="go" data-goto="dl">${icon('dl')} descargar música</button><button class="cb" data-goto="search">${icon('search')} buscar</button></div></div>` : ''}
-    ${row('Seguir escuchando', recent)}
-    ${row('Tus mixes', mixes)}
-    ${row('Descubrí · canciones nuevas', discItems, 'disc')}
-    ${row('Tus playlists', pls)}
-    ${row('Recién agregadas', added, 'recent')}`;
+    ${sections.map((x) => x.html).join('')}`;
 }
 
 export function initHome() {
@@ -69,7 +83,11 @@ export function initHome() {
     if (goto) { const g = goto.dataset.goto; return g === 'search' || g === 'gsearch' ? bus.emit('gsearch') : bus.emit('ws', g); }
     if (e.target.closest('[data-recog]')) return bus.emit('recognize');
     if (e.target.closest('[data-year]')) return import('./wrapped.js').then((m) => m.showYear());
+    // contar qué secciones usás (para ordenarlas)
+    const sec = e.target.closest('[data-sec]');
+    if (sec && sec.dataset.sec) { const u = { ...(P.get('homeUse') || {}) }; u[sec.dataset.sec] = (u[sec.dataset.sec] || 0) * 0.95 + 1; P.set('homeUse', u); }
     const more = e.target.closest('[data-more]');
+    if (more && more.dataset.more === 'explore') return bus.emit('ws', 'explore');
     if (more) { bus.emit('ws', 'music'); const [type, key] = more.dataset.more.split(':'); return go(key ? { type, key } : { type }); }
     const pb = e.target.closest('[data-play]');
     const c = e.target.closest('[data-k]');

@@ -273,6 +273,88 @@ def m_songs(p):
         return {"tracks": list(ex.map(one, ids))}
 
 
+# ---------- Explorar (sin cuenta): lo popular del país, géneros y estados de ánimo ----------
+_explore = {}
+
+
+def _loc_client(country):
+    """cliente anónimo en español para un país (los rankings cambian según el país)"""
+    c = _explore.get(country)
+    if c is None:
+        try:
+            c = YTMusic(language="es", location=country if country != "ZZ" else "")
+        except Exception:  # noqa: BLE001
+            c = YTMusic(language="es")
+        _explore[country] = c
+    return c
+
+
+def _thumb_url(ths):
+    return ths[-1]["url"] if ths else ""
+
+
+def _playlist_cards(o, out, seen):
+    """busca tarjetas de playlists (browseId VL…) en la respuesta, sin depender de cómo YouTube las acomode"""
+    if isinstance(o, dict):
+        r = o.get("musicTwoRowItemRenderer")
+        if r:
+            bid = ""
+            for path in (("navigationEndpoint", "browseEndpoint", "browseId"),):
+                try:
+                    x = r
+                    for k in path:
+                        x = x[k]
+                    bid = x
+                except Exception:  # noqa: BLE001
+                    bid = ""
+            if not bid:
+                try:
+                    bid = r["title"]["runs"][0]["navigationEndpoint"]["browseEndpoint"]["browseId"]
+                except Exception:  # noqa: BLE001
+                    bid = ""
+            if bid.startswith("VL") and bid not in seen:
+                seen.add(bid)
+                th = (((r.get("thumbnailRenderer") or {}).get("musicThumbnailRenderer") or {}).get("thumbnail") or {}).get("thumbnails") or []
+                out.append({"playlistId": bid[2:], "title": "".join(x.get("text", "") for x in (r.get("title") or {}).get("runs", [])),
+                            "sub": "".join(x.get("text", "") for x in (r.get("subtitle") or {}).get("runs", [])), "thumb": _thumb_url(th)})
+        for v in o.values():
+            _playlist_cards(v, out, seen)
+    elif isinstance(o, list):
+        for v in o:
+            _playlist_cards(v, out, seen)
+
+
+def m_explore(p):
+    country = str(p.get("country") or "ZZ").upper()[:2]
+    y = _loc_client(country)
+    out = {"country": country, "trending": [], "artists": [], "cats": {}}
+    try:
+        ch = y.get_charts(country=country)
+    except Exception:  # noqa: BLE001  (país sin rankings: los globales)
+        country, ch = "ZZ", _loc_client("ZZ").get_charts(country="ZZ")
+        out["country"] = "ZZ"
+    for v in ch.get("videos") or []:
+        if v.get("playlistId"):
+            out["trending"].append({"playlistId": v["playlistId"], "title": v.get("title", ""), "thumb": _thumb_url(v.get("thumbnails") or [])})
+    for i, a in enumerate((ch.get("artists") or [])[:30]):
+        out["artists"].append({"title": a.get("title", ""), "browseId": a.get("browseId"), "rank": a.get("rank") or i + 1,
+                               "thumb": _thumb_url(a.get("thumbnails") or []), "subs": a.get("subscribers", "")})
+    try:
+        for name, items in y.get_mood_categories().items():
+            out["cats"][name] = [{"title": c.get("title", ""), "params": c.get("params")} for c in items if c.get("params")]
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def m_mood(p):
+    y = _loc_client(str(p.get("country") or "ZZ").upper()[:2])
+    r = y._send_request("browse", {"browseId": "FEmusic_moods_and_genres_category", "params": p["params"]})
+    out = []
+    _playlist_cards(r, out, set())
+    return {"playlists": out[:30]}
+
+
 METHODS = {k[2:]: v for k, v in globals().items() if k.startswith("m_")}
 
 if __name__ == "__main__":

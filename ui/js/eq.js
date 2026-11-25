@@ -38,7 +38,7 @@ function render() {
   const custom = eq.custom || {};
   pop().innerHTML = `
     <div class="vrow"><b>volumen de petalwave</b><span class="sp"></span><span class="v" id="vpM">${v.muted ? 'mute' : Math.round(v.master * 100) + '%'}</span></div>
-    <div class="vrow"><input type="range" data-vol min="0" max="150" step="1" value="${Math.round(v.master * 100)}"><button class="cb sm ${v.muted ? 'on' : ''}" id="vpMute">silenciar</button></div>
+    <div class="vrow"><input type="range" data-vol min="0" max="150" step="1" value="${Math.round(v.master * 100)}" style="--progress:${Math.max(0, Math.min(100, v.master / 1.5 * 100))}%"><button class="cb sm ${v.muted ? 'on' : ''}" id="vpMute">silenciar</button></div>
     <div class="m">0–150% · rueda del mouse o ↑/↓ · <kbd>m</kbd> silencia · por encima de 100% hay un limitador para que no distorsione</div>
     <div class="sec">esta canción</div>
     <div class="m" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t ? esc(t.title) : 'nada sonando'}</div>

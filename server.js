@@ -5,7 +5,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const U = require('./src/util');
 const { Library } = require('./src/library');
 const { Downloads, AUDIO_FORMATS, VIDEO_QUALITIES } = require('./src/downloads');
@@ -116,7 +116,7 @@ const playlists = new U.JsonStore(path.join(DATA, 'playlists.json'), () => ({ it
 const { Recognizer } = require('./src/recognize');
 const recognizer = new Recognizer({ dataDir: DATA });
 const taste = new U.JsonStore(path.join(DATA, 'taste.json'), () => ({ events: [] }));
-const TASTE_KINDS = new Set(['play', 'skip', 'like', 'unlike', 'nope', 'pl']);
+const TASTE_KINDS = new Set(['play', 'skip', 'like', 'unlike', 'nope', 'pl', 'seed']);
 const cleanEvent = (e) => {
   if (!e || !TASTE_KINDS.has(e.k)) return null;
   const s = (v, n) => (v == null ? undefined : String(v).slice(0, n));
@@ -128,13 +128,47 @@ const cleanEvent = (e) => {
 // ---------- CPU / RAM ----------
 function cpuSnap() { let idle = 0, total = 0; for (const c of os.cpus()) { for (const k in c.times) total += c.times[k]; idle += c.times.idle; } return { idle, total }; }
 let lastCpu = cpuSnap();
+const nodeMem = () => Math.round(process.memoryUsage().rss / 1048576);
+let appMemory = { appMem: nodeMem(), appMemComplete: process.platform !== 'win32', appMemParts: [{ name: 'Node.js', mb: nodeMem() }] };
+let appMemoryAt = 0, appMemoryRunning = false;
+function refreshAppMemory() {
+  if (process.platform !== 'win32') {
+    const mb = nodeMem();
+    appMemory = { appMem: mb, appMemComplete: true, appMemParts: [{ name: 'Node.js', mb }] };
+    return;
+  }
+  if (appMemoryRunning || Date.now() - appMemoryAt < 10000) return;
+  appMemoryRunning = true;
+  const script = `$ErrorActionPreference='Stop'; $ps=@(Get-CimInstance Win32_Process); $byId=@{}; foreach($p in $ps){$byId[[int]$p.ProcessId]=$p}; $root=${process.pid}; $parent=${process.ppid}; if($byId.ContainsKey($parent) -and $byId[$parent].Name -ieq 'petalwave.exe'){$root=$parent}; $ids=New-Object 'System.Collections.Generic.List[int]'; [void]$ids.Add([int]$root); do{$old=$ids.Count; foreach($p in $ps){if($ids.Contains([int]$p.ParentProcessId) -and !$ids.Contains([int]$p.ProcessId)){[void]$ids.Add([int]$p.ProcessId)}}}while($ids.Count -gt $old); $rows=@(foreach($id in $ids){$p=Get-Process -Id $id -ErrorAction SilentlyContinue; if($p){[pscustomobject]@{name=$p.ProcessName;mb=[Math]::Round($p.WorkingSet64/1MB,1)}}}); ConvertTo-Json -InputObject $rows -Compress`;
+  execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 8000, maxBuffer: 1024 * 1024 }, (err, stdout) => {
+    appMemoryAt = Date.now();
+    appMemoryRunning = false;
+    if (err) {
+      console.warn('no se pudo medir la memoria de todos los procesos de Petalwave:', err.message);
+      const mb = nodeMem();
+      appMemory = { appMem: mb, appMemComplete: false, appMemParts: [{ name: 'Node.js', mb }] };
+      return;
+    }
+    try {
+      const rows = JSON.parse(stdout || '[]');
+      const grouped = new Map();
+      for (const row of [].concat(rows || [])) grouped.set(row.name, (grouped.get(row.name) || 0) + (+row.mb || 0));
+      const parts = [...grouped].map(([name, mb]) => ({ name, mb: Math.round(mb * 10) / 10 }));
+      appMemory = { appMem: Math.round(parts.reduce((sum, p) => sum + p.mb, 0) * 10) / 10, appMemComplete: true, appMemParts: parts };
+    } catch (e) {
+      console.warn('no se pudo interpretar el uso de memoria de Petalwave:', e.message);
+      const mb = nodeMem();
+      appMemory = { appMem: mb, appMemComplete: false, appMemParts: [{ name: 'Node.js', mb }] };
+    }
+  });
+}
 function sysStats() {
   const s = cpuSnap(), di = s.idle - lastCpu.idle, dt = s.total - lastCpu.total; lastCpu = s;
-  const mem = process.memoryUsage();
+  refreshAppMemory();
   return {
     cpu: dt > 0 ? Math.round(100 * (1 - di / dt)) : 0, ram: Math.round(100 * (1 - os.freemem() / os.totalmem())),
     ramUsed: Math.round((os.totalmem() - os.freemem()) / 1048576), ramTotal: Math.round(os.totalmem() / 1048576),
-    host: os.hostname(), appMem: Math.round(mem.rss / 1048576),
+    host: os.hostname(), appMem: appMemory.appMem, appMemComplete: appMemory.appMemComplete, appMemParts: appMemory.appMemParts,
   };
 }
 
@@ -345,7 +379,7 @@ async function route(req, res) {
   // YouTube Music online (sin descargar)
   if ((mm = m(/^\/stream\/([\w-]{11})$/))) {
     if (u.searchParams.get('prefetch')) {   // precargar la URL de la siguiente canción
-      try { await streamer.resolve(mm[1]); return U.json(res, 200, { ok: true }); } catch (e) { return U.json(res, 502, { error: e.message }); }
+      try { return U.json(res, 200, await streamer.warm(mm[1])); } catch (e) { return U.json(res, 502, { error: e.message }); }
     }
     return streamer.proxy(req, res, mm[1]);
   }
@@ -474,6 +508,17 @@ async function route(req, res) {
       if (p === '/api/ytm/history') return U.json(res, 200, { items: annotate(await ytm.call('history', {}, { cacheMs: 30e3 })) });
       if ((mm = m(/^\/api\/ytm\/playlist\/([\w-]+)$/))) return U.json(res, 200, annotateList(await ytm.call('playlist', { id: mm[1], limit: 1000 }, { timeout: 120000, cacheMs: 60e3 })));
       if ((mm = m(/^\/api\/ytm\/album\/([\w-]+)$/))) return U.json(res, 200, annotateList(await ytm.call('album', { browseId: mm[1] }, { cacheMs: 30 * 60e3 })));
+      // Explorar: rankings del país, géneros y estados de ánimo (sin cuenta)
+      if (p === '/api/ytm/explore') {
+        const country = /^[A-Za-z]{2}$/.test(q.get('country') || '') ? q.get('country').toUpperCase() : 'ZZ';
+        return U.json(res, 200, await ytm.call('explore', { country }, { timeout: 60000, cacheMs: 6 * 3600e3 }));
+      }
+      if (p === '/api/ytm/mood') {
+        const params = String(q.get('params') || '');
+        if (!/^[\w%=-]{4,200}$/.test(params)) return U.json(res, 400, { error: 'categoría inválida' });
+        const country = /^[A-Za-z]{2}$/.test(q.get('country') || '') ? q.get('country').toUpperCase() : 'ZZ';
+        return U.json(res, 200, await ytm.call('mood', { params, country }, { timeout: 60000, cacheMs: 6 * 3600e3 }));
+      }
       if (p === '/api/ytm/songs') {
         const ids = [...new Set(String(q.get('ids') || '').split(',').filter((x) => /^[\w-]{11}$/.test(x)))].slice(0, 200);   // sin repetidas
         return U.json(res, 200, annotateList(await ytm.call('songs', { ids }, { timeout: 120000, cacheMs: 60 * 60e3 })));

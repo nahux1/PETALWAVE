@@ -18,9 +18,9 @@ Funciona en **Windows 10 y 11 de 64 bits**. Para un acceso directo: clic derecho
 
 **La ✕ minimiza a la bandeja:** la música sigue sonando; clic en la flor ❀ junto al reloj para volver, clic derecho → *Salir* para cerrar.
 **Mover ventanas:** mantené apretada una ventana medio segundo y arrastrala: al costado para ordenarla o a cualquier lugar para dejarla flotando. Doble clic en su título la devuelve.
-**Si tu PC es lenta:** tocá el botón **✦** de la barra hasta que diga **⚡ máximo rendimiento** (apaga efectos y gasta hasta un 27% menos de memoria).
+**Si tu PC es lenta:** tocá el botón **✦** de la barra hasta que diga **⚡ máximo rendimiento** (apaga efectos y gasta hasta un 27% menos de memoria). La barra muestra la RAM total de Petalwave, incluida la ventana y sus procesos de WebView2 y Node.js.
 **Iniciar sesión en YouTube / YouTube Music:** ajustes (5) → *cuentas* → *iniciar sesión con Google*.
-**Recomendaciones:** Petalwave aprende de lo que escuchás entero, lo que saltás y tus ♥. En la biblioteca → *para vos*: **recomendadas** (de tus canciones) y **descubrí** (canciones nuevas de YouTube Music que no tenés). Cuando se termina la cola sigue solo con canciones a tu gusto.
+**Recomendaciones:** al empezar podés elegir géneros y artistas; después Petalwave aprende de lo que escuchás entero, lo que saltás, tus ♥ y el botón *no me interesa*. En la biblioteca → *para vos*: **recomendadas** (de tus canciones) y **descubrí** (canciones nuevas de YouTube Music que no tenés). Cuando se termina la cola sigue solo con canciones a tu gusto.
 **Comodidad:** modo auto (🚗 en pantalla completa), letra karaoke, tema de día y de noche, temporizador que baja el volumen de a poco y, en el celular, deslizá una canción: → a la cola, ← me gusta.
 **¿Qué suena?:** tocá el botón (o la tecla w) y Petalwave reconoce la canción que suena cerca. Necesita una clave gratis de [AudD](https://dashboard.audd.io) (ajustes → cuentas); solo graba 8 segundos cuando tocás.
 **Inicio y buscador:** al abrir ves tus mixes, lo último que escuchaste y canciones nuevas; la tecla / (o 🔍) busca en tu música y en YouTube Music a la vez.
@@ -77,6 +77,12 @@ El zip de la Release además trae `runtime\node.exe`, `runtime\python\` (embebib
 | `3` | sync | sincronizar YouTube Music e importar playlists |
 | `4` | stats | estadísticas de escucha y recomendaciones |
 | `5` | ajustes | temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento |
+|  | explorar | rankings de tu país, artistas populares, ánimos y géneros (sin cuenta) |
+
+## Explorar y tus gustos (sin música ni cuenta)
+- **Explorar** (brújula): lo más escuchado en tu país, artistas populares y playlists por ánimo y género, todo online con un toque.
+- La primera vez Petalwave te pregunta **qué te gusta** (géneros y artistas; se cambia en ajustes → mis gustos). Con eso *Descubrí* recomienda desde el primer día y Explorar pone primero lo tuyo.
+- El inicio ordena sus secciones según lo que más usás. Tus gustos se calculan en tu equipo y no se mandan a ningún lado.
 
 ## Reproductor
 - Play/pausa, anterior/siguiente, ±10 s (`←`/`→`), ±30 s (`Shift+←/→`) y barra de progreso arrastrable con vista previa del tiempo.
@@ -124,7 +130,7 @@ Si YouTube cambia algo y deja de andar, actualizá con:
 
 ## Tu YouTube Music en el reproductor, sin descargar
 Con la sesión iniciada, el workspace 1 tiene una sección **youtube music** con tus **me gusta** y todas tus **playlists**, que se sincronizan solas cada 5 minutos o con ⟳.
-- Lo que ya tenés descargado suena desde el archivo. Lo demás suena **online** (☁ web): yt-dlp resuelve el audio con tu sesión (con Premium, AAC de 256 kbps) y pasa por el servidor local, así funcionan el ecualizador, el volumen, el fundido y el visualizador. No se guarda nada en el disco.
+- Lo que ya tenés descargado suena desde el archivo. Lo demás suena **online** (☁ web): yt-dlp resuelve el audio con tu sesión (con Premium, AAC de 256 kbps) y pasa por el servidor local, así funcionan el ecualizador, el volumen, el fundido y el visualizador. Solo si YouTube rechaza el enlace directo, la canción se guarda en una caché chica (`data/stream-cache`, máx. 400 MB).
 - La primera canción online tarda unos segundos en arrancar. Las siguientes se precargan y arrancan al instante.
 - Las canciones online se pueden poner en la cola, en tus playlists locales, en radio o en me gusta, o descargar (una o "descargar las N online").
 - En el workspace 3, el botón ▶ de cada resultado de búsqueda también la escucha online.
@@ -170,6 +176,7 @@ Si no te gusta cómo viene, cambialo. Todo se ve en vivo y cada opción tiene �
 - **Diseño**: reproductor a la izquierda o a la derecha, ancho del panel, separación, bordes redondeados, desenfoque, opacidad de las ventanas, tamaño de toda la interfaz, fuente y altura de las filas.
 - **Reproductor**: tamaño y forma de la carátula (redondeada, cuadrada o circular), **efecto vinilo** que gira mientras suena y el texto del título.
 - **Qué se muestra**: visualizador, cola/letra, controles de la barra, cpu/ram, estado de yt-dlp y reloj.
+- **Marcas de navegación**: números o letras para las secciones (H, E, B, L, D, I, E, C).
 - **Visualizador**: cantidad de barras, picos, reflejo y color (del tema, arcoíris o uno fijo).
 - **Fondo**: pétalos y líneas de escaneo siempre, nunca o según el tema; oscurecer y desenfocar el wallpaper.
 - **Pantalla completa** (`f`): fondo (carátula desenfocada, tu wallpaper con el fondo animado, degradado del tema o negro), desenfoque, brillo, visualizador propio (o el mismo del panel, o ninguno), su altura e intensidad y el tamaño de la carátula. Se cambia rápido con el engranaje ⚙ de arriba a la derecha. Las miniaturas de video con franjas negras se recortan solas.

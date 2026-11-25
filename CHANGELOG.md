@@ -1,5 +1,17 @@
 # petalwave — registro de cambios
 
+## 2.13.0 — Explorar y gustos
+- **Explorar** (`ui/js/explore.js`, workspace `explore`): rankings por país, artistas populares y ánimos/géneros, sin cuenta.
+  - Puente: `m_explore` y `m_mood` en `src/ytm_bridge.py`, con un lector de tarjetas propio (el `get_mood_playlists` de ytmusicapi se rompe con el diseño nuevo de YouTube).
+  - Rutas `/api/ytm/explore?country=` (caché 6 h) y `/api/ytm/mood?params=&country=` (parámetros validados) en los dos servidores.
+  - Se ordena por gustos: `affinity()` cruza el perfil con un mapa de estilos parecidos (`RELATED`, p. ej. phonk → energía/ejercicio).
+- **Gustos desde el día uno:**
+  - Paso "¿qué te gusta?" en la bienvenida y en ajustes → mis gustos (`askTaste`), con señales `seed` (peso 1,5).
+  - *Descubrí* sin historial busca por géneros elegidos y, si falta, usa el ranking del país.
+  - El inicio ordena sus secciones por uso (`P.homeUse`) y suma "Lo más escuchado".
+- **Streaming:** si YouTube rechaza el enlace directo (403) recién resuelto, la canción se baja con yt-dlp a `data/stream-cache` (400 MB en Windows, 300 MB en Android) y se sirve con Range. La precarga (`?prefetch=1`) prueba el enlace y, si lo rechaza, la baja antes.
+- **Reproductor:** un error de reproducción se cuenta una sola vez por canción (antes saltaba dos).
+
 ## 2.12.0 — motor nativo (beta) y Android Auto
 - **Android 1.7.0: motor nativo** (`NativeService.kt`, `ui/js/nativeengine.js`), opcional en ajustes → reproducción. Se activa con `PetalwaveNative.nativeEngine` y se aplica al reiniciar.
   - **Reproductor:** ExoPlayer (Media3 1.4.1) en un `MediaLibraryService`.

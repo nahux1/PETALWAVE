@@ -16,6 +16,7 @@ export const FX = [
 export const DEF = {
   font: 'JetBrains Mono', fscale: 1,
   sideW: 420, sideLeft: false, gap: 12, radius: 8, blur: 18, winAlpha: 0,   // 0 = la opacidad del tema
+  navKeyStyle: 'numbers',
   cover: 172, coverShape: 'rounded', vinyl: false, title: 'petalwave',
   showViz: true, showTabs: true, showSys: true, showDeps: true, showClock: true, showTopNp: true,
   rowH: 56,
@@ -125,6 +126,23 @@ export function applyCustom() {
   overrideFx(c);
   const t = String(c.title || 'petalwave').trim().slice(0, 24) || 'petalwave';
   $$('.ttl').forEach((el) => (el.textContent = t.toUpperCase().split('').join(' ')));
+  const navKeys = {
+    home: ['0', 'H'], explore: ['', 'E'], music: ['1', 'B'], search: ['', 'L'],
+    dl: ['2', 'D'], sync: ['3', 'I'], stats: ['4', 'E'], cfg: ['5', 'C'],
+  };
+  const letters = c.navKeyStyle === 'letters';
+  $$('[data-nav-key]').forEach((el) => {
+    const [number, letter] = navKeys[el.dataset.navKey] || ['', ''];
+    const value = letters ? letter : number;
+    el.textContent = value;
+    el.hidden = !value;
+    el.classList.toggle('letter', letters && !!value);
+    const button = el.closest('button');
+    if (button) {
+      if (!button.dataset.navBaseTitle) button.dataset.navBaseTitle = button.title.replace(/\s\(\d\)$/, '');
+      button.title = value ? `${button.dataset.navBaseTitle} (${value})` : button.dataset.navBaseTitle;
+    }
+  });
   bus.emit('custom');
 }
 function overrideFx(c = E()) {
@@ -203,6 +221,7 @@ export function customizerHtml() {
     <div class="cfrow" data-row="title"><span>texto del título<span class="m">el que aparece arriba de la canción</span></span><span class="cctl"><input type="text" data-c="title" maxlength="24" style="width:130px"><button class="rs" data-rs="title" title="volver al predeterminado">↺</button></span></div>
   </div>
   <div class="cfgsec"><h3>▤ qué se muestra</h3>
+    ${sel('navKeyStyle', 'marcas de navegación', '', [['numbers', 'números'], ['letters', 'letras · H, E, B, L, D, I, E, C']])}
     ${tgl('showViz', 'visualizador', 'ventana con las barras')}
     ${tgl('showTabs', 'cola · historial · letra', 'ventana de pestañas del panel')}
     ${tgl('showTopNp', 'controles en la barra', 'play/anterior/siguiente arriba')}

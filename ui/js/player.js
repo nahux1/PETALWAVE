@@ -8,6 +8,7 @@ import { themeForTrack } from './theme.js';
 export const S = { queue: [], qi: -1, history: [], repeat: 'off', shuffle: false, orig: null };
 export const current = () => T(S.queue[S.qi]);
 let errors = 0;
+let errorAdvance = 0;
 
 // ---------- persistencia (cola, posición, modos) ----------
 function persist() {
@@ -62,10 +63,12 @@ async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false
   let id = S.queue[i];
   let t = T(id);
   if (!t) return;
+  clearTimeout(errorAdvance); errorAdvance = 0;
   // canción online que ya está en tu biblioteca (por ejemplo, bajada por las descargas inteligentes): se usa el archivo
   if (t.remote && t.ytId) { const loc = D.tracks.find((x) => x.ytId === t.ytId && !x.video); if (loc) { S.queue[i] = id = loc.id; t = loc; } }
   ensure();
   endSession(false);
+  errFor = null;   // canción nueva: su error (si lo hay) cuenta de nuevo
   S.qi = i;
   if (!silent) { S.history = [id, ...S.history.filter((x) => x !== id)].slice(0, 200); }
   sess = { id, sec: 0 };
@@ -156,6 +159,7 @@ export function clearQueue() {
 export function jump(i) { if (S.queue[i]) start(i); }
 
 export function next({ auto = false, fade = 0 } = {}) {
+  if (!auto) { clearTimeout(errorAdvance); errorAdvance = 0; }
   if (!S.queue.length) return;
   if (auto && S.repeat === 'one') return start(S.qi, { fade: 0 });
   let i = S.qi + 1;
@@ -267,30 +271,44 @@ if (engine.native) {
 }
 
 // ---------- eventos del motor ----------
-bus.on('eng:nearend', () => {
+bus.on('eng:nearend', (id) => {
+  if (id && (!current() || current().id !== id)) return;
   if (sleep.endOfTrack) return;                                  // el temporizador corta al final: no fundir
   const fade = +P.get('crossfade') || 0;
   if (fade <= 0 || S.repeat === 'one') return;
   if (S.qi + 1 >= S.queue.length && S.repeat !== 'all') return;
   next({ auto: true, fade });
 });
-bus.on('eng:ended', () => {
+bus.on('eng:ended', (id) => {
+  if (id && (!current() || current().id !== id)) return;
   endSession(true); errors = 0;
   if (sleep.endOfTrack) return stopForSleep();
   // "al terminar el álbum": cortar cuando la siguiente es de otro álbum (o no hay siguiente)
   if (sleep.endOfAlbum) { const n = T(S.queue[S.qi + 1]); if (!n || n.album !== sleep.endOfAlbum) { sleep.endOfAlbum = ''; return stopForSleep(); } }
   next({ auto: true });
 });
-bus.on('eng:error', (msg) => {
+let errFor = null;   // el mismo fallo llega dos veces (el audio y el "play"): se cuenta una sola vez por canción
+bus.on('eng:error', (detail) => {
   const t = current();
+  const id = detail && typeof detail === 'object' ? detail.id : t && t.id;
+  const msg = detail && typeof detail === 'object' ? detail.message : detail;
+  if (id && (!t || t.id !== id)) return;
+  if (t && errFor === t.id) return;
+  errFor = t ? t.id : null;
   errors++;
   toast('no se pudo reproducir ' + (t ? '«' + t.title + '»' : ''), { kind: 'err', sub: String(msg || '') });
-  if (errors < 3 && S.qi + 1 < S.queue.length) setTimeout(() => next(), 900);
+  if (errors < 3 && S.qi + 1 < S.queue.length) {
+    clearTimeout(errorAdvance);
+    errorAdvance = setTimeout(() => {
+      errorAdvance = 0;
+      if (t && current() && current().id === t.id) next();
+    }, 900);
+  }
 });
 bus.on('eng:state', (s) => {
   const t = current();
   if (t && t.remote) setText('fmt', s === 'wait' ? '☁ conectando con YouTube Music…' : '☁ online · YouTube Music');
-  renderPlayState(s); if (s === 'play') errors = 0; if ('mediaSession' in navigator) navigator.mediaSession.playbackState = s === 'pause' ? 'paused' : 'playing'; });
+  renderPlayState(s); if (s === 'play' && engine.time > 0.5) { errors = 0; errFor = null; } if ('mediaSession' in navigator) navigator.mediaSession.playbackState = s === 'pause' ? 'paused' : 'playing'; });
 
 // ---------- notificaciones de cambio de canción ----------
 function notifyChange(t) {
@@ -347,7 +365,10 @@ function renderVol() {
   $('#tVol').classList.toggle('boost', v.master > 1 && !v.muted);
   $('#tVol use').setAttribute('href', off ? '#i-mute' : '#i-vol');
   $$('[data-np="volicon"] use').forEach((u) => u.setAttribute('href', off ? '#i-mute' : '#i-vol'));
-  $$('[data-vol]').forEach((r) => { if (document.activeElement !== r) r.value = pct; });
+  $$('[data-vol]').forEach((r) => {
+    r.value = pct;
+    r.style.setProperty('--progress', clamp(pct / 150 * 100, 0, 100) + '%');
+  });
   bus.emit('vol');
 }
 document.addEventListener('input', (e) => { if (e.target.matches('[data-vol]')) setVol(+e.target.value / 100); });

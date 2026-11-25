@@ -110,8 +110,8 @@ class Engine {
       // 3 s de silencio, o 1,5 s si ya faltan menos de 8 s (una pausa corta antes del final no corta la canción)
       if ((m.tailSil >= 3 || (m.tailSil >= 1.5 && dur - now <= 8)) && !m.tailFired) {
         m.tailFired = true;
-        if (this.crossfade > 0 && !this.nearEndFired) { this.nearEndFired = true; bus.emit('eng:nearend'); }
-        else if (!this.nearEndFired) bus.emit('eng:ended');
+        if (this.crossfade > 0 && !this.nearEndFired) { this.nearEndFired = true; bus.emit('eng:nearend', this.track.id); }
+        else if (!this.nearEndFired && !m.endedFired) { m.endedFired = true; bus.emit('eng:ended', this.track.id); }
       }
     }
   }
@@ -128,19 +128,24 @@ class Engine {
     on('play', () => bus.emit('eng:state', 'play'));
     on('pause', () => bus.emit('eng:state', 'pause'));
     on('waiting', () => bus.emit('eng:state', 'wait'));
-    on('playing', () => bus.emit('eng:state', 'play'));
+    on('playing', () => { if (d.m) d.m.started = true; bus.emit('eng:state', 'play'); });
     on('loadedmetadata', () => bus.emit('eng:meta'));
     on('progress', () => bus.emit('eng:buffer'));
     on('timeupdate', () => {
       const el = d.el;
+      if (d.m && el.currentTime > 0.1) d.m.started = true;
       // aviso para fundir con la siguiente unos segundos antes del final
       if (!this.nearEndFired && this.crossfade > 0 && !d.video && el.duration > this.crossfade * 3 && el.duration - el.currentTime <= this.crossfade + 0.15) {
         this.nearEndFired = true;
-        bus.emit('eng:nearend');
+        bus.emit('eng:nearend', this.track.id);
       }
     });
-    on('ended', () => bus.emit('eng:ended'));
-    on('error', () => bus.emit('eng:error', d.el.error ? d.el.error.message || d.el.error.code : 'error'));
+    on('ended', () => {
+      if (!d.m || !d.m.started || d.m.endedFired || this.nearEndFired) return;
+      d.m.endedFired = true;
+      bus.emit('eng:ended', d.m.id);
+    });
+    on('error', () => bus.emit('eng:error', { id: d.m && d.m.id, message: d.el.error ? d.el.error.message || d.el.error.code : 'error' }));
   }
 
   ramp(d, to, sec) {
@@ -166,6 +171,7 @@ class Engine {
     this.nearEndFired = false;
     if (next === old) { // mismo deck (p. ej. video → video): fundido corto de salida
       this.ramp(next, 0, 0.05); await wait(60);
+      if (token !== this.fadeToken) return;
     }
     if (loudDirty) saveLoud();   // guardar lo medido de la anterior
     next.m = { id: track.id, sum: 0, n: 0, leadSil: 0, lead: !!startAt, tailSil: 0, tailFired: false };
@@ -174,6 +180,7 @@ class Engine {
     next.el.currentTime = 0;
     if (startAt > 0) {
       await new Promise((ok) => { const f = () => { next.el.removeEventListener('loadedmetadata', f); ok(); }; next.el.addEventListener('loadedmetadata', f); setTimeout(ok, 3000); });
+      if (token !== this.fadeToken) return;
       try { next.el.currentTime = startAt; } catch {}
     }
     bus.emit('eng:track', track);
@@ -184,7 +191,7 @@ class Engine {
     }
     if (!autoplay) { next.gain.gain.value = this.level(); bus.emit('eng:state', 'pause'); return; }
     try { await next.el.play(); }
-    catch (e) { if (token === this.fadeToken) bus.emit('eng:error', e.message); return; }
+    catch (e) { if (token === this.fadeToken) bus.emit('eng:error', { id: track.id, message: e.message }); return; }
     if (token !== this.fadeToken) return;
     this.ramp(next, this.level(), fade > 0 ? fade : 0.03);
   }
@@ -192,7 +199,7 @@ class Engine {
   async play() {
     const d = this.active; if (!d || !d.el.src) return false;
     if (this.ctx.state === 'suspended') await this.ctx.resume();
-    try { await d.el.play(); } catch (e) { bus.emit('eng:error', e.message); return false; }
+    try { await d.el.play(); } catch (e) { bus.emit('eng:error', { id: this.track && this.track.id, message: e.message }); return false; }
     this.ramp(d, this.level(), 0.12);
     return true;
   }

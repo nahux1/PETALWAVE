@@ -440,7 +440,7 @@ class Stats:
 
 
 # gustos: señales de escucha para las recomendaciones (las calcula la interfaz, ui/js/taste.js)
-TASTE_KINDS = {"play", "skip", "like", "unlike", "nope", "pl"}
+TASTE_KINDS = {"play", "skip", "like", "unlike", "nope", "pl", "seed"}
 
 
 def clean_event(e):
@@ -611,6 +611,43 @@ def ydl_opts(extra=None):
         o["cookiefile"] = D["cookies"]
     o.update(extra or {})
     return o
+
+
+def stream_cached(vid):
+    d = os.path.join(D["data"], "stream-cache")
+    for ext in ("m4a", "webm", "mp4"):
+        f = os.path.join(d, vid + "." + ext)
+        if os.path.exists(f):
+            return f
+    return None
+
+
+def stream_file(vid):
+    """baja la canción entera (cuando YouTube rechaza el enlace directo) a una caché de hasta 300 MB"""
+    f = stream_cached(vid)
+    if f:
+        return f
+    import yt_dlp
+    d = os.path.join(D["data"], "stream-cache")
+    os.makedirs(d, exist_ok=True)
+    o = ydl_opts({"format": "bestaudio[ext=m4a]/bestaudio/best[acodec!=none]", "outtmpl": os.path.join(d, vid + ".%(ext)s"),
+                  "nopart": True, "fixup": "never", "updatetime": False})
+    with yt_dlp.YoutubeDL(o) as y:
+        y.download(["https://music.youtube.com/watch?v=" + vid])
+    f = stream_cached(vid)
+    if not f:
+        raise RuntimeError("YouTube no entregó el audio")
+    try:
+        fl = sorted((os.path.join(d, n) for n in os.listdir(d)), key=os.path.getmtime)
+        total = sum(os.path.getsize(x) for x in fl)
+        for x in fl:
+            if total <= 300 * 1024 * 1024:
+                break
+            total -= os.path.getsize(x)
+            os.remove(x)
+    except OSError:
+        pass
+    return f
 
 
 def resolve(vid, force=False):
@@ -1429,6 +1466,16 @@ class H(BaseHTTPRequestHandler):
                     return self.send_json(200, {"items": ytm("playlists", {}, 60)})
                 if p == "/api/ytm/history":
                     return self.send_json(200, {"items": annotate(ytm("history", {}, 30))})
+                # Explorar: rankings del país, géneros y estados de ánimo (sin cuenta)
+                if p == "/api/ytm/explore":
+                    country = (q.get("country") or "ZZ").upper() if re.fullmatch(r"[A-Za-z]{2}", q.get("country") or "") else "ZZ"
+                    return self.send_json(200, ytm("explore", {"country": country}, 21600))
+                if p == "/api/ytm/mood":
+                    params = q.get("params") or ""
+                    if not re.fullmatch(r"[\w%=-]{4,200}", params):
+                        return self.send_json(400, {"error": "categoría inválida"})
+                    country = (q.get("country") or "ZZ").upper() if re.fullmatch(r"[A-Za-z]{2}", q.get("country") or "") else "ZZ"
+                    return self.send_json(200, ytm("mood", {"params": params, "country": country}, 21600))
                 if p == "/api/ytm/songs":
                     ids = list(dict.fromkeys(x for x in (q.get("ids") or "").split(",") if re.fullmatch(r"[\w-]{11}", x)))[:200]
                     return self.send_json(200, annotate_list(ytm("songs", {"ids": ids}, 3600)))
@@ -1457,7 +1504,21 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:  # noqa: BLE001
                 return self.send_json(502, {"error": str(e)})
             if q.get("prefetch"):
+                # preparar la siguiente: si YouTube rechaza el enlace, bajarla ya para que suene enseguida
+                try:
+                    pu = urllib.parse.urlparse(c["url"])
+                    pc = http.client.HTTPSConnection(pu.netloc, timeout=15)
+                    pc.request("GET", pu.path + ("?" + pu.query if pu.query else ""), headers={"Range": "bytes=0-0"})
+                    st = pc.getresponse().status
+                    pc.close()
+                    if st in (403, 410):
+                        stream_file(vid)
+                except Exception:  # noqa: BLE001
+                    pass
                 return self.send_json(200, {"ok": True})
+            cf = stream_cached(vid)
+            if cf:
+                return self.send_file(cf, "audio/webm" if cf.endswith(".webm") else "audio/mp4")
             return self.proxy(vid, c)
         m = re.fullmatch(r"/ytcover/([\w-]{11})", p)
         if m:
@@ -1550,6 +1611,14 @@ class H(BaseHTTPRequestHandler):
             r.read()
             conn.close()
             return self.proxy(vid, resolve(vid, force=True), retry=False)
+        if r.status in (403, 410):   # YouTube sigue rechazando el enlace: bajarla entera con yt-dlp y servirla del disco
+            r.read()
+            conn.close()
+            try:
+                f = stream_file(vid)
+            except Exception as e:  # noqa: BLE001
+                return self.send_json(502, {"error": str(e)[:200]})
+            return self.send_file(f, "audio/webm" if f.endswith(".webm") else "audio/mp4")
         self.send_response(r.status)
         for k in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"):
             if r.getheader(k):

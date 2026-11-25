@@ -284,9 +284,10 @@ function renderTable(body) {
     let html = '';
     for (let i = a; i < b; i++) {
       const t = T(ids[i]); if (!t) continue;
+      const recommended = ['recs', 'disc', 'mix'].includes(view.type);
       html += `<div class="row ${t.id === cur ? 'cur' : ''} ${sel.has(t.id) ? 'sel' : ''} ${t.available === false ? 'na' : ''}" style="top:${i * rh}px" data-i="${i}" draggable="true">
         <span class="ix"><span class="num">${t.id === cur ? '♪' : view.type === 'album' && t.trackNo ? t.trackNo : i + 1}</span><span class="pi" data-play>${icon('play')}</span></span>
-        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</div><div class="a">${esc(t.artist || '—')}${(view.type === 'recs' || view.type === 'disc' || view.type === 'mix') && WHY.get(t.id) ? `<span class="why"> · ${esc(WHY.get(t.id))}</span>` : ''}</div></span></span>
+        <span class="tc"><img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.classList.add('x')"><span class="tt"><div class="t"><span class="rtxt">${isLiked(t.id) ? '<b class="lk" title="en Me gusta">♥</b>' : ''}${esc(t.title)}</span>${recommended ? `<button class="rec-nope" data-nope aria-label="no recomendar ${esc(t.title)}" title="no me interesa">${icon('x')}</button>` : ''}</div><div class="a">${esc(t.artist || '—')}${recommended && WHY.get(t.id) ? `<span class="why"> · ${esc(WHY.get(t.id))}</span>` : ''}</div></span></span>
         <span class="c2">${esc(t.album || '')}</span>
         <span class="num2">${fmtTime(t.duration)}</span>
         <span class="num2">${D.plays[t.id] || ''}</span>
@@ -309,6 +310,7 @@ function rowIndex(el) { const r = el.closest('.row'); return r ? +r.dataset.i : 
 function onRowClick(e) {
   const i = rowIndex(e.target); if (i < 0) return;
   const id = ids[i];
+  if (e.target.closest('[data-nope]')) return notInterested([id]);
   if (e.target.closest('[data-play]')) return playList(ids, i, { shuffle: PS.shuffle });
   if (e.target.closest('[data-more]')) { if (!sel.has(id)) { sel = new Set([id]); anchor = i; } repaint(); return trackMenu(e.clientX, e.clientY); }
   if (e.ctrlKey || e.metaKey) { sel.has(id) ? sel.delete(id) : sel.add(id); anchor = i; }
@@ -316,7 +318,7 @@ function onRowClick(e) {
   else { sel = new Set([id]); anchor = i; }
   updateSel();
 }
-function onRowDbl(e) { const i = rowIndex(e.target); if (i >= 0 && !e.target.closest('[data-more]')) playList(ids, i, { shuffle: PS.shuffle }); }
+function onRowDbl(e) { const i = rowIndex(e.target); if (i >= 0 && !e.target.closest('[data-more],[data-nope]')) playList(ids, i, { shuffle: PS.shuffle }); }
 function onRowCtx(e) {
   const i = rowIndex(e.target); if (i < 0) return;
   e.preventDefault();
