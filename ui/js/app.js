@@ -219,6 +219,8 @@ document.addEventListener('keydown', (e) => {
   document.addEventListener('pw-cmd', (e) => {
     const c = String(e.detail || '');
     if (c.startsWith('seek:')) engine.seek(+c.slice(5));
+    else if (c === 'play') { if (engine.paused) player.toggle(); }   // solo si estaba en pausa
+    else if (c === 'pause') { if (!engine.paused) player.toggle(); }  // solo si estaba sonando
     else if (ACTIONS[c]) ACTIONS[c]();
   });
 })();

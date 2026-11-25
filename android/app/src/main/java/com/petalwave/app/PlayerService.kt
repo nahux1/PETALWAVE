@@ -41,8 +41,10 @@ class PlayerService : Service() {
         instance = this
         session = MediaSession(this, "petalwave").apply {
             setCallback(object : MediaSession.Callback() {
-                override fun onPlay() = MainActivity.cmd("toggle")
-                override fun onPause() = MainActivity.cmd("toggle")
+                // play y pausa por separado: con "toggle", un "play" que llega mientras ya suena (auriculares,
+                // Bluetooth, el sistema) pausaba la canción justo cuando estaba cargando
+                override fun onPlay() = MainActivity.cmd("play")
+                override fun onPause() = MainActivity.cmd("pause")
                 override fun onSkipToNext() = MainActivity.cmd("next")
                 override fun onSkipToPrevious() = MainActivity.cmd("prev")
                 override fun onSeekTo(p: Long) = MainActivity.cmd("seek:" + (p / 1000.0))

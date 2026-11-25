@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.17.1 — arreglo de reproducción en Android
+- **Android:** el `MediaSession` de `PlayerService` mandaba "toggle" tanto para `onPlay` como para `onPause`. Un "play" del sistema, los auriculares o el Bluetooth mientras la canción cargaba la pausaba (AbortError + salto). Ahora manda "play"/"pause", y la interfaz solo actúa si hace falta. Probado en el emulador con KEYCODE_MEDIA_PLAY/PAUSE/PLAY_PAUSE.
+- **Reproductor:** un `play()` rechazado por AbortError o NotAllowedError queda en pausa en vez de contar como error y saltar.
+- **Apoyar:** `supportLinks` (varios links) en `latest.json`, `tools/support.json` con Cafecito y Patreon, y `patreon.com` permitido en los dos servidores. También en la web y el README.
+
 ## 2.17.0 — instalador, web, feedback y apoyo
 - **Instalador** (`build/Installer.cs` → `release/Instalar-Petalwave.exe` con `build/build-installer.bat`):
   - Baja `latest.json` → zip completo (solo de GitHub) y verifica el SHA-256, que ahora trae `full.sha256` en el manifiesto.

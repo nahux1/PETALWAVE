@@ -11,7 +11,9 @@
   <a href="https://nahux1.github.io/PETALWAVE/">🌐 Página web</a> ·
   <a href="../../releases/latest">📝 Novedades</a> ·
   <a href="../../issues/new?template=error.yml">🐞 Avisar un error</a> ·
-  <a href="../../issues/new?template=sugerencia.yml">💡 Sugerir algo</a>
+  <a href="../../issues/new?template=sugerencia.yml">💡 Sugerir algo</a> ·
+  <a href="https://cafecito.app/nahux01">☕ Cafecito</a> ·
+  <a href="https://www.patreon.com/c/Nahux">❤ Patreon</a>
 </p>
 <p align="center">
   <img alt="versión" src="https://img.shields.io/github/v/release/nahux1/PETALWAVE?label=versi%C3%B3n&color=e8466a">
@@ -274,3 +276,7 @@ Usá petalwave con música propia, libre o con permiso del autor.
 
 ## Licencia
 Código bajo **Apache 2.0** (ver `LICENSE`). El zip de la Release incluye Node.js (MIT), yt-dlp (Unlicense), FFmpeg (GPL), Python (PSF) y ytmusicapi (MIT), con sus licencias en la carpeta `licencias`.
+
+## ❀ Apoyar
+
+Petalwave es gratis y sin publicidad, para todos. Si te sirve y querés ayudar: **[☕ Cafecito](https://cafecito.app/nahux01)** (Argentina) o **[❤ Patreon](https://www.patreon.com/c/Nahux)** (cualquier país). Donar no desbloquea nada: todo es igual para todos.

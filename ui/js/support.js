@@ -6,16 +6,18 @@ import { tasteEvents } from './taste.js';
 
 const KEY = 'pw-support';
 let url = (local.get(KEY, null) || {}).url || '';
+let links = (local.get(KEY, null) || {}).links || [];
 export const supportUrl = () => url;
-export function openSupport() { if (url) window.open(url, '_blank'); }
+export function openSupport(u) { const to = u || url; if (to) window.open(to, '_blank'); }
+const allLinks = () => (links.length ? links : url ? [{ name: 'apoyar', url }] : []);
+const buttons = (cls) => allLinks().map((l, i) => `<button class="${i ? 'cb' : 'go'} ${cls}" data-support="${esc(l.url)}">❀ ${esc(l.name)}</button>`).join(' ');
 
-export const supportRowHtml = () => url ? `<div class="cfrow"><span>❀ apoyar Petalwave<span class="m">es gratis y sin publicidad, para todos. Si te sirve, podés ayudar con lo que quieras.</span></span><button class="go sm" id="cSupport">apoyar</button></div>
+export const supportRowHtml = () => url ? `<div class="cfrow"><span>❀ apoyar Petalwave<span class="m">es gratis y sin publicidad, para todos. Si te sirve, podés ayudar con lo que quieras.</span></span><span>${buttons('sm')}</span></div>
   <label class="cfrow"><span>recordármelo de vez en cuando<span class="m">como mucho una vez cada dos meses</span></span><input type="checkbox" id="cSupportAsk" ${P.get('supportAsk') !== false ? 'checked' : ''}></label>` : '';
 export function bindSupportRow(el) {
-  const b = el.querySelector('#cSupport'); if (b) b.onclick = openSupport;
   const c = el.querySelector('#cSupportAsk'); if (c) c.onchange = () => P.set('supportAsk', c.checked);
 }
-export const supportLinkHtml = (txt = '❀ apoyar Petalwave') => url ? `<button class="cb sm" data-support>${esc(txt)}</button>` : '';
+export const supportLinkHtml = () => (url ? buttons('sm') : '');
 
 const DAY = 86400000;
 function mayAsk() {
@@ -36,7 +38,8 @@ export function initSupport() {
   // el link viene con la consulta de actualizaciones
   bus.on('update:info', (i) => {
     const u = i && typeof i.support === 'string' ? i.support : '';
-    if (u !== url) { url = u; local.set(KEY, { url }); bus.emit('support'); }
+    const l = i && Array.isArray(i.supportLinks) ? i.supportLinks.filter((x) => x && x.name && x.url) : [];
+    if (u !== url || JSON.stringify(l) !== JSON.stringify(links)) { url = u; links = l; local.set(KEY, { url, links }); bus.emit('support'); }
     // recién actualizada: buen momento (una sola vez por versión)
     if (i && i.current && P.get('lastVersion') && P.get('lastVersion') !== i.current) ask('¡Petalwave se actualizó! ❀', 'si te gusta, podés apoyar el proyecto con lo que quieras');
     if (i && i.current) P.set('lastVersion', i.current);
@@ -47,5 +50,5 @@ export function initSupport() {
     const secs = tasteEvents().reduce((a, e) => a + (e.k === 'play' && e.s > 0 ? e.s : 0), 0);
     if (secs >= 100 * 3600) { P.set('support100', true); ask('¡Ya escuchaste más de 100 horas con Petalwave! ❀', 'si te sirve, podés apoyar el proyecto con lo que quieras'); }
   }, 20000);
-  document.addEventListener('click', (e) => { if (e.target.closest('[data-support]')) openSupport(); });
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-support]'); if (b) openSupport(b.dataset.support); });
 }
