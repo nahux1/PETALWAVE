@@ -87,6 +87,8 @@ async function req(method, p, body, headers = {}) {
       check('¿qué suena? rechaza grabaciones vacías', r.status === 400);
       r = await req('GET', '/api/recognize/config');
       check('¿qué suena? nunca devuelve la clave', r.status === 200 && !('token' in (r.j || {})));
+      r = await req('POST', '/api/recognize/sig', { sig: 'AAAA', samplems: 5000 });
+      check('¿qué suena? rechaza huellas inválidas', r.status === 400);
       r = await req('GET', '/api/sys');
       check('uso de RAM de Petalwave disponible', r.status === 200 && Number.isFinite(r.j && r.j.appMem) && r.j.appMem >= 0 && Array.isArray(r.j.appMemParts));
       r = await req('POST', '/api/settings', 'null');

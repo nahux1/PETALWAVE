@@ -10,7 +10,12 @@
   - *Descubrí* sin historial busca por géneros elegidos y, si falta, usa el ranking del país.
   - El inicio ordena sus secciones por uso (`P.homeUse`) y suma "Lo más escuchado".
 - **Streaming:** si YouTube rechaza el enlace directo (403) recién resuelto, la canción se baja con yt-dlp a `data/stream-cache` (400 MB en Windows, 300 MB en Android) y se sirve con Range. La precarga (`?prefetch=1`) prueba el enlace y, si lo rechaza, la baja antes.
-- **Reproductor:** un error de reproducción se cuenta una sola vez por canción (antes saltaba dos).
+- **Reproductor:** un error de reproducción se cuenta una sola vez por canción (antes saltaba dos), y los avisos de una canción anterior (fin, error) se ignoran, así no se saltean varias seguidas.
+- **¿Qué suena? propio:** `ui/js/fingerprint.js` arma la huella (FFT de 2048, picos en 4 bandas, mismo formato de firma que SongRec) y `/api/recognize/sig` la consulta sin clave en los dos servidores. AudD queda de respaldo si hay clave.
+- **Gustos:** botón 👎 en el reproductor (`data-act="dislike"`, señal `nope` + siguiente) y ✕ "no me interesa" en las filas de recomendaciones.
+- **Navegación:** opción `navKeyStyle` (números o letras H, E, B, L, D, I, E, C).
+- **Memoria:** `/api/sys` suma todos los procesos de Petalwave (ventana, WebView2, Node, Python) sin contar al PowerShell que mide.
+- **Volumen:** la barra se actualiza también al usar la ruedita.
 
 ## 2.12.0 — motor nativo (beta) y Android Auto
 - **Android 1.7.0: motor nativo** (`NativeService.kt`, `ui/js/nativeengine.js`), opcional en ajustes → reproducción. Se activa con `PetalwaveNative.nativeEngine` y se aplica al reiniciar.

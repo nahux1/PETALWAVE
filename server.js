@@ -139,7 +139,7 @@ function refreshAppMemory() {
   }
   if (appMemoryRunning || Date.now() - appMemoryAt < 10000) return;
   appMemoryRunning = true;
-  const script = `$ErrorActionPreference='Stop'; $ps=@(Get-CimInstance Win32_Process); $byId=@{}; foreach($p in $ps){$byId[[int]$p.ProcessId]=$p}; $root=${process.pid}; $parent=${process.ppid}; if($byId.ContainsKey($parent) -and $byId[$parent].Name -ieq 'petalwave.exe'){$root=$parent}; $ids=New-Object 'System.Collections.Generic.List[int]'; [void]$ids.Add([int]$root); do{$old=$ids.Count; foreach($p in $ps){if($ids.Contains([int]$p.ParentProcessId) -and !$ids.Contains([int]$p.ProcessId)){[void]$ids.Add([int]$p.ProcessId)}}}while($ids.Count -gt $old); $rows=@(foreach($id in $ids){$p=Get-Process -Id $id -ErrorAction SilentlyContinue; if($p){[pscustomobject]@{name=$p.ProcessName;mb=[Math]::Round($p.WorkingSet64/1MB,1)}}}); ConvertTo-Json -InputObject $rows -Compress`;
+  const script = `$ErrorActionPreference='Stop'; $ps=@(Get-CimInstance Win32_Process); $byId=@{}; foreach($p in $ps){$byId[[int]$p.ProcessId]=$p}; $root=${process.pid}; $parent=${process.ppid}; if($byId.ContainsKey($parent) -and $byId[$parent].Name -ieq 'petalwave.exe'){$root=$parent}; $ids=New-Object 'System.Collections.Generic.List[int]'; [void]$ids.Add([int]$root); do{$old=$ids.Count; foreach($p in $ps){if($ids.Contains([int]$p.ParentProcessId) -and !$ids.Contains([int]$p.ProcessId)){[void]$ids.Add([int]$p.ProcessId)}}}while($ids.Count -gt $old); [void]$ids.Remove([int]$PID); $rows=@(foreach($id in $ids){$p=Get-Process -Id $id -ErrorAction SilentlyContinue; if($p){[pscustomobject]@{name=$p.ProcessName;mb=[Math]::Round($p.WorkingSet64/1MB,1)}}}); ConvertTo-Json -InputObject $rows -Compress`;
   execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 8000, maxBuffer: 1024 * 1024 }, (err, stdout) => {
     appMemoryAt = Date.now();
     appMemoryRunning = false;
@@ -439,7 +439,12 @@ async function route(req, res) {
   if ((mm = m(/^\/api\/similar\/([0-9a-f]{16})$/))) return U.json(res, 200, { ids: stats.similar(mm[1], +u.searchParams.get('n') || 25) });
 
   // ---------- estadísticas ----------
-  // ---------- ¿qué suena? (AudD) ----------
+  // ---------- ¿qué suena? (huella propia, sin clave; AudD opcional) ----------
+  if (p === '/api/recognize/sig' && M === 'POST') {
+    const b = (await body()) || {};
+    try { return U.json(res, 200, await recognizer.bySignature(b.sig, b.samplems)); }
+    catch (e) { return U.json(res, e.status || 502, { error: e.message }); }
+  }
   if (p === '/api/recognize/config' && M === 'GET') return U.json(res, 200, recognizer.status());
   if (p === '/api/recognize/config' && M === 'POST') {
     try { recognizer.setToken((await body()).token); return U.json(res, 200, recognizer.status()); } catch (e) { return U.json(res, 400, { error: e.message }); }

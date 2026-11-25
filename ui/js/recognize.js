@@ -1,12 +1,14 @@
 // ❀ ¿qué suena? — reconocer una canción con el micrófono (como hacen las apps de reconocimiento de música)
-// Graba 8 segundos, los manda al servidor interno, que los reenvía a AudD con tu clave. Solo se graba cuando tocás.
+// Graba 10 segundos, saca una huella del audio en tu equipo (fingerprint.js, inspirado en SongRec) y la busca sin
+// necesidad de clave. Si no la encuentra y cargaste una clave de AudD, prueba también con AudD. Solo se graba cuando tocás.
 import { $, api, bus, esc, icon, toast, local, P } from './core.js';
 import { D, T, remoteTrack } from './data.js';
 import { playList, current } from './player.js';
 import { engine } from './audio.js';
 import { toggleLike } from './likes.js';
+import { signature, toBase64, blobTo16k } from './fingerprint.js';
 
-const SECS = 8;
+const SECS = 10;
 const HIST = 'pw-recog';
 let rec = null, stream = null, raf = 0, resumeAfter = false;
 
@@ -92,19 +94,6 @@ function showResult(r, fromHist) {
   }));
 }
 
-function showToken(msg) {
-  $('#rcMain').innerHTML = `<div class="rc-setup"><h3>Para reconocer canciones falta tu clave de AudD</h3>
-    <div class="m">${esc(msg || '')}</div>
-    <ol class="m"><li>Entrá a <a href="#" data-audd>dashboard.audd.io</a> y creá una cuenta gratis (no pide tarjeta).</li><li>Copiá tu <b>API token</b> y pegalo acá.</li></ol>
-    <div class="rc-tok"><input id="rcTok" placeholder="pegá tu clave de AudD" autocomplete="off" spellcheck="false"><button class="go" id="rcTokOk">guardar</button></div>
-    <div class="m">Las primeras 300 canciones son gratis. Solo se manda un fragmento de ${SECS} segundos cuando tocás "¿qué suena?".</div></div>`;
-  $('#rcMain').querySelector('[data-audd]').onclick = (e) => { e.preventDefault(); window.open('https://dashboard.audd.io/', '_blank'); };
-  $('#rcTokOk').onclick = async () => {
-    try { await api.post('/api/recognize/config', { token: $('#rcTok').value }); toast('clave guardada ✓'); listen(); }
-    catch (e) { toast(e.message, { kind: 'err' }); }
-  };
-}
-
 function showMsg(title, sub, retry = true) {
   $('#rcMain').innerHTML = `<div class="rc-msg"><div class="rc-petal sad">❀</div><h3>${esc(title)}</h3><div class="m">${esc(sub || '')}</div>${retry ? `<div class="rc-acts"><button class="go" id="rcAgain">${icon('radio')} probar de nuevo</button></div>` : ''}</div>`;
   const b = $('#rcAgain'); if (b) b.onclick = listen;
@@ -116,8 +105,9 @@ export async function listen() {
   // el medidor de sonido se crea en el mismo toque (si se crea después del permiso del micrófono, el navegador puede no dejarlo arrancar)
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   ctx.resume().catch(() => {});
-  // sin clave de AudD no tiene sentido grabar: se pide primero
-  try { const st = await api.get('/api/recognize/config'); if (!st.configured) { ctx.close(); return showToken(''); } } catch {}
+  // AudD es opcional (respaldo): se usa solo si cargaste tu clave
+  let audd = false;
+  try { audd = !!(await api.get('/api/recognize/config')).configured; } catch {}
   // si Petalwave está sonando, se pausa (si no, reconoce su propia música) y vuelve al cerrar
   if (!engine.paused && current()) { resumeAfter = true; await engine.pause(); }
   const m = $('#rcMain');
@@ -153,17 +143,24 @@ export async function listen() {
   if (metered && peak < 0.003) return showMsg('No entró sonido por el micrófono', 'Revisá que el micrófono no esté silenciado o tapado.');
   const blob = new Blob(chunks, { type: (type || 'audio/webm').split(';')[0] });
   m.innerHTML = `<div class="rc-listen"><div class="rc-petal spin">❀</div><h3>buscando la canción…</h3></div>`;
+  let r = null, err = null;
+  // 1) huella propia (solo viaja la huella, no el audio)
   try {
-    const r = await api.raw('/api/recognize', blob, { 'Content-Type': blob.type });
-    if (!r.found) return showMsg('No la reconocí', 'Probá de nuevo más cerca del parlante, o en una parte con la voz o el estribillo.');
-    r.at = Date.now();
-    saveHist(r); paintHist();
-    showResult(r);
-    bus.emit('recognized', r);
-  } catch (e) {
-    if (/clave de AudD/.test(e.message) || e.needToken) return showToken(e.message);
-    showMsg('No se pudo reconocer', e.message);
+    const sig = signature(await blobTo16k(blob));
+    r = await api.post('/api/recognize/sig', { sig: toBase64(sig.bytes), samplems: sig.samplems });
+  } catch (e) { err = e; }
+  // 2) respaldo: AudD, si tenés clave
+  if (!(r && r.found) && audd) {
+    try { const a = await api.raw('/api/recognize', blob, { 'Content-Type': blob.type }); r = a; if (a.found) err = null; } catch (e) { err = err || e; }
   }
+  if (!(r && r.found)) {
+    if (err) return showMsg('No se pudo reconocer', err.message);
+    return showMsg('No la reconocí', 'Probá de nuevo más cerca del parlante, o en una parte con la voz o el estribillo.');
+  }
+  r.at = Date.now();
+  saveHist(r); paintHist();
+  showResult(r);
+  bus.emit('recognized', r);
 }
 
 // ajustes → cuentas
@@ -171,7 +168,7 @@ export async function auddSettings(el) {
   if (!el) return;
   let st = { configured: false };
   try { st = await api.get('/api/recognize/config'); } catch {}
-  el.innerHTML = `<div class="cfrow"><span>reconocer canciones (AudD)<span class="m">${st.configured ? 'clave guardada ' + esc(st.hint) : 'pegá tu clave gratis de dashboard.audd.io (300 canciones gratis)'}</span></span>
+  el.innerHTML = `<div class="cfrow"><span>¿qué suena? · respaldo con AudD (opcional)<span class="m">${st.configured ? 'clave guardada ' + esc(st.hint) + ' · se usa solo si Petalwave no la reconoce' : 'no hace falta: Petalwave reconoce solo. Si querés un respaldo, pegá tu clave gratis de dashboard.audd.io'}</span></span>
     <span><input id="cAuddTok" placeholder="${st.configured ? 'cambiar clave' : 'clave de AudD'}" autocomplete="off" spellcheck="false" style="width:150px"> <button class="cb sm" id="cAuddOk">guardar</button>${st.configured ? ' <button class="cb sm danger" id="cAuddDel">quitar</button>' : ''}</span></div>`;
   el.querySelector('#cAuddOk').onclick = async () => { try { await api.post('/api/recognize/config', { token: el.querySelector('#cAuddTok').value }); toast('clave de AudD guardada ✓'); auddSettings(el); } catch (e) { toast(e.message, { kind: 'err' }); } };
   const del = el.querySelector('#cAuddDel'); if (del) del.onclick = async () => { await api.post('/api/recognize/config', { token: '' }); toast('clave quitada'); auddSettings(el); };

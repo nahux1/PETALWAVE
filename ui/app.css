@@ -775,7 +775,7 @@ body.peek #floatLayer{opacity:0;pointer-events:none;transition:opacity .35s}
 /* ---------- celular (Android y pantallas angostas) ---------- */
 /* ---------- me gusta ---------- */
 .mob-only{display:none!important}
-.likeb[hidden]{display:none!important}
+.likeb[hidden],.nopeb[hidden]{display:none!important}
 .likeb.liked{color:var(--ac)!important}
 .likeb.liked svg.i{fill:currentColor;stroke:currentColor}
 .likeb.liked svg.i{animation:likePop .38s cubic-bezier(.3,1.6,.5,1)}

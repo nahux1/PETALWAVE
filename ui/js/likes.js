@@ -47,6 +47,7 @@ export function updateLike() {
     b.title = on ? 'quitar de Me gusta (h)' : 'me gusta (h)';
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
+  for (const b of $$('[data-act="dislike"]')) b.hidden = !t;
 }
 
 export function initLikes() {

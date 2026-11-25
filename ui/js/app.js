@@ -14,7 +14,7 @@ import { renderSettings, keyName, isRecordingKey } from './settings.js';
 import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } from './viz.js';
 import { initYtm } from './ytmui.js';
 import { initLikes, likeCurrent } from './likes.js';
-import { loadTaste, recsOnline, recsLocal } from './taste.js';
+import { loadTaste, recsOnline, recsLocal, nope } from './taste.js';
 import { initSmartDl } from './smartdl.js';
 import { renderHome, initHome } from './home.js';
 import { renderExplore, initExplore } from './explore.js';
@@ -124,6 +124,7 @@ const ACTIONS = {
   shuffle: () => player.toggleShuffle(), repeat: () => player.toggleRepeat(),
   mute: () => player.toggleMute(), volUp: () => player.setVol(P.get('vol').master + 0.05), volDown: () => player.setVol(P.get('vol').master - 0.05),
   vol: () => toggleVolPop(), eq: () => openEq(), radio: () => player.radio(), like: () => likeCurrent(),
+  dislike: () => { const t = player.current(); if (!t) return; nope(t); toast('anotado: menos de esto', { sub: 'tus recomendaciones se ajustan' }); player.next(); },
   sleep: () => {
     const b = $('[data-act="sleep"]').getBoundingClientRect();
     const on = player.sleep.until || player.sleep.endOfTrack || player.sleep.endOfAlbum;

@@ -470,6 +470,47 @@ def audd_status():
     return {"configured": bool(t), "hint": ("…" + t[-4:]) if t else ""}
 
 
+def shazam_recognize(sig, samplems):
+    """huella propia (ui/js/fingerprint.js) → catálogo de Shazam, como SongRec. Solo viaja la huella."""
+    import base64
+    import uuid
+    try:
+        raw = base64.b64decode(str(sig or ""), validate=True)
+    except Exception:  # noqa: BLE001
+        raise ValueError("Huella de audio inválida")
+    if len(raw) < 56 or len(raw) > 200000 or int.from_bytes(raw[:4], "little") != 0xCAFE2580:
+        raise ValueError("Huella de audio inválida")
+    try:
+        ms = max(1000, min(20000, int(round(float(samplems)))))
+    except (TypeError, ValueError):
+        ms = 10000
+    now = int(time.time() * 1000)
+    body = {"geolocation": {"altitude": 300, "latitude": 45, "longitude": 2},
+            "signature": {"samplems": ms, "timestamp": now, "uri": "data:audio/vnd.shazam.sig;base64," + base64.b64encode(raw).decode()},
+            "timestamp": now, "timezone": "America/Argentina/Buenos_Aires"}
+    url = ("https://amp.shazam.com/discovery/v5/en/US/android/-/tag/%s/%s?sync=true&webv3=true&sampling=true&connected="
+           "&shazamapiversion=v3&sharehub=true&video=v3" % (str(uuid.uuid4()).upper(), uuid.uuid4()))
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={
+        "Content-Type": "application/json", "Content-Language": "en_US",
+        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 11; Pixel 4 Build/RQ3A.210805.001.A1)"})
+    try:
+        r = json.loads(urllib.request.urlopen(req, timeout=20).read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError("No se pudo consultar el reconocedor (¿sin internet?): %s" % e)
+    x = r.get("track")
+    if not x or not r.get("matches"):
+        return {"found": False}
+    meta = {}
+    for s in x.get("sections") or []:
+        for m in s.get("metadata") or []:
+            meta[str(m.get("title") or "").lower()] = m.get("text") or ""
+    im = x.get("images") or {}
+    link = x.get("url") or ""
+    return {"found": True, "title": x.get("title") or "", "artist": x.get("subtitle") or "", "album": meta.get("album", ""),
+            "year": str(meta.get("released", ""))[:4], "label": meta.get("label", ""), "timecode": "",
+            "link": link if link.startswith("https://") else "", "art": im.get("coverarthq") or im.get("coverart") or "", "by": "huella"}
+
+
 def audd_recognize(audio, mime):
     token = AUDD.data.get("token") or ""
     if not token:
@@ -1378,6 +1419,14 @@ class H(BaseHTTPRequestHandler):
                 return self.send_json(200, playlist_op(self.body()))
             except ValueError as e:
                 return self.send_json(400, {"error": str(e)})
+        if p == "/api/recognize/sig" and M == "POST":
+            b = self.body() or {}
+            try:
+                return self.send_json(200, shazam_recognize(b.get("sig"), b.get("samplems")))
+            except ValueError as e:
+                return self.send_json(400, {"error": str(e)})
+            except Exception as e:  # noqa: BLE001
+                return self.send_json(502, {"error": str(e)})
         if p == "/api/recognize/config" and M == "GET":
             return self.send_json(200, audd_status())
         if p == "/api/recognize/config" and M == "POST":
