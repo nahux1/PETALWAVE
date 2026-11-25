@@ -678,6 +678,17 @@ body.vinyl .cover.video img,body.vinyl .cover.video::after{display:none}
 .hlook b{display:block;margin-bottom:3px}.hlook span{font-size:12.5px;color:var(--dim)}
 .hlook .acts{display:flex;gap:6px;margin-top:8px}
 @media (max-width:700px){.hlook>i{flex-basis:90px}}
+/* elegir dónde va el mini reproductor: una pantallita con 6 lugares */
+.mpp{position:relative;width:min(300px,100%);aspect-ratio:16/9;margin:6px 0 12px;border:1px solid var(--bd);border-radius:10px;background:linear-gradient(135deg,var(--g1),var(--g3))}
+.mpp button{position:absolute;width:30%;height:22%;padding:0;border:0;background:none;cursor:pointer}
+.mpp button i{position:absolute;inset:22% 8%;border-radius:99px;border:1px dashed color-mix(in srgb,var(--fg) 35%,transparent);transition:.15s}
+.mpp button:hover i{border-color:var(--ac2);background:color-mix(in srgb,var(--ac) 25%,transparent)}
+.mpp button.on i{border:0;background:var(--ac);box-shadow:0 0 12px color-mix(in srgb,var(--ac) 70%,transparent)}
+.mpp [data-mp^="top"]{top:3%}.mpp [data-mp^="bottom"]{bottom:3%}
+.mpp [data-mp$="left"]{left:3%}.mpp [data-mp$="right"]{right:3%}
+.mpp [data-mp="top"],.mpp [data-mp="bottom"]{left:35%}
+.mpp-free{position:absolute;inset:0;display:none;place-items:center;font-size:12px;color:var(--ac2);pointer-events:none}
+.mpp.free .mpp-free{display:grid}
 /* galería de fondos */
 .wpmfx{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--dim);margin:2px 2px 6px;cursor:pointer}
 .wpmfx b{color:var(--fg);font-weight:500}
@@ -717,17 +728,37 @@ body.compact .cover{width:96px}
 .miniui{display:none}
 body.mini .top,body.mini .shell,body.mini #wp::after{display:none}
 body.mini{overflow:hidden}
-body.mini .miniui{display:flex;gap:12px;align-items:center;position:fixed;inset:0;padding:10px 12px;background:color-mix(in srgb,var(--deep) 70%,transparent)}
-.mcover{width:96px;height:96px;flex:0 0 auto;border-radius:var(--r);overflow:hidden;background:linear-gradient(135deg,var(--ac3),var(--g3));box-shadow:0 6px 18px rgba(0,0,0,.45)}
+/* pastilla (ventana bajita) y tarjeta (al pasar el mouse): el tamaño lo anima petalwave.exe */
+body.mini .miniui{display:flex;flex-direction:column;gap:10px;position:fixed;inset:0;padding:9px 12px;background:color-mix(in srgb,var(--deep) 90%,transparent);user-select:none;-webkit-user-select:none;cursor:grab;overflow:hidden}
+body.mini .miniui::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse 90% 70% at 15% 0%,color-mix(in srgb,var(--ac) 30%,transparent),transparent 70%)}
+.mtop{display:flex;align-items:center;gap:11px;min-width:0}
+.mcover{width:44px;height:44px;flex:0 0 auto;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,var(--ac3),var(--g3));box-shadow:0 4px 14px rgba(0,0,0,.45);transition:width .2s,height .2s,border-radius .2s}
 .mcover img{width:100%;height:100%;object-fit:cover}
 .mcover img:not([src]),.fcover img:not([src]),.mcover img[src=""],.fcover img[src=""]{display:none}
-.mmain{flex:1;min-width:0}
+.mtt{flex:1;min-width:0}
 .mt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ma{color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.miniui .seek{margin-top:6px}
-.mctl{display:flex;align-items:center;gap:2px;margin-top:4px}
-.mctl canvas{flex:1;height:30px;min-width:40px}
-.mctl .ib.big{width:38px;height:38px}
+.mpill{display:flex;gap:2px;flex:0 0 auto}
+.mlike{display:none}
+.mrest{display:none;flex-direction:column;gap:8px;opacity:0;transition:opacity .2s}
+.mseek{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.mseek .seek{flex:1;margin:0}
+.mctl{display:flex;align-items:center;justify-content:center;gap:6px}
+.mctl .ib.big{width:44px;height:44px}
+.mfoot{display:flex;align-items:center;gap:8px}
+.mfoot .vol{flex:1;min-width:40px}
+.mopen{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
+#cvMini{width:100%;height:26px;opacity:.55}
+.miniui button,.miniui input{cursor:pointer}
+/* tarjeta: la ventana ya es alta */
+@media (min-height:140px){
+  body.mini .miniui{padding:14px 16px}
+  body.mini .mcover{width:68px;height:68px;border-radius:14px}
+  body.mini .mt{font-size:16px}
+  body.mini .mpill{display:none}
+  body.mini .mlike:not([hidden]){display:inline-flex}
+  body.mini .mrest{display:flex;opacity:1}
+}
 
 /* ---------- pantalla completa ---------- */
 .full{position:fixed;inset:0;z-index:70;display:flex;overflow:hidden;background:var(--deep);animation:fadeIn .25s}

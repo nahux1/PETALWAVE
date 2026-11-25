@@ -25,6 +25,8 @@ export const DEF = {
   petals: 'theme', scan: 'theme', wpDim: 18, wpBlur: 0,
   // fondo de pantalla: 'auto' (el tuyo si subiste uno; si no, uno incluido), 'mine', 'none' o un fondo de la galería
   wpPick: 'auto',
+  // mini reproductor: dónde va en la pantalla, si minimizar lo abre y si se agranda al pasar el mouse
+  miniPos: 'top', minimizeTo: 'mini', miniExpand: true,
   // el look sigue a tu música (adapt.js): 'suggest' te pregunta, 'auto' lo cambia solo, 'off' nunca
   adaptLook: 'suggest',
   // fondos animados (bgfx.js)
@@ -248,6 +250,13 @@ export function customizerHtml() {
     ${sel('adaptLook', 'adaptar el look a tu música', 'si cambia lo que más escuchás, tema y fondo que le quedan', [['suggest', 'sugerirme'], ['auto', 'cambiarlo solo'], ['off', 'nunca']])}
     <div class="cfrow"><span>tu propio fondo<span class="m">imagen, GIF o video · también arrastrándolo a la ventana</span></span><span><button class="cb" id="kWpOwn">subir el mío</button></span></div>
   </div>
+  <div class="cfgsec"><h3>▭ mini reproductor ${tip('Una pastilla chiquita, siempre visible, con la canción y play. Al pasar el mouse se agranda con todos los controles. Se abre con Shift+M, con el botón de minimizar de la ventana o desde la bandeja. Doble clic: vuelve a la ventana grande.')}</h3>
+    <div class="cfrow"><span>dónde va en la pantalla<span class="m">también lo podés arrastrar a cualquier lugar</span></span></div>
+    <div class="mpp" id="kMiniPos">${[['top-left', 'arriba a la izquierda'], ['top', 'arriba al centro'], ['top-right', 'arriba a la derecha'], ['bottom-left', 'abajo a la izquierda'], ['bottom', 'abajo al centro'], ['bottom-right', 'abajo a la derecha']].map(([k, t]) => `<button data-mp="${k}" title="${t}" aria-label="${t}"><i></i></button>`).join('')}<span class="mpp-free">donde lo dejaste</span></div>
+    ${sel('minimizeTo', 'al minimizar la ventana', 'el botón — de la ventana', [['mini', 'se convierte en mini reproductor'], ['bar', 'va a la barra de tareas']])}
+    ${tgl('miniExpand', 'agrandarse al pasar el mouse', 'muestra los controles, la barra de tiempo y el volumen')}
+    <div class="cfrow"><span>probarlo ahora<span class="m">Shift+M · doble clic en el mini reproductor para volver</span></span><button class="cb" data-act="mini">abrir mini reproductor</button></div>
+  </div>
   <div class="cfgsec"><h3>▧ fondo</h3>
     ${sel('petals', 'pétalos cayendo', '', [['theme', 'según el tema'], ['on', 'siempre'], ['off', 'nunca']])}
     ${sel('scan', 'líneas de escaneo', 'efecto monitor CRT', [['theme', 'según el tema'], ['on', 'siempre'], ['off', 'nunca']])}
@@ -300,6 +309,8 @@ function syncControls(box) {
   const cur = Object.entries(LAYOUTS).find(([, l]) => Object.keys(DEF).every((k) => (k in l.v ? l.v[k] : DEF[k]) === c[k]));
   box.querySelectorAll('[data-lay]').forEach((b) => b.classList.toggle('on', !!cur && b.dataset.lay === cur[0]));
   box.querySelectorAll('[data-fx]').forEach((b) => b.classList.toggle('on', b.dataset.fx === c.bgFx));
+  box.querySelectorAll('[data-mp]').forEach((b) => b.classList.toggle('on', b.dataset.mp === c.miniPos));
+  const mpp = box.querySelector('#kMiniPos'); if (mpp) mpp.classList.toggle('free', c.miniPos === 'free');
 }
 
 export function bindCustomizer(box, rerender) {
@@ -319,6 +330,7 @@ export function bindCustomizer(box, rerender) {
   });
   box.querySelectorAll('[data-rs]').forEach((b) => (b.onclick = () => { setC(b.dataset.rs, undefined); syncControls(box); }));
   box.querySelectorAll('[data-fx]').forEach((b) => (b.onclick = () => { setC('bgFx', b.dataset.fx); syncControls(box); }));
+  box.querySelectorAll('[data-mp]').forEach((b) => (b.onclick = () => { setC('miniPos', b.dataset.mp); syncControls(box); }));
   $('#kWpVid').onclick = () => bus.emit('wallpaper:pick');
   $('#kWpOwn').onclick = () => bus.emit('wallpaper:pick');
   import('./wallgallery.js').then((m) => m.fillGalleryRow($('#kWpGal')));

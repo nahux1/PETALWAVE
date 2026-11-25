@@ -22,14 +22,20 @@ using Microsoft.Web.WebView2.WinForms;
 
 static class Launcher
 {
+#if PWTEST
+    public const string Url = "http://127.0.0.1:3743";
+    const string Tag = "-prueba";
+#else
     public const string Url = "http://127.0.0.1:3737";
+    const string Tag = "";
+#endif
     public const string Title = "Petalwave";
 
     public static string AppDir { get { return AppDomain.CurrentDomain.BaseDirectory; } }
     public static string LibDir { get { return Path.Combine(AppDir, "lib"); } }
     public static string DataDir()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "petalwave");
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "petalwave" + Tag);
     }
 
     public static void Trace(string msg)
@@ -86,13 +92,13 @@ static class Launcher
     static int Run()
     {
         bool first;
-        Single = new Mutex(true, "Local\\petalwave-ventana", out first);
+        Single = new Mutex(true, "Local\\petalwave-ventana" + Tag, out first);
         if (!first)
         {
-            try { using (var ev = EventWaitHandle.OpenExisting("Local\\petalwave-mostrar")) ev.Set(); } catch { }
+            try { using (var ev = EventWaitHandle.OpenExisting("Local\\petalwave-mostrar" + Tag)) ev.Set(); } catch { }
             return 0;
         }
-        ShowSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\petalwave-mostrar");
+        ShowSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\petalwave-mostrar" + Tag);
         string data = DataDir();
         if (!File.Exists(Path.Combine(AppDir, "server.js")))
         {
@@ -128,6 +134,9 @@ static class Launcher
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+#if PWTEST
+            psi.EnvironmentVariables["PORT"] = "3743";
+#endif
             server = Process.Start(psi);
             var w = log;
             server.OutputDataReceived += (s, e) => { if (e.Data != null) lock (w) w.WriteLine(e.Data); };
@@ -180,10 +189,25 @@ static class Launcher
     }
 }
 
+// ventana principal: avisa cuando se pide minimizar (para convertirla en el mini reproductor en vez de esconderla)
+class MainForm : Form
+{
+    public Func<bool> OnMinimize;
+    protected override void WndProc(ref Message m)
+    {
+        // WM_SYSCOMMAND + SC_MINIMIZE
+        if (m.Msg == 0x0112 && ((int)m.WParam & 0xFFF0) == 0xF020 && OnMinimize != null && OnMinimize()) return;
+        base.WndProc(ref m);
+    }
+}
+
 // ================= ventana nativa (WebView2) =================
 static class AppWindow
 {
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+    [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20, DWMWA_BORDER_COLOR = 34, DWMWA_CAPTION_COLOR = 35, DWMWA_TEXT_COLOR = 36;
     static readonly Color Deep = Color.FromArgb(42, 16, 36);
 
@@ -365,7 +389,7 @@ static class AppWindow
     public static void Run(string url, string data)
     {
         Application.EnableVisualStyles();
-        var form = new Form
+        var form = new MainForm
         {
             Text = Launcher.Title,
             BackColor = Deep,
@@ -422,21 +446,95 @@ static class AppWindow
             else restore();
             full = on;
         };
+        // ---- mini reproductor: la ventana se encoge (animada) en una "pastilla" pegada a un borde de la pantalla;
+        // al pasar el mouse se agranda en una tarjeta con controles. La posición la elige cada uno (o la arrastra).
+        bool miniCard = false, minToMini = true;
+        string miniPos = "top";
+        Point miniFree = Point.Empty;
+        string miniFile = Path.Combine(data, "mini.txt");
+        try { var mp = File.ReadAllText(miniFile).Trim().Split(' '); if (mp.Length >= 2) miniFree = new Point(int.Parse(mp[0]), int.Parse(mp[1])); } catch { }
+        float dpi = 1f; try { using (var g = form.CreateGraphics()) dpi = g.DpiX / 96f; } catch { }
+        Func<int, int> S = (v) => (int)Math.Round(v * dpi);
+        Func<Rectangle> miniArea = () => miniPos == "free" && miniFree != Point.Empty ? Screen.FromPoint(miniFree).WorkingArea : Screen.FromRectangle(normal).WorkingArea;
+        Func<bool> growsUp = () =>
+        {
+            if (miniPos.StartsWith("bottom")) return true;
+            if (miniPos == "free") { var a = miniArea(); return miniFree.Y > a.Top + a.Height / 2; }
+            return false;
+        };
+        Func<bool, Rectangle> miniRect = (card) =>
+        {
+            var wa = miniArea();
+            int w = S(360), ph = S(62), h = card ? S(252) : ph, m = S(miniPos == "top" ? 6 : 12);
+            int x;
+            if (miniPos == "top-left" || miniPos == "bottom-left") x = wa.Left + m;
+            else if (miniPos == "top-right" || miniPos == "bottom-right") x = wa.Right - w - m;
+            else if (miniPos == "free" && miniFree != Point.Empty) x = miniFree.X;
+            else x = wa.Left + (wa.Width - w) / 2;
+            int pillTop = miniPos == "free" && miniFree != Point.Empty ? miniFree.Y : miniPos.StartsWith("bottom") ? wa.Bottom - ph - m : wa.Top + m;
+            int y = growsUp() ? pillTop + ph - h : pillTop;
+            x = Math.Max(wa.Left, Math.Min(x, wa.Right - w));
+            y = Math.Max(wa.Top, Math.Min(y, wa.Bottom - h));
+            return new Rectangle(x, y, w, h);
+        };
+        // animación suave del tamaño y la posición de la ventana (cúbica, ~60 cuadros por segundo)
+        var anim = new System.Windows.Forms.Timer { Interval = 15 };
+        Rectangle animFrom = Rectangle.Empty, animTo = Rectangle.Empty; DateTime animStart = DateTime.Now; int animMs = 1; Action animDone = null;
+        anim.Tick += (s2, e2) =>
+        {
+            double t = Math.Min(1.0, (DateTime.Now - animStart).TotalMilliseconds / animMs);
+            double k = 1 - Math.Pow(1 - t, 3);
+            Func<int, int, int> L = (a, b) => (int)Math.Round(a + (b - a) * k);
+            form.Bounds = new Rectangle(L(animFrom.X, animTo.X), L(animFrom.Y, animTo.Y), L(animFrom.Width, animTo.Width), L(animFrom.Height, animTo.Height));
+            if (t >= 1) { anim.Stop(); var d = animDone; animDone = null; if (d != null) d(); }
+        };
+        Action<Rectangle, int, Action> animate = (to, ms, done) =>
+        {
+            anim.Stop();
+            animFrom = form.Bounds; animTo = to; animMs = Math.Max(1, ms); animStart = DateTime.Now; animDone = done;
+            anim.Start();
+        };
         setMini = (on) =>
         {
             if (on == mini) return;
             if (on)
             {
                 if (full) { full = false; restore(); }
+                if (form.WindowState == FormWindowState.Minimized) form.WindowState = FormWindowState.Normal;
                 remember();
+                var from = form.Bounds;
                 form.WindowState = FormWindowState.Normal;
-                form.MinimumSize = new Size(360, 130);
-                var wa = Screen.FromControl(form).WorkingArea;
-                form.Bounds = new Rectangle(wa.Right - 470, wa.Bottom - 180, 450, 160);
+                form.FormBorderStyle = FormBorderStyle.None;
+                form.MinimumSize = new Size(1, 1);
+                form.Bounds = from;
+                SetDwm(form.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, 2);   // esquinas redondeadas (Windows 11)
                 form.TopMost = true;
+                miniCard = false;
+                mini = true;
+                animate(miniRect(false), 340, null);
             }
-            else restore();
-            mini = on;
+            else
+            {
+                mini = false; miniCard = false;
+                form.TopMost = false;
+                animate(normal, 300, () =>
+                {
+                    SetDwm(form.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, 0);
+                    form.FormBorderStyle = FormBorderStyle.Sizable;
+                    form.MinimumSize = new Size(420, 480);
+                    form.Bounds = normal;
+                    if (normalState == FormWindowState.Maximized) form.WindowState = FormWindowState.Maximized;
+                    form.Activate();
+                });
+            }
+        };
+        // el botón de minimizar (o el clic en la barra de tareas) se convierte en el mini reproductor, si así se eligió
+        form.OnMinimize = () =>
+        {
+            if (!minToMini || mini || full || coreRef == null) return false;
+            send("win:mini-on");
+            setMini(true);
+            return true;
         };
         bool quitting = false, toTray = true, trayTipShown = false;
         NotifyIcon tray = null;
@@ -540,6 +638,38 @@ static class AppWindow
                         else if (m == "quit") form.BeginInvoke((Action)(() => { quitting = true; form.Close(); }));
                         else if (m == "tray:1" || m == "tray:0") toTray = m == "tray:1";
                         else if (m == "mini:1" || m == "mini:0") setMini(m == "mini:1");
+                        else if (m == "mini:grow" && mini && !miniCard) { miniCard = true; animate(miniRect(true), 220, null); }
+                        else if (m == "mini:shrink" && mini && miniCard) { miniCard = false; animate(miniRect(false), 240, null); }
+                        else if (m.StartsWith("mini:pos:"))
+                        {
+                            var p = m.Substring(9);
+                            if (Array.IndexOf(new[] { "top", "top-left", "top-right", "bottom", "bottom-left", "bottom-right", "free" }, p) >= 0)
+                            {
+                                miniPos = p;
+                                if (mini) animate(miniRect(miniCard), 280, null);
+                            }
+                        }
+                        else if (m == "minmode:mini" || m == "minmode:bar") minToMini = m == "minmode:mini";
+                        else if (m == "mini:drag" && mini)
+                        {
+                            // arrastrar la pastilla: Windows la mueve; al soltar queda "donde la dejaste"
+                            form.BeginInvoke((Action)(() =>
+                            {
+                                bool up = growsUp();
+                                anim.Stop();
+                                var before = form.Location;
+                                ReleaseCapture();
+                                SendMessage(form.Handle, 0xA1, (IntPtr)2, IntPtr.Zero);   // WM_NCLBUTTONDOWN + HTCAPTION
+                                var nb = form.Bounds;
+                                // un clic (o el primero de un doble clic) sin mover no cambia el lugar elegido
+                                if (Math.Abs(nb.X - before.X) < S(4) && Math.Abs(nb.Y - before.Y) < S(4)) return;
+                                miniFree = new Point(nb.X, miniCard && up ? nb.Bottom - S(62) : nb.Y);
+                                miniPos = "free";
+                                try { File.WriteAllText(miniFile, miniFree.X + " " + miniFree.Y); } catch { }
+                                send("win:minipos:free");
+                                animate(miniRect(miniCard), 200, null);
+                            }));
+                        }
                         else if (m == "full:1" || m == "full:0") setFull(m == "full:1");
                         else if (m.StartsWith("notify:") && !form.ContainsFocus)
                         {

@@ -247,7 +247,20 @@ function feedback(act) {
 
 // ---------- comandos de la bandeja / ventana nativa ----------
 bus.on('host:cmd', (c) => { if (ACTIONS[c]) ACTIONS[c](); });
-bus.on('host:win', (w) => { if (w === 'mini-off') toggleMini(false); if (w === 'full-off') { const f = $('#full'); if (!f.hidden) { f.hidden = true; document.body.classList.remove('full-on'); } } });
+// mini reproductor: avisar a petalwave.exe dónde va y qué hace minimizar; agrandarlo al pasar el mouse; arrastrarlo
+const sendMiniPrefs = () => { const c = C(); host.send('mini:pos:' + (c.miniPos || 'top')); host.send('minmode:' + (c.minimizeTo === 'bar' ? 'bar' : 'mini')); };
+setTimeout(sendMiniPrefs, 300);
+let lastMiniPrefs = '';
+bus.on('custom', () => { const c = C(); const k = c.miniPos + '|' + c.minimizeTo; if (k !== lastMiniPrefs) { lastMiniPrefs = k; sendMiniPrefs(); } });
+{
+  let growT = 0, shrinkT = 0;
+  document.documentElement.addEventListener('mouseenter', () => { if (!miniOn || C().miniExpand === false) return; clearTimeout(shrinkT); growT = setTimeout(() => host.send('mini:grow'), 140); });
+  document.documentElement.addEventListener('mouseleave', () => { if (!miniOn) return; clearTimeout(growT); shrinkT = setTimeout(() => host.send('mini:shrink'), 650); });
+  const mu = $('#miniUi');
+  mu.addEventListener('mousedown', (e) => { if (e.button === 0 && miniOn && !e.target.closest('button,input,[data-seek]')) { e.preventDefault(); host.send('mini:drag'); } });
+  mu.addEventListener('dblclick', (e) => { if (!e.target.closest('button,input,[data-seek]')) toggleMini(false); });
+}
+bus.on('host:win', (w) => { if (w === 'mini-on') toggleMini(true); if (w === 'minipos:free') setC('miniPos', 'free'); if (w === 'full-off') { const f = $('#full'); if (!f.hidden) { f.hidden = true; document.body.classList.remove('full-on'); } } });
 
 // ---------- arrastrar y soltar archivos ----------
 let dragN = 0;

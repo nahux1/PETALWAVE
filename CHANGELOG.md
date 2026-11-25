@@ -1,6 +1,13 @@
 # petalwave — registro de cambios
 
-## 2.17.1 — arreglo de reproducción en Android
+## 2.18.0 — mini reproductor nuevo y arreglo en Android
+- **Mini reproductor** (`build/Launcher.cs` + `ui/js/app.js` + `index.html`):
+  - `MainForm` intercepta SC_MINIMIZE: con `minimizeTo: 'mini'` la ventana se anima (cúbica, 340 ms) hasta una pastilla sin bordes, con esquinas redondeadas (DWM) y siempre visible.
+  - Al pasar el mouse la interfaz manda `mini:grow`/`mini:shrink` y la ventana se anima a tarjeta y vuelta (arriba crece hacia abajo, abajo crece hacia arriba).
+  - Posición: `miniPos` (6 lugares o `free`), y `mini:drag` mueve la ventana con WM_NCLBUTTONDOWN; solo cuenta si se movió. El punto libre se guarda en `data/mini.txt`.
+  - La interfaz cambia de pastilla a tarjeta con `@media (min-height:140px)`. Doble clic vuelve a la ventana grande.
+  - `/define:PWTEST` compila un launcher de prueba (puerto 3743, otra ventana única y otros datos) para probar con Petalwave abierto.
+- **Android y apoyo** (lo que iba a ser la 2.17.1):
 - **Android:** el `MediaSession` de `PlayerService` mandaba "toggle" tanto para `onPlay` como para `onPause`. Un "play" del sistema, los auriculares o el Bluetooth mientras la canción cargaba la pausaba (AbortError + salto). Ahora manda "play"/"pause", y la interfaz solo actúa si hace falta. Probado en el emulador con KEYCODE_MEDIA_PLAY/PAUSE/PLAY_PAUSE.
 - **Reproductor:** un `play()` rechazado por AbortError o NotAllowedError queda en pausa en vez de contar como error y saltar.
 - **Apoyar:** `supportLinks` (varios links) en `latest.json`, `tools/support.json` con Cafecito y Patreon, y `patreon.com` permitido en los dos servidores. También en la web y el README.

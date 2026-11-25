@@ -339,19 +339,31 @@
 </main>
 
 <!-- ======================= mini reproductor ======================= -->
-<div class="miniui" id="miniUi">
-  <div class="mcover"><img alt="" data-np="coverimg"></div>
-  <div class="mmain">
-    <div class="mt" data-np="title">nada sonando</div>
-    <div class="ma" data-np="artist">—</div>
-    <div class="seek" data-seek><div class="tr"><div class="fi" data-np="fill"></div><div class="kn" data-np="knob"></div></div></div>
+<div class="miniui" id="miniUi" title="doble clic: volver a la ventana grande · arrastrá para moverlo">
+  <div class="mtop">
+    <div class="mcover"><img alt="" data-np="coverimg"></div>
+    <div class="mtt"><div class="mt" data-np="title">nada sonando</div><div class="ma" data-np="artist">—</div></div>
+    <span class="mpill">
+      <button class="ib sm" data-act="toggle" title="play / pausa"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
+      <button class="ib sm" data-act="next" title="siguiente"><svg class="i"><use href="#i-next"/></svg></button>
+    </span>
+    <button class="ib sm likeb mlike" data-act="like" title="me gusta (h)" hidden><svg class="i"><use href="#i-heart"/></svg></button>
+  </div>
+  <div class="mrest">
+    <div class="mseek"><span data-np="pos">0:00</span><div class="seek" data-seek><div class="tr"><div class="fi" data-np="fill"></div><div class="kn" data-np="knob"></div></div></div><span data-np="dur">0:00</span></div>
     <div class="mctl">
-      <button class="ib sm" data-act="prev"><svg class="i"><use href="#i-prev"/></svg></button>
-      <button class="ib" data-act="toggle"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
-      <button class="ib sm" data-act="next"><svg class="i"><use href="#i-next"/></svg></button>
-      <canvas id="cvMini"></canvas>
-      <button class="ib sm" data-act="mini" title="volver"><svg class="i"><use href="#i-full"/></svg></button>
+      <button class="ib sm" data-act="shuffle" title="aleatorio"><svg class="i"><use href="#i-shuf"/></svg></button>
+      <button class="ib" data-act="prev" title="anterior"><svg class="i"><use href="#i-prev"/></svg></button>
+      <button class="ib big" data-act="toggle" title="play / pausa"><svg class="i" data-np="playicon"><use href="#i-play"/></svg></button>
+      <button class="ib" data-act="next" title="siguiente"><svg class="i"><use href="#i-next"/></svg></button>
+      <button class="ib sm" data-act="repeat" title="repetir"><svg class="i" data-np="repicon"><use href="#i-rep"/></svg></button>
     </div>
+    <div class="mfoot">
+      <button class="ib sm" data-act="mute" title="silenciar"><svg class="i" data-np="volicon"><use href="#i-vol"/></svg></button>
+      <input type="range" class="vol" data-vol min="0" max="150" step="1" value="80" title="volumen">
+      <button class="cb sm mopen" data-act="mini" title="volver a la ventana grande"><svg class="i"><use href="#i-full"/></svg> abrir</button>
+    </div>
+    <canvas id="cvMini"></canvas>
   </div>
 </div>
 
