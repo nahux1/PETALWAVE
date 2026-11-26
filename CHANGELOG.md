@@ -1,5 +1,24 @@
 # petalwave — registro de cambios
 
+## 2.21.0 — sin internet
+- **Lo guardado = `data/stream-cache`** (la caché que ya existía para cuando YouTube rechaza el enlace). Límite configurable (`offlineMaxMB`; 1 GB en Windows y 500 MB en Android por defecto). LRU por mtime, que se renueva al empezar a sonar.
+- **Servidores (Node y Android):**
+  - `GET /api/net`: HEAD a `music.youtube.com/generate_204` o google, guardado 20 s.
+  - `GET /api/offline` → `{ids, bytes, maxMB, saving}`.
+  - `POST /api/offline/save|remove|config`: guarda de a una en segundo plano con yt-dlp.
+  - `/stream/<id>` sin internet y sin guardar → 503 al instante (antes yt-dlp tardaba hasta un minuto en rendirse). `warm` tampoco intenta.
+- **Android:** `/stream/<id>` ahora sirve lo guardado *antes* de resolver en YouTube (sin internet fallaba aunque estuviera guardada).
+- **`ui/js/offline.js`:**
+  - Estado de la red (`/api/net` cada 45 s, eventos `online`/`offline` y error de una canción online).
+  - `isOffline()`, `playable(t)` y `offlineIds()`.
+  - Pastilla `#tOff` y panel ✈ (contadores, escuchar todo mezclado, modo sin internet).
+  - Filas `[data-warm]` apagadas (`.pw-nooff`) con un MutationObserver.
+  - Auto-guardado a los 30 s (`offlineAuto`; en Android con datos, solo con `offlineWifi` apagado).
+  - `saveOffline`/`removeOffline`.
+- **`player.js`:** `setGate(fn)`. `start` y `next` saltean lo que no se puede escuchar, y si no queda nada se emite `ended-queue`.
+- **Cola infinita sin internet:** sin radio ni recomendaciones online; solo biblioteca y lo guardado.
+- **Biblioteca:** botón *✈ guardar sin internet* en listas de YTM y en el menú de canciones online. Ajustes → nueva sección *sin internet* (`#cfg-offline`, se abre con `bus.emit('open-settings', 'offline')`). Las descargas inteligentes no corren con el modo sin internet.
+
 ## 2.20.0 — MP3 o MP4 al descargar y cola infinita
 - **`ui/js/dlpick.js`:** `chooseFormat(n, title)` abre un modal con MP3 (`dl.quality`, por defecto 320) o MP4 (`dl.vquality`, por defecto 1080p) y devuelve `{format, quality, cookies}`, o `null` si se cancela. "Recordar" guarda `dlAsk: false` + `dlPick`. Lo usan todas las descargas: biblioteca (lista y menú), YouTube Music, lo que falta de Spotify y *¿qué suena?*. Antes MP4 se forzaba a MP3.
 - **Ajustes → descargas:** "preguntar MP3 o MP4 al descargar" y "si no pregunta, bajar en".

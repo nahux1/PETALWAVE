@@ -1,5 +1,5 @@
 // workspace de ajustes: temas, reproducción, visualizador, carpetas, descargas, letras, atajos y rendimiento
-import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2 } from './core.js';
+import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2, fmtSize } from './core.js';
 import { supportRowHtml, bindSupportRow } from './support.js';
 import { runSmartDl, smartDone } from './smartdl.js';
 const isAndroid = !!window.PetalwaveNative;
@@ -84,6 +84,13 @@ export async function renderSettings() {
       ${isAndroid ? `<label class="cfrow"><span>solo con WiFi<span class="m">no gasta tus datos móviles</span></span><input type="checkbox" data-p="smartDlWifi" ${p.smartDlWifi !== false ? 'checked' : ''}></label>` : ''}
       <div class="cfrow"><span>simultáneas${tip('Más de 2 a la vez aumenta el riesgo de que YouTube bloquee las descargas por un rato.')}<span class="m">recomendado: 2</span></span><select id="cConc">${[1, 2, 3, 4].map((n) => `<option ${server.concurrency == n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
     </div>
+    <div class="cfgsec" id="cfg-offline"><h3>✈ sin internet ${tip('Las canciones online que escuchás (más de 30 s) se guardan solas en Petalwave, no en tu carpeta de música. Sin internet suenan esas y las de tu biblioteca; la cola saltea las que no están guardadas. Cuando se llena el espacio se borran las que hace más que no escuchás. Letras y portadas que ya viste también quedan guardadas.')}</h3>
+      ${chk('offlineAuto', 'guardar lo que escucho', 'cada canción online que escuchás queda para escucharla sin internet')}
+      ${isAndroid ? chk('offlineWifi', 'guardar solo con WiFi', 'no gasta tus datos móviles') : ''}
+      <div class="cfrow"><span>espacio para lo guardado<span class="m" id="cOffInfo">…</span></span><span><select id="cOffMax">${[[250, '250 MB'], [500, '500 MB'], [1024, '1 GB'], [2048, '2 GB'], [5120, '5 GB'], [10240, '10 GB']].map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select> <button class="cb sm" id="cOffClear">borrar lo guardado</button></span></div>
+      ${chk('offlineMode', 'modo sin internet', 'no usar internet para la música: solo suena lo guardado (para ahorrar datos o en el avión)')}
+      <div class="cfrow"><span>qué puedo escuchar sin internet</span><button class="cb sm" id="cOffOpen">✈ ver</button></div>
+    </div>
     <div class="cfgsec"><h3>≡ letras ${tip('Orden de búsqueda: archivo .lrc o .txt con el mismo nombre del audio → letra guardada dentro del archivo → YouTube Music → LRCLIB.')}</h3>
       <label class="cfrow"><span>YouTube Music${tip('Las mismas letras que muestra YouTube Music (LyricFind / Musixmatch), sincronizadas cuando existen. Vía ytmusicapi.')}<span class="m">letras oficiales, sincronizadas</span></span><input type="checkbox" id="cLrcY" ${server.lyricsYtm !== false ? 'checked' : ''}></label>
       <label class="cfrow"><span>LRCLIB${tip('Base abierta y comunitaria de letras (lrclib.net). Envía artista, título y duración de la canción.')}<span class="m">base abierta de internet</span></span><input type="checkbox" id="cLrc" ${server.lyricsOnline ? 'checked' : ''}></label>
@@ -141,6 +148,14 @@ export async function renderSettings() {
     if (k === 'dyn') return setDyn(c.checked);
     P.set(k, c.checked); bus.emit('prefs', k);
   }));
+  import('./offline.js').then(async (O) => {
+    const info = () => { const s = O.offlineState(); const el = $('#cOffInfo'); if (el) el.textContent = `${s.cached.size} canciones guardadas · ${fmtSize(s.bytes)}${s.saving ? ` · guardando ${s.saving}…` : ''}`; const sel = $('#cOffMax'); if (sel && s.maxMB) { if (![...sel.options].some((o) => +o.value === s.maxMB)) sel.add(new Option(s.maxMB + ' MB', s.maxMB)); sel.value = String(s.maxMB); } };
+    await O.refreshOffline(); info();
+    const sel = $('#cOffMax'); if (sel) sel.onchange = async () => { await api.post('/api/offline/config', { maxMB: +sel.value }); await O.refreshOffline(); info(); toast('espacio para lo guardado: ' + sel.options[sel.selectedIndex].text, { ms: 1500 }); };
+    const clr = $('#cOffClear'); if (clr) clr.onclick = async () => { if (!(await confirm2('Borrar lo guardado', `¿Borrar las ${O.offlineState().cached.size} canciones online guardadas? Tu biblioteca no se toca.`, 'borrar', true))) return; await O.removeOffline({ all: true }); info(); toast('listo: se borró lo guardado'); };
+    const op = $('#cOffOpen'); if (op) op.onclick = () => O.openOffline();
+    const md = box.querySelector('[data-p="offlineMode"]'); if (md) md.addEventListener('change', () => O.setOfflineMode(md.checked));
+  });
   const dp = $('#cDlPick'); if (dp) { dp.value = P.get('dlPick') === 'mp4' ? 'mp4' : 'mp3'; dp.onchange = () => P.set('dlPick', dp.value); }
   import('./recognize.js').then((m) => m.auddSettings($('#cAudd')));
   // cuentas

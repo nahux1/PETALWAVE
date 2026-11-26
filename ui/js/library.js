@@ -1,6 +1,7 @@
 // biblioteca: vistas (canciones, artistas, álbumes, géneros, años, recientes, duplicados, playlists, automáticas),
 // búsqueda instantánea, lista virtualizada, selección múltiple, menú contextual, arrastrar a playlists y edición de etiquetas
 import { $, $$, bus, P, api, esc, fmtTime, fmtSize, norm, icon, coverUrl, toast, modal, prompt2, confirm2, ctxMenu, debounce, ago, emptyState } from './core.js';
+import { saveOffline, removeOffline, savedOffline } from './offline.js';
 import { chooseFormat } from './dlpick.js';
 import { D, T, loadLibrary, loadPlaylists, loadAuto, plOp, trackLabel, ytm, loadYtmList, loadYtmPlaylists } from './data.js';
 import { playList, playNext, addQueue, radio, S as PS, current } from './player.js';
@@ -205,7 +206,7 @@ function headerHtml(list) {
       const name = view.key === 'liked' ? 'Me gusta' : (pl && pl.title) || l.title || 'playlist';
       const syncTxt = ytm.loading.has(view.key) ? 'sincronizando…' : l.at ? 'sincronizado ' + ago(l.at) : '';
       const noVid = $('#fKind').value === 'audio';
-      const extra = `<button class="cb" data-h="ytmsync">${icon('sync')} actualizar</button>${online ? `<button class="cb" data-h="ytmdl">${icon('dl')} descargar las ${online} online</button>` : ''}<button class="cb ${noVid ? 'on' : ''}" data-h="novideo" title="ocultar videoclips y videos subidos por usuarios">sin videos</button>`;
+      const extra = `<button class="cb" data-h="ytmsync">${icon('sync')} actualizar</button>${online ? `<button class="cb" data-h="offsave" title="las baja a lo guardado de Petalwave (no a tu carpeta de música) para escucharlas sin internet">✈ guardar sin internet</button><button class="cb" data-h="ytmdl">${icon('dl')} descargar las ${online} online</button>` : ''}<button class="cb ${noVid ? 'on' : ''}" data-h="novideo" title="ocultar videoclips y videos subidos por usuarios">sin videos</button>`;
       return `<div class="ttlbar"><img class="hcover" src="${pl && pl.thumb ? esc(pl.thumb) : coverUrl((list[0] || {}).id || '')}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><div>
         <div class="sub">youtube music · ☁ ${online} online sin descargar · ${list.length - online} en tu PC · ${esc(syncTxt)}</div><h2 data-raw>${esc(name)}</h2>
         <div class="sub">${sub}${l.error ? ' · <span style="color:var(--warn)">' + esc(l.error) + '</span>' : ''}</div>${acts(extra)}</div></div>`;
@@ -264,6 +265,7 @@ function bindHeader(head, list) {
     if (a === 'delpl') { const p = D.playlists.find((x) => x.id === view.key); if (await confirm2('Borrar playlist', `¿Borrar «${esc(p.name)}»? Las canciones no se borran.`, 'borrar', true)) { await plOp({ id: view.key, delete: true }); go({ type: 'songs' }); } }
     if (a === 'novideo') { $('#fKind').value = $('#fKind').value === 'audio' ? '' : 'audio'; render(); return; }
     if (a === 'ytmsync') { await loadYtmList(view.key, true); toast('lista sincronizada con YouTube Music ⟳', { ms: 1500 }); }
+    if (a === 'offsave') saveOffline(ids.map(T));
     if (a === 'ytmdl') {
       const online = ids.map(T).filter((t) => t && t.remote && t.available !== false);
       const pick = await chooseFormat(online.length); if (!pick) return;
@@ -364,6 +366,7 @@ export function trackMenu(x, y, idsArg) {
       ] },
       plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
       (view.type === 'recs' || view.type === 'disc' || view.type === 'mix') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
+      { label: remote.every(savedOffline) ? '✓ guardada sin internet' : 'guardar para escuchar sin internet', icon: 'dl', fn: () => (remote.every(savedOffline) ? removeOffline({ ids: remote.map((t) => t.ytId) }).then(() => toast('ya no está guardada sin internet')) : saveOffline(remote)) },
       { label: remote.length > 1 ? `descargar ${remote.length} a mi PC` : 'descargar a mi PC', icon: 'dl', fn: async () => {
         const pick = await chooseFormat(remote.length, remote.length === 1 ? remote[0].title : ''); if (!pick) return;
         try { const r = await api.post('/api/downloads', { urls: remote.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), ...pick }); toast(`${r.ids.length} en cola ⇣`, { sub: pick.format === 'mp4' ? 'en video (MP4)' : 'en audio (MP3)' }); }

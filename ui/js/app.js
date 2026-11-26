@@ -16,6 +16,7 @@ import { initYtm } from './ytmui.js';
 import { initLikes, likeCurrent } from './likes.js';
 import { loadTaste, recsOnline, recsLocal, nope } from './taste.js';
 import { initSmartDl } from './smartdl.js';
+import { initOffline, isOffline, playable } from './offline.js';
 import { renderHome, initHome } from './home.js';
 import { renderExplore, initExplore } from './explore.js';
 import { initGsearch, open as openSearch } from './gsearch.js';
@@ -46,6 +47,10 @@ function setWs(ws) {
   if (ws === 'music') renderLib();
 }
 bus.on('ws', setWs);
+bus.on('open-settings', async (sec) => {
+  setWs('cfg');
+  for (let k = 0; k < 20; k++) { const el = sec && document.getElementById('cfg-' + sec); if (el) { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); break; } await new Promise((r) => setTimeout(r, 100)); }
+});
 
 // atajos del ícono de Android (solo navegan: "¿qué suena?" abre la pantalla pero espera que toques para grabar)
 bus.on('host:go', async (g) => {
@@ -379,6 +384,7 @@ async function boot() {
   initYtm();
   initLikes();
   initSmartDl();
+  initOffline();
   initHome();
   initExplore();
   initAdapt();
@@ -413,18 +419,20 @@ async function boot() {
       const S = player.S, cur = player.current();
       // no repetir lo que sonó hace poco ni lo que ya está en la cola
       const avoid = new Set([...S.queue.slice(Math.max(0, S.qi - 80)), ...(S.history || []).slice(0, 120)]);
-      const fresh = (ids) => [...new Set(ids)].filter((id) => T(id) && !avoid.has(id));
+      const off = isOffline();
+      const fresh = (ids) => [...new Set(ids)].filter((id) => T(id) && !avoid.has(id) && (!off || playable(T(id))));
       let ids = [];
-      if (cur && cur.ytId) {   // 1) radio de la canción que suena: parecidas de verdad
+      if (cur && cur.ytId && !off) {   // 1) radio de la canción que suena: parecidas de verdad
         try { const r = await Promise.race([api.get('/api/ytm/radio/' + cur.ytId), late(10000)]); ids = (r.tracks || r.items || []).filter((x) => x && x.videoId && !x.isVideo).map((x) => (T('yt_' + x.videoId) || remoteTrack(x)).id); } catch {}
       }
-      if (fresh(ids).length < 6) {   // 2) recomendaciones para vos
+      if (fresh(ids).length < 6 && !off) {   // 2) recomendaciones para vos
         try { const r = await Promise.race([recsOnline(), late(12000)]); ids = ids.concat(r.items.map((it) => 'yt_' + it.videoId)); } catch {}
       }
       if (fresh(ids).length < 6) ids = ids.concat(recsLocal(40).map((r) => r.id));   // 3) de tu biblioteca, a tu gusto
       if (fresh(ids).length < 6) ids = ids.concat(D.tracks.filter((t) => !t.video).map((t) => t.id).sort(() => Math.random() - 0.5).slice(0, 40));   // 4) al azar
       let add = fresh(ids).slice(0, 12);
-      if (!add.length) add = [...new Set(ids)].filter((id) => T(id) && !S.queue.slice(-10).includes(id)).slice(0, 12);   // poca música: se puede repetir
+      if (off && fresh(ids).length < 6) { const { offlineIds } = await import('./offline.js'); ids = ids.concat(offlineIds().sort(() => Math.random() - 0.5).slice(0, 60)); }   // sin internet: también lo online guardado
+      if (!add.length) add = [...new Set(ids)].filter((id) => T(id) && !S.queue.slice(-10).includes(id) && (!off || playable(T(id)))).slice(0, 12);   // poca música: se puede repetir
       if (!add.length) return false;
       player.addQueue(add, { silent: true });
       if (!toldInfinite) { toldInfinite = true; toast('cola infinita ❀', { sub: 'se van sumando canciones parecidas · ajustes → reproducción para apagarla', ms: 3000 }); }

@@ -1,0 +1,168 @@
+// sin internet: Petalwave sigue sonando con lo que tenés.
+// - lo que suena online se guarda solo (data/stream-cache) hasta el espacio que elijas (ajustes → sin internet)
+// - si se corta internet (o activás el modo sin internet): aparece "✈ sin internet" arriba, la cola salta las canciones
+//   que no están guardadas, la cola infinita usa solo lo guardado y lo que no se puede escuchar se ve apagado
+// - "guardar sin internet" en listas y canciones online: las baja a lo guardado sin sumarlas a tu carpeta de música
+import { P, api, bus, toast, modal, esc, fmtSize, $ } from './core.js';
+import { D, T } from './data.js';
+import * as player from './player.js';
+import { netType } from './smartdl.js';
+
+const st = { online: navigator.onLine !== false, cached: new Set(), bytes: 0, maxMB: 0, saving: 0, ready: false };
+let localYt = null, localN = -1;
+
+export const isOffline = () => P.get('offlineMode') === true || !st.online;
+export const offlineState = () => st;
+const localIds = () => {
+  if (localN !== D.tracks.length) { localYt = new Set(D.tracks.filter((t) => t.ytId && !t.video).map((t) => t.ytId)); localN = D.tracks.length; }
+  return localYt;
+};
+// ¿se puede escuchar sin internet? (archivo de tu biblioteca o guardada)
+export function playable(t) {
+  if (!t) return false;
+  if (!t.remote) return true;
+  return st.cached.has(t.ytId) || localIds().has(t.ytId);
+}
+export const savedOffline = (t) => !!t && t.remote && st.cached.has(t.ytId);
+// todo lo que podés escuchar ahora sin internet
+export function offlineIds() {
+  const lib = D.tracks.filter((t) => !t.video).map((t) => t.id);
+  const saved = [...st.cached].map((v) => T('yt_' + v)).filter((t) => t && !localIds().has(t.ytId)).map((t) => t.id);
+  return [...lib, ...saved];
+}
+
+export async function refreshOffline() {
+  try { const j = await api.get('/api/offline'); st.cached = new Set(j.ids || []); st.bytes = j.bytes || 0; st.maxMB = j.maxMB || 0; st.saving = j.saving || 0; st.ready = true; } catch {}
+  bus.emit('offline:list', st);
+  markRows();
+  return st;
+}
+
+async function checkNet(force = false) {
+  let ok = navigator.onLine !== false;
+  if (ok) { try { ok = !!(await api.get('/api/net' + (force ? '?force=1' : ''))).online; } catch { ok = false; } }
+  if (ok !== st.online) {
+    st.online = ok;
+    if (P.get('offlineMode') !== true) {
+      const n = offlineIds().length;
+      if (!ok) toast('✈ sin internet', { sub: n ? `suena lo que tenés: ${n} canciones` : 'no hay canciones guardadas todavía', ms: 3200 });
+      else { toast('volvió internet ✓', { ms: 1600 }); refreshOffline(); }
+    }
+    apply();
+  }
+  return ok;
+}
+
+function apply() {
+  const off = isOffline();
+  document.body.classList.toggle('pw-offline', off);
+  let b = $('#tOff');
+  if (!b) {
+    const at = $('#tDeps') || $('#tTheme');
+    if (!at) return;
+    b = document.createElement('button');
+    b.className = 'mod ico'; b.id = 'tOff'; b.title = 'sin internet: qué podés escuchar';
+    b.onclick = () => openOffline();
+    at.before(b);
+  }
+  b.hidden = !off;
+  b.innerHTML = `✈ <span>${P.get('offlineMode') === true ? 'modo sin internet' : 'sin internet'}</span>`;
+  markRows();
+  bus.emit('offline', off);
+}
+
+// lo que no se puede escuchar sin internet se ve apagado (las filas online tienen data-warm="<videoId>")
+let markT = 0;
+function markRows() {
+  clearTimeout(markT);
+  markT = setTimeout(() => {
+    const off = isOffline(), loc = localIds();
+    for (const el of document.querySelectorAll('[data-warm]')) {
+      const v = el.dataset.warm;
+      el.classList.toggle('pw-nooff', off && !!v && !st.cached.has(v) && !loc.has(v));
+    }
+  }, 120);
+}
+
+export async function saveOffline(tracks) {
+  const vids = [...new Set(tracks.filter((t) => t && t.remote && t.ytId && t.available !== false).map((t) => t.ytId))].filter((v) => !st.cached.has(v));
+  if (!vids.length) return toast('ya está todo guardado para escuchar sin internet ✓', { ms: 1800 });
+  if (isOffline()) return toast('ahora no hay internet: probá cuando vuelva', { kind: 'warn' });
+  try {
+    const r = await api.post('/api/offline/save', { ids: vids });
+    toast(`guardando ${r.queued} para escuchar sin internet ✈`, { sub: 'se bajan de a una en segundo plano · no van a tu carpeta de música', ms: 2600 });
+    watchSaving();
+  } catch (e) { toast(e.message, { kind: 'err' }); }
+}
+let watchT = 0;
+function watchSaving() {
+  clearTimeout(watchT);
+  watchT = setTimeout(async () => { await refreshOffline(); if (st.saving) watchSaving(); }, 6000);
+}
+
+export async function removeOffline({ ids = [], all = false } = {}) {
+  await api.post('/api/offline/remove', { ids, all });
+  return refreshOffline();
+}
+
+export async function openOffline() {
+  await refreshOffline();
+  const ids = offlineIds();
+  const lib = D.tracks.filter((t) => !t.video).length;
+  const forced = P.get('offlineMode') === true;
+  const f = await modal({
+    title: '✈ sin internet',
+    html: `<div class="offbox">
+      <p>${!st.online ? 'No hay internet ahora.' : forced ? 'Está activado el <b>modo sin internet</b>: Petalwave no usa internet para la música.' : 'Hay internet.'}
+      Sin internet suena lo que tenés en tu PC o celular y lo que quedó guardado.</p>
+      <div class="offgrid">
+        <div><b>${lib}</b><span>de tu biblioteca</span></div>
+        <div><b>${ids.length - lib}</b><span>online guardadas</span></div>
+        <div><b>${fmtSize(st.bytes)}</b><span>de ${st.maxMB >= 1024 ? (st.maxMB / 1024).toFixed(st.maxMB % 1024 ? 1 : 0) + ' GB' : st.maxMB + ' MB'}</span></div>
+      </div>
+      ${st.saving ? `<p class="m">guardando ${st.saving} en segundo plano…</p>` : ''}
+    </div>`,
+    actions: [
+      { label: forced ? 'volver a usar internet' : 'modo sin internet', value: 'mode' },
+      { label: 'ajustes', value: 'cfg' },
+      ids.length && { label: '▶ escuchar todo mezclado', value: 'play', primary: true },
+    ].filter(Boolean),
+  });
+  if (f === 'play') player.playList(ids, Math.floor(Math.random() * ids.length), { shuffle: true });
+  if (f === 'mode') setOfflineMode(!forced);
+  if (f === 'cfg') bus.emit('open-settings', 'offline');
+}
+
+export function setOfflineMode(on) {
+  P.set('offlineMode', !!on);
+  apply();
+  toast(on ? '✈ modo sin internet' : 'usando internet de nuevo', { sub: on ? 'solo suena lo guardado · no gasta datos' : '', ms: 2000 });
+  if (!on) checkNet(true);
+}
+
+// guardar sola la canción online que estás escuchando (a los 30 s, así no se guarda lo que salteás)
+let autoT = 0;
+function autoSave(t) {
+  clearTimeout(autoT);
+  if (!t || !t.remote || !t.ytId || st.cached.has(t.ytId) || localIds().has(t.ytId)) return;
+  autoT = setTimeout(() => {
+    const c = player.current();
+    if (!c || c.id !== t.id || P.get('offlineAuto') === false || isOffline()) return;
+    if (netType() === 'datos' && P.get('offlineWifi') !== false) return;   // Android con datos móviles: solo con WiFi
+    api.post('/api/offline/save', { ids: [t.ytId] }).then(() => setTimeout(refreshOffline, 20000)).catch(() => {});
+  }, 30000);
+}
+
+export function initOffline() {
+  player.setGate((t) => !isOffline() || playable(t));
+  apply();
+  refreshOffline();
+  checkNet();
+  setInterval(() => checkNet(), 45000);
+  addEventListener('online', () => checkNet(true));
+  addEventListener('offline', () => checkNet(true));
+  bus.on('np', (t) => autoSave(t));
+  // una canción online que no carga: puede ser que se cortó internet
+  bus.on('eng:error', () => { const t = player.current(); if (t && t.remote) checkNet(true); });
+  new MutationObserver(() => { if (isOffline()) markRows(); }).observe(document.body, { childList: true, subtree: true });
+}

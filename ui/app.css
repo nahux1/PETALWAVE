@@ -689,6 +689,14 @@ body.vinyl .cover.video img,body.vinyl .cover.video::after{display:none}
 .mpp [data-mp="top"],.mpp [data-mp="bottom"]{left:35%}
 .mpp-free{position:absolute;inset:0;display:none;place-items:center;font-size:12px;color:var(--ac2);pointer-events:none}
 .mpp.free .mpp-free{display:grid}
+/* sin internet */
+body.pw-offline .pw-nooff{opacity:.35;filter:grayscale(.8)}
+#tOff{background:color-mix(in srgb,var(--ac) 22%,transparent);font-weight:700}
+.offgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.offgrid>div{padding:10px;border:1px solid var(--bd);border-radius:var(--r-sm);text-align:center}
+.offgrid b{display:block;font-size:20px}
+.offgrid span{font-size:12px;color:var(--dim)}
+@media (max-width:520px){.offgrid{grid-template-columns:1fr}}
 /* elegir MP3 o MP4 al descargar */
 .dlpick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 12px}
 .dlpick>div{padding:12px;border:1px solid var(--bd);border-radius:var(--r-sm);background:color-mix(in srgb,var(--ink) 45%,transparent)}

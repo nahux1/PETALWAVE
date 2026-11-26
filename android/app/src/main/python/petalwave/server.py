@@ -663,8 +663,129 @@ def stream_cached(vid):
     return None
 
 
+def offline_max():
+    try:
+        return max(100, min(100000, int(S.data.get("offlineMaxMB") or 500))) * 1024 * 1024
+    except (TypeError, ValueError):
+        return 500 * 1024 * 1024
+
+
+def stream_prune():
+    d = os.path.join(D["data"], "stream-cache")
+    try:
+        fl = sorted((os.path.join(d, n) for n in os.listdir(d)), key=os.path.getmtime)
+        total = sum(os.path.getsize(x) for x in fl)
+        for x in fl:
+            if total <= offline_max():
+                break
+            total -= os.path.getsize(x)
+            os.remove(x)
+    except OSError:
+        pass
+
+
+# ---- sin internet ----
+_net = {"at": 0, "ok": True}
+_net_lock = threading.Lock()
+
+
+def net_online(force=False):
+    """¿hay internet? (YouTube Music responde). Se pregunta como mucho cada 20 s"""
+    with _net_lock:
+        if not force and time.time() - _net["at"] < 20:
+            return _net["ok"]
+        ok = False
+        for host in ("music.youtube.com", "www.google.com"):
+            try:
+                c = http.client.HTTPSConnection(host, timeout=4)
+                c.request("HEAD", "/generate_204")
+                ok = c.getresponse().status < 500
+                c.close()
+                if ok:
+                    break
+            except Exception:  # noqa: BLE001
+                continue
+        _net.update(at=time.time(), ok=ok)
+        return ok
+
+
+_save_q = []
+_save_lock = threading.Lock()
+_saving = {"id": None}
+
+
+def offline_list():
+    d = os.path.join(D["data"], "stream-cache")
+    ids, size = [], 0
+    try:
+        for n in os.listdir(d):
+            m = re.fullmatch(r"([\w-]{11})\.(m4a|webm|mp4)", n)
+            if m:
+                ids.append(m.group(1))
+                try:
+                    size += os.path.getsize(os.path.join(d, n))
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return {"ids": ids, "bytes": size, "maxMB": offline_max() // 1048576, "saving": len(_save_q) + (1 if _saving["id"] else 0), "online": _net["ok"]}
+
+
+def offline_save(ids):
+    n = 0
+    with _save_lock:
+        for i in ids or []:
+            if isinstance(i, str) and re.fullmatch(r"[\w-]{11}", i) and not stream_cached(i) and i not in _save_q and i != _saving["id"]:
+                _save_q.append(i)
+                n += 1
+        del _save_q[:-300]
+        start = _saving["id"] is None and bool(_save_q)
+        if start:
+            _saving["id"] = "…"
+    if start:
+        threading.Thread(target=_save_pump, daemon=True).start()
+    return n
+
+
+def _save_pump():
+    while True:
+        with _save_lock:
+            if not _save_q:
+                _saving["id"] = None
+                return
+            vid = _save_q.pop(0)
+            _saving["id"] = vid
+        try:
+            if net_online():
+                stream_file(vid)
+            else:
+                with _save_lock:
+                    _save_q.clear()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def offline_remove(ids, everything=False):
+    d = os.path.join(D["data"], "stream-cache")
+    n = 0
+    if everything:
+        with _save_lock:
+            _save_q.clear()
+    try:
+        for f in os.listdir(d):
+            if everything or f[:11] in (ids or []):
+                try:
+                    os.remove(os.path.join(d, f))
+                    n += 1
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return n
+
+
 def stream_file(vid):
-    """baja la canción entera (cuando YouTube rechaza el enlace directo) a una caché de hasta 300 MB"""
+    """baja la canción entera: cuando YouTube rechaza el enlace directo o para escucharla sin internet"""
     f = stream_cached(vid)
     if f:
         return f
@@ -678,16 +799,7 @@ def stream_file(vid):
     f = stream_cached(vid)
     if not f:
         raise RuntimeError("YouTube no entregó el audio")
-    try:
-        fl = sorted((os.path.join(d, n) for n in os.listdir(d)), key=os.path.getmtime)
-        total = sum(os.path.getsize(x) for x in fl)
-        for x in fl:
-            if total <= 300 * 1024 * 1024:
-                break
-            total -= os.path.getsize(x)
-            os.remove(x)
-    except OSError:
-        pass
+    stream_prune()
     return f
 
 
@@ -1350,6 +1462,27 @@ class H(BaseHTTPRequestHandler):
                         if self in clients:
                             clients.remove(self)
                     return
+        # ---------- sin internet ----------
+        if p == "/api/net" and M == "GET":
+            return self.send_json(200, {"online": net_online(q.get("force") == "1")})
+        if p == "/api/offline" and M == "GET":
+            return self.send_json(200, offline_list())
+        if p == "/api/offline/save" and M == "POST":
+            b = self.body()
+            return self.send_json(200, {"queued": offline_save((b.get("ids") or [])[:500] if isinstance(b.get("ids"), list) else [])})
+        if p == "/api/offline/remove" and M == "POST":
+            b = self.body()
+            return self.send_json(200, {"removed": offline_remove(b.get("ids") if isinstance(b.get("ids"), list) else [], b.get("all") is True)})
+        if p == "/api/offline/config" and M == "POST":
+            b = self.body()
+            try:
+                if b.get("maxMB"):
+                    S.data["offlineMaxMB"] = max(100, min(100000, int(float(b["maxMB"]))))
+                    S.save()
+                    stream_prune()
+            except (TypeError, ValueError):
+                pass
+            return self.send_json(200, offline_list())
         if p == "/api/settings" and M == "GET":
             return self.send_json(200, S.data)
         if p == "/api/settings" and M == "POST":
@@ -1584,9 +1717,23 @@ class H(BaseHTTPRequestHandler):
         m = re.fullmatch(r"/stream/([\w-]{11})", p)
         if m:
             vid = m.group(1)
+            cf = stream_cached(vid)
+            if cf:
+                if q.get("prefetch"):
+                    return self.send_json(200, {"ok": True, "cached": True})
+                rg = self.headers.get("Range") or ""
+                if not rg or rg.startswith("bytes=0-"):
+                    try:
+                        os.utime(cf, None)
+                    except OSError:
+                        pass
+                return self.send_file(cf, "audio/webm" if cf.endswith(".webm") else "audio/mp4")
+            if vid not in _streams and not net_online():
+                return self.send_json(503, {"error": "sin internet: esta canción no está guardada", "offline": True})
             try:
                 c = resolve(vid)
             except Exception as e:  # noqa: BLE001
+                _net["at"] = 0
                 return self.send_json(502, {"error": str(e)})
             if q.get("prefetch"):
                 # preparar la siguiente: si YouTube rechaza el enlace, bajarla ya para que suene enseguida

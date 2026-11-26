@@ -21,6 +21,7 @@ export const smartDone = () => local.get(DONE_KEY, []) || [];
 
 export async function runSmartDl({ force = false } = {}) {
   if (running || !P.get('smartDl')) return { skipped: 'apagado' };
+  if (P.get('offlineMode') === true) return { skipped: 'está activado el modo sin internet' };
   if (!force && Date.now() - (local.get(LAST_KEY, 0) || 0) < EVERY) return { skipped: 'temprano' };
   const net = netType();
   if (net === 'sin') return { skipped: 'sin internet' };

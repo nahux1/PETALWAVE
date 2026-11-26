@@ -7,6 +7,10 @@ import { themeForTrack } from './theme.js';
 
 export const S = { queue: [], qi: -1, history: [], repeat: 'off', shuffle: false, orig: null };
 export const current = () => T(S.queue[S.qi]);
+// sin internet: offline.js dice qué canciones se pueden escuchar; las demás se saltean
+let gate = null;
+export function setGate(fn) { gate = fn; }
+const canPlay = (id) => !gate || gate(T(id));
 let errors = 0;
 let errorAdvance = 0;
 
@@ -66,6 +70,14 @@ async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false
   clearTimeout(errorAdvance); errorAdvance = 0;
   // canción online que ya está en tu biblioteca (por ejemplo, bajada por las descargas inteligentes): se usa el archivo
   if (t.remote && t.ytId) { const loc = D.tracks.find((x) => x.ytId === t.ytId && !x.video); if (loc) { S.queue[i] = id = loc.id; t = loc; } }
+  // sin internet y no está guardada: ir a la siguiente que sí se pueda escuchar
+  if (!canPlay(id)) {
+    const j = S.queue.findIndex((x, k) => k > i && canPlay(x));
+    if (!silent) toast('✈ sin internet', { sub: j < 0 ? `«${t.title}» no está guardada y no hay más guardadas en la cola` : `«${t.title}» no está guardada: sigue la próxima que sí`, ms: 2200 });
+    if (j >= 0) return start(j, { fade, autoplay, startAt: 0, silent, adopt: false });
+    if (P.get('autoRecs') !== false && i >= S.qi) bus.emit('ended-queue');
+    return;
+  }
   ensure();
   endSession(false);
   errFor = null;   // canción nueva: su error (si lo hay) cuenta de nuevo
@@ -191,6 +203,13 @@ export function next({ auto = false, fade = 0 } = {}) {
       if (S.shuffle) { const cur = S.queue[S.qi]; shuffleArr(S.queue); if (S.queue[0] === cur && S.queue.length > 1) S.queue.push(S.queue.shift()); }
       i = 0;
     } else { endSession(true); bus.emit('ended-queue'); return; }
+  }
+  // sin internet: saltear las que no están guardadas
+  if (gate && !canPlay(S.queue[i])) {
+    let j = S.queue.findIndex((x, k) => k > i && canPlay(x));
+    if (j < 0 && S.repeat === 'all') j = S.queue.findIndex((x, k) => k <= i && canPlay(x));
+    if (j < 0) { if (auto || P.get('autoRecs') !== false) bus.emit('ended-queue'); else toast('✈ sin internet: no quedan canciones guardadas en la cola'); return; }
+    i = j;
   }
   start(i, { fade });
 }

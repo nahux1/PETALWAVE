@@ -1,7 +1,8 @@
 // streaming de YouTube Music sin descargar: yt-dlp resuelve la URL de audio (con la sesión del usuario, así
 // Premium da AAC 256 kbps) y el servidor local la reenvía con soporte de Range. Pasar por 127.0.0.1 hace que
 // la interfaz pueda aplicar ecualizador, volumen y visualizador (mismo origen). Solo si YouTube rechaza el enlace
-// directo, la canción se guarda en una caché chica (data/stream-cache, máx. 400 MB).
+// directo, la canción se guarda en data/stream-cache. Esa misma carpeta es "lo que tenés sin internet": las canciones
+// online que escuchás se guardan ahí (ajustes → sin internet) hasta el espacio que elijas.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -11,7 +12,7 @@ const { YTM } = require('./ytm');
 
 // si YouTube rechaza el enlace directo (403) aunque se vuelva a pedir, la canción se baja entera con yt-dlp
 // (que sí puede) a una caché chica y se sirve desde el disco, con Range para poder adelantar
-const CACHE_MAX = 400 * 1024 * 1024;
+const CACHE_MAX = 1024 * 1024 * 1024;   // por defecto 1 GB (unas 250 canciones); se cambia en ajustes → sin internet
 
 class Streamer {
   constructor({ ytdlp, cookiesTxt, dataDir }) {
@@ -25,12 +26,63 @@ class Streamer {
     // yt-dlp ya cargado en memoria (src/resolve_bridge.py): ~1 s por canción en vez de ~4
     this.fast = new YTM({ root: path.join(__dirname, '..'), cookiesTxt, script: 'resolve_bridge.py', need: 'yt_dlp', args: [process.execPath] });
     this.fastOff = false;
+    this.maxBytes = CACHE_MAX;
+    this.saveQ = []; this.saving = null;
+    this.netAt = 0; this.netOk = true; this.netJob = null;
+  }
+
+  // ---- sin internet ----
+  // ¿hay internet? (YouTube Music responde): se pregunta como mucho cada 20 s
+  async online(force = false) {
+    if (!force && Date.now() - this.netAt < 20000) return this.netOk;
+    if (this.netJob) return this.netJob;
+    this.netJob = (async () => {
+      let ok = false;
+      for (const url of ['https://music.youtube.com/generate_204', 'https://www.google.com/generate_204']) {
+        try { const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(4000) }); if (r.status < 500) { ok = true; break; } } catch {}
+      }
+      this.netOk = ok; this.netAt = Date.now();
+      return ok;
+    })().finally(() => { this.netJob = null; });
+    return this.netJob;
+  }
+  setMax(mb) { const n = +mb; if (n >= 100 && n <= 100000) { this.maxBytes = n * 1024 * 1024; this.prune(); } }
+  offlineList() {
+    const ids = []; let bytes = 0;
+    try { for (const n of fs.readdirSync(this.fileDir)) { const m = /^([\w-]{11})\.(m4a|webm|mp4)$/.exec(n); if (!m) continue; ids.push(m[1]); try { bytes += fs.statSync(path.join(this.fileDir, n)).size; } catch {} } } catch {}
+    return { ids, bytes, maxMB: Math.round(this.maxBytes / 1048576), saving: this.saveQ.length + (this.saving ? 1 : 0), online: this.netOk };
+  }
+  // guardar para escuchar sin internet: de a una, en segundo plano
+  offlineSave(ids) {
+    let n = 0;
+    for (const id of ids || []) if (/^[\w-]{11}$/.test(id) && !this.cachedFile(id) && !this.saveQ.includes(id) && this.saving !== id) { this.saveQ.push(id); n++; }
+    this.saveQ = this.saveQ.slice(-300);
+    this.pumpSave();
+    return n;
+  }
+  async pumpSave() {
+    if (this.saving || !this.saveQ.length) return;
+    this.saving = this.saveQ.shift();
+    try { if (await this.online()) await this.fileFallback(this.saving); else this.saveQ = []; } catch {}
+    this.saving = null;
+    this.pumpSave();
+  }
+  offlineRemove(ids, all = false) {
+    let n = 0;
+    if (all) this.saveQ = [];
+    try {
+      for (const f of fs.readdirSync(this.fileDir)) {
+        const id = f.slice(0, 11);
+        if (all || (ids || []).includes(id)) { try { fs.unlinkSync(path.join(this.fileDir, f)); n++; } catch {} }
+      }
+    } catch {}
+    return n;
   }
 
   cachedFile(id) { for (const ext of ['m4a', 'webm', 'mp4']) { const f = path.join(this.fileDir, `${id}.${ext}`); if (fs.existsSync(f)) return f; } return null; }
   async fileFallback(id) {
     const have = this.cachedFile(id);
-    if (have) { try { const now = new Date(); fs.utimesSync(have, now, now); } catch {} return have; }
+    if (have) { this.touch(have); return have; }
     if (this.dl.has(id)) return this.dl.get(id);
     const job = (async () => {
       fs.mkdirSync(this.fileDir, { recursive: true });
@@ -46,12 +98,13 @@ class Streamer {
     this.dl.set(id, job);
     return job;
   }
-  // la caché no pasa de 400 MB: se borran las que hace más que no suenan
+  touch(f) { try { const now = new Date(); fs.utimesSync(f, now, now); } catch {} }
+  // la caché no pasa del máximo elegido: se borran las que hace más que no suenan
   prune() {
     try {
       const fl = fs.readdirSync(this.fileDir).map((n) => { const p = path.join(this.fileDir, n); const s = fs.statSync(p); return { p, size: s.size, t: s.mtimeMs }; }).sort((a, b) => a.t - b.t);
       let total = fl.reduce((a, b) => a + b.size, 0);
-      for (const f of fl) { if (total <= CACHE_MAX) break; try { fs.unlinkSync(f.p); total -= f.size; } catch {} }
+      for (const f of fl) { if (total <= this.maxBytes) break; try { fs.unlinkSync(f.p); total -= f.size; } catch {} }
     } catch {}
   }
 
@@ -121,10 +174,12 @@ class Streamer {
   async proxy(req, res, id, retry = true) {
     // ya está en la caché (porque YouTube rechazó el enlace antes): desde el disco
     const local = this.cachedFile(id);
-    if (local) return serveRange(req, res, local, local.endsWith('.webm') ? 'audio/webm' : 'audio/mp4');
+    if (local) { if (!req.headers.range || /^bytes=0-/.test(req.headers.range)) this.touch(local); return serveRange(req, res, local, local.endsWith('.webm') ? 'audio/webm' : 'audio/mp4'); }
+    // sin internet y sin guardar: avisar enseguida (si no, yt-dlp tarda hasta un minuto en rendirse)
+    if (!this.cache.has(id) && !(await this.online())) { res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('sin internet: esta canción no está guardada'); }
     let info;
     try { info = await this.resolve(id); }
-    catch (e) { res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end(e.message); }
+    catch (e) { this.netAt = 0; res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end(e.message); }
     const ctl = new AbortController();
     req.on('close', () => ctl.abort());
     let r;
@@ -154,6 +209,7 @@ class Streamer {
   // preparar la siguiente: resolver y, si YouTube rechaza el enlace, bajarla ya (así cuando le toque suena enseguida)
   async warm(id) {
     if (this.cachedFile(id)) return { ok: true, cached: true };
+    if (!this.cache.has(id) && !(await this.online())) return { ok: false, offline: true };
     const info = await this.resolve(id);
     try {
       const r = await fetch(info.url, { headers: { Range: 'bytes=0-0', 'User-Agent': 'Mozilla/5.0' } });

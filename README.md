@@ -79,7 +79,7 @@ Funciona en **Windows 10 y 11 de 64 bits**.
 **¿Qué suena?:** tocá el botón (o la tecla w) y Petalwave reconoce la canción que suena cerca, **sin cuenta ni clave**. Graba 10 segundos solo cuando tocás, saca una huella del audio en tu equipo y busca esa huella (la grabación no sale de tu equipo). Es una implementación propia inspirada en [SongRec](https://github.com/marin-m/songrec) que consulta el mismo catálogo que SongRec, de forma no oficial. Si querés un respaldo, podés cargar una clave gratis de [AudD](https://dashboard.audd.io) en ajustes → cuentas.
 **Inicio y buscador:** al abrir ves tus mixes, lo último que escuchaste y canciones nuevas; la tecla / (o 🔍) busca en tu música y en YouTube Music a la vez.
 **Mixes:** *mix de la noche/mañana/tarde*, *para entrenar*, *para relajarte* y *para concentrarte* (biblioteca → para vos).
-**Sin internet:** ajustes → descargas → *descargas inteligentes* baja solas tus favoritas.
+**Sin internet:** lo que escuchás online queda guardado solo (ajustes → *sin internet*). Si se corta internet, aparece ✈ arriba y suena lo que tenés: la cola saltea lo que no está guardado. En listas online, *✈ guardar sin internet*. Además, *descargas inteligentes* (ajustes → descargas) baja solas tus favoritas.
 **Tu año:** estadísticas (4) → *tu año en Petalwave* arma una imagen para compartir.
 **Compartir playlists:** en una playlist tocá *compartir* (código QR); en el otro Petalwave: *mis playlists → importar*.
 **Me gusta:** tocá el ♥ del reproductor (o la tecla `h`): la canción queda en la playlist *Me gusta*, con o sin cuenta. Con sesión iniciada también se marca en YouTube Music.

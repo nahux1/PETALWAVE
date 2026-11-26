@@ -79,6 +79,7 @@ const sync = new Sync({ root: ROOT, ytdlp: YTDLP, cookiesTxt: COOKIES_TXT, downl
 const stats = new Stats({ dataDir: DATA, library });
 const ytm = new YTM({ root: ROOT, cookiesTxt: COOKIES_TXT });
 const streamer = new Streamer({ ytdlp: YTDLP, cookiesTxt: COOKIES_TXT, dataDir: DATA });
+if (S.offlineMaxMB) streamer.setMax(S.offlineMaxMB);
 const spotify = new Spotify({ dataDir: DATA, port: PORT, ytm, broadcast });
 const callbackPage = (ok, msg) => `<!doctype html><meta charset="utf-8"><title>petalwave · Spotify</title>
 <body style="margin:0;height:100vh;display:grid;place-items:center;background:#0b0708;color:#ece6e6;font:15px 'JetBrains Mono',Consolas,monospace">
@@ -313,6 +314,17 @@ async function route(req, res) {
     clients.add(res);
     req.on('close', () => clients.delete(res));
     return;
+  }
+
+  // ---------- sin internet ----------
+  if (p === '/api/net' && M === 'GET') return U.json(res, 200, { online: await streamer.online(u.searchParams.get('force') === '1') });
+  if (p === '/api/offline' && M === 'GET') return U.json(res, 200, streamer.offlineList());
+  if (p === '/api/offline/save' && M === 'POST') { const b = await body(); return U.json(res, 200, { queued: streamer.offlineSave(Array.isArray(b.ids) ? b.ids.slice(0, 500) : []) }); }
+  if (p === '/api/offline/remove' && M === 'POST') { const b = await body(); return U.json(res, 200, { removed: streamer.offlineRemove(Array.isArray(b.ids) ? b.ids : [], b.all === true) }); }
+  if (p === '/api/offline/config' && M === 'POST') {
+    const b = await body();
+    if (+b.maxMB) { S.offlineMaxMB = Math.max(100, Math.min(100000, Math.round(+b.maxMB))); streamer.setMax(S.offlineMaxMB); settings.save(); }
+    return U.json(res, 200, streamer.offlineList());
   }
 
   // ajustes (los de la interfaz también se guardan acá para no perderlos nunca)
