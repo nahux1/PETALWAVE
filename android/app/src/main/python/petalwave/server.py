@@ -892,13 +892,17 @@ def lyrics(tid, meta):
                 txt = open(base + ext, encoding="utf-8", errors="replace").read()
                 return {"source": "archivo " + os.path.basename(base + ext), "synced": bool(re.search(r"\[\d{1,2}:\d{2}", txt)), "text": txt}
     cache = os.path.join(D["data"], "lyrics", "a-" + re.sub(r"[^\w-]", "_", tid) + ".json")
+    only = str(meta.get("off") or "") == "1"   # sin internet: solo lo que ya quedó guardado
     if os.path.exists(cache):
         try:
             c = json.load(open(cache, encoding="utf-8"))
-            if c.get("text") or time.time() - c.get("at", 0) < 3 * 86400:
+            if c.get("text") or only or time.time() - c.get("at", 0) < 3 * 86400:
                 return c if c.get("text") else {"none": True, "online": True, "ytm": True}
         except Exception:  # noqa: BLE001
             pass
+    if only:
+        return {"none": True, "offline": True}
+    neterr = False
     cands, edited = candidates(t["title"], t.get("artist"))
     res = None
     plain = None
@@ -914,7 +918,7 @@ def lyrics(tid, meta):
                 else:
                     plain = cur
         except Exception:  # noqa: BLE001
-            pass
+            neterr = True
     if not res and S.data.get("lyricsOnline", True) is not False:
         try:
             d = round(t.get("duration") or 0)
@@ -937,11 +941,233 @@ def lyrics(tid, meta):
                 if cur["synced"] or not plain:
                     res = cur
         except Exception:  # noqa: BLE001
-            pass
+            neterr = True
     res = res or plain
+    if not res and neterr:   # falló la conexión: no anotar "no hay letra" (antes quedaba así 3 días)
+        return {"none": True, "online": True, "ytm": True, "ytId": bool(t.get("ytId")), "neterr": True}
     os.makedirs(os.path.dirname(cache), exist_ok=True)
     json.dump({**(res or {}), "at": time.time()}, open(cache, "w", encoding="utf-8"), ensure_ascii=False)
     return res or {"none": True, "online": True, "ytm": True, "ytId": bool(t.get("ytId"))}
+
+
+# ======================= radios y podcasts =======================
+# /cast/<clave>: audio o imagen de una radio o un capítulo. La interfaz registra antes qué dirección va con cada clave
+# (no es un proxy abierto). Los capítulos guardados (data/podcasts) se sirven del disco y suenan sin internet.
+CAST = None
+CAST_KEY = re.compile(r"^[a-z0-9]{6,24}$")
+CAST_PRIV = re.compile(r"^(localhost$|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.|::1$|f[cd][0-9a-f]{2}:)", re.I)
+CAST_MIME = {".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".aac": "audio/aac", ".ogg": "audio/ogg", ".opus": "audio/ogg", ".weba": "audio/webm"}
+CAST_EXT = {"audio/mpeg": ".mp3", "audio/mp3": ".mp3", "audio/mp4": ".m4a", "audio/x-m4a": ".m4a", "audio/aac": ".aac", "audio/aacp": ".aac",
+            "audio/ogg": ".ogg", "audio/opus": ".opus", "audio/webm": ".weba", "video/mp4": ".m4a"}
+_cast = {"queue": [], "busy": False, "cur": None}
+_cast_lock = threading.Lock()
+
+
+def cast_dir():
+    d = os.path.join(D["data"], "podcasts")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def cast_ok(url):
+    try:
+        u = urllib.parse.urlparse(str(url))
+    except Exception:  # noqa: BLE001
+        return None
+    if u.scheme not in ("http", "https") or not u.hostname or CAST_PRIV.match(u.hostname):
+        return None
+    return u
+
+
+def cast_open(url, headers=None, timeout=15, hops=0):
+    """GET siguiendo redirecciones; devuelve (conexión, respuesta)"""
+    u = cast_ok(url)
+    if not u:
+        raise ValueError("dirección no permitida")
+    C = http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection
+    conn = C(u.netloc, timeout=timeout)
+    hd = {"User-Agent": "Mozilla/5.0 (Petalwave)", "Accept": "*/*"}
+    hd.update(headers or {})
+    conn.request("GET", (u.path or "/") + ("?" + u.query if u.query else ""), headers=hd)
+    r = conn.getresponse()
+    if r.status in (301, 302, 303, 307, 308) and r.getheader("Location") and hops < 6:
+        loc = urllib.parse.urljoin(url, r.getheader("Location"))
+        conn.close()
+        return cast_open(loc, headers, timeout, hops + 1)
+    return conn, r
+
+
+def cast_reg(items):
+    urls = CAST.data.setdefault("urls", {})
+    n = 0
+    for it in (items if isinstance(items, list) else [])[:500]:
+        if not isinstance(it, dict) or not CAST_KEY.match(str(it.get("key"))) or not cast_ok(it.get("url")):
+            continue
+        if urls.get(it["key"]) != it["url"]:
+            urls.pop(it["key"], None)
+            urls[it["key"]] = str(it["url"])
+        n += 1
+    keys = list(urls.keys())
+    if len(keys) > 4000:
+        for k in keys[:len(keys) - 4000]:
+            if not cast_file(k):
+                urls.pop(k, None)
+    CAST.save()
+    return n
+
+
+def cast_file(key):
+    if not CAST_KEY.match(key or ""):
+        return None
+    for e in CAST_MIME:
+        f = os.path.join(cast_dir(), key + e)
+        if os.path.exists(f):
+            return f
+    return None
+
+
+def cast_fetch(url):
+    conn, r = cast_open(url, {"Accept": "application/json, application/rss+xml, application/xml, text/xml, */*"}, timeout=25)
+    try:
+        if r.status < 200 or r.status >= 300:
+            raise RuntimeError("HTTP %d" % r.status)
+        data = b""
+        while True:
+            c = r.read(256 * 1024)
+            if not c:
+                break
+            data += c
+            if len(data) > 8 * 1024 * 1024:
+                raise RuntimeError("respuesta muy grande")
+    finally:
+        conn.close()
+    m = re.search(r"charset=([\w-]+)", r.getheader("Content-Type") or "", re.I) or re.search(rb"^<\?xml[^>]*encoding=[\"']([\w-]+)", data[:200], re.I)
+    cs = m.group(1) if m else "utf-8"
+    if isinstance(cs, bytes):
+        cs = cs.decode("ascii", "replace")
+    try:
+        return data.decode(cs, "replace")
+    except LookupError:
+        return data.decode("utf-8", "replace")
+
+
+def cast_meta(key):
+    url = CAST.data.get("urls", {}).get(key)
+    if not url:
+        return {}
+    try:
+        conn, r = cast_open(url, {"Icy-MetaData": "1"}, timeout=9)
+    except Exception:  # noqa: BLE001
+        return {}
+    try:
+        every = int(r.getheader("icy-metaint") or 0)
+        name = r.getheader("icy-name") or ""
+        if not every or every > 512 * 1024:
+            return {"name": name}
+        left = every
+        while left > 0:
+            c = r.read(min(left, 64 * 1024))
+            if not c:
+                return {"name": name}
+            left -= len(c)
+        n = r.read(1)
+        ln = (n[0] if n else 0) * 16
+        raw = r.read(ln) if ln else b""
+        try:
+            s = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            s = raw.decode("latin-1")
+        m = re.search(r"StreamTitle='(.*?)';", s, re.S)
+        return {"name": name, "title": m.group(1).strip() if m else ""}
+    except Exception:  # noqa: BLE001
+        return {}
+    finally:
+        conn.close()
+
+
+def cast_saved():
+    keys, size = [], 0
+    for f in os.listdir(cast_dir()):
+        b, e = os.path.splitext(f)
+        if e not in CAST_MIME:
+            continue
+        keys.append(b)
+        try:
+            size += os.path.getsize(os.path.join(cast_dir(), f))
+        except OSError:
+            pass
+    return {"keys": keys, "bytes": size, "saving": len(_cast["queue"]) + (1 if _cast["busy"] else 0), "current": _cast["cur"]}
+
+
+def cast_save(keys):
+    n = 0
+    with _cast_lock:
+        for k in keys:
+            k = str(k)
+            if not CAST_KEY.match(k) or cast_file(k) or k in _cast["queue"] or _cast["cur"] == k or k not in CAST.data.get("urls", {}):
+                continue
+            _cast["queue"].append(k)
+            n += 1
+        start = not _cast["busy"] and _cast["queue"]
+        if start:
+            _cast["busy"] = True
+    if start:
+        threading.Thread(target=cast_pump, daemon=True).start()
+    return n
+
+
+def cast_remove(keys, everything=False):
+    with _cast_lock:
+        _cast["queue"] = [] if everything else [k for k in _cast["queue"] if k not in keys]
+    for f in os.listdir(cast_dir()):
+        b = os.path.splitext(f)[0]
+        if everything or b in keys:
+            try:
+                os.remove(os.path.join(cast_dir(), f))
+            except OSError:
+                pass
+    broadcast("cast", cast_saved())
+
+
+def cast_pump():
+    while True:
+        with _cast_lock:
+            if not _cast["queue"]:
+                _cast["busy"] = False
+                _cast["cur"] = None
+                break
+            key = _cast["queue"].pop(0)
+            _cast["cur"] = key
+        url = CAST.data.get("urls", {}).get(key)
+        tmp = os.path.join(cast_dir(), key + ".part")
+        try:
+            conn, r = cast_open(url, timeout=30)
+            try:
+                if r.status != 200:
+                    raise RuntimeError("HTTP %d" % r.status)
+                ctype = (r.getheader("Content-Type") or "").split(";")[0].strip().lower()
+                m = re.search(r"\.(mp3|m4a|aac|ogg|opus)(\?|$)", url, re.I)
+                ext = CAST_EXT.get(ctype) or ("." + m.group(1).lower() if m else ".mp3")
+                size = 0
+                with open(tmp, "wb") as fh:
+                    while True:
+                        c = r.read(256 * 1024)
+                        if not c:
+                            break
+                        size += len(c)
+                        if size > 900 * 1024 * 1024:
+                            raise RuntimeError("el capítulo es muy grande")
+                        fh.write(c)
+            finally:
+                conn.close()
+            os.replace(tmp, os.path.join(cast_dir(), key + ext))
+        except Exception as e:  # noqa: BLE001
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            broadcast("cast", dict(cast_saved(), error=str(e)[:200], key=key))
+        broadcast("cast", cast_saved())
 
 
 # ======================= descargas =======================
@@ -1714,6 +1940,38 @@ class H(BaseHTTPRequestHandler):
                 return self.send_json(502, {"error": str(e)[:300]})
             return self.send_json(404, {"error": "no existe"})
 
+        # ---------- radios y podcasts ----------
+        m = re.fullmatch(r"/cast/([a-z0-9]{6,24})", p)
+        if m:
+            return self.cast_serve(m.group(1))
+        if p == "/api/cast/reg" and M == "POST":
+            return self.send_json(200, {"ok": cast_reg(self.body().get("items"))})
+        if p == "/api/cast/fetch":
+            try:
+                b = cast_fetch(q.get("u") or "").encode("utf-8")
+            except Exception as e:  # noqa: BLE001
+                return self.send_json(502, {"error": str(e)[:300]})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(b)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(b)
+            return
+        m = re.fullmatch(r"/api/cast/meta/([a-z0-9]{6,24})", p)
+        if m:
+            return self.send_json(200, cast_meta(m.group(1)))
+        if p == "/api/cast/saved":
+            return self.send_json(200, cast_saved())
+        if p == "/api/cast/save" and M == "POST":
+            ks = self.body().get("keys")
+            return self.send_json(200, {"queued": cast_save(ks if isinstance(ks, list) else [])})
+        if p == "/api/cast/remove" and M == "POST":
+            b = self.body()
+            ks = b.get("keys") if isinstance(b.get("keys"), list) else []
+            cast_remove([str(k) for k in ks], bool(b.get("all")))
+            return self.send_json(200, cast_saved())
+
         # ---------- streaming online ----------
         m = re.fullmatch(r"/stream/([\w-]{11})", p)
         if m:
@@ -1832,6 +2090,43 @@ class H(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": "Esto todavía no está en Android."})
         return self.send_json(404, {"error": "no existe"})
 
+    def cast_serve(self, key):
+        f = cast_file(key)
+        if f:
+            return self.send_file(f, CAST_MIME.get(os.path.splitext(f)[1], "audio/mpeg"))
+        url = CAST.data.get("urls", {}).get(key)
+        if not url:
+            return self.send_json(404, {"error": "no registrado"})
+        hd = {"Range": self.headers["Range"]} if self.headers.get("Range") else {}
+        try:
+            conn, r = cast_open(url, hd)
+        except Exception as e:  # noqa: BLE001
+            return self.send_json(502, {"error": str(e)[:200]})
+        self.send_response(r.status)
+        ctype = (r.getheader("Content-Type") or "").split(";")[0].strip()
+        if ctype in ("audio/aacp", "audio/x-aac"):
+            ctype = "audio/aac"
+        if ctype:
+            self.send_header("Content-Type", ctype)
+        for k in ("Content-Length", "Content-Range", "Accept-Ranges"):
+            if r.getheader(k):
+                self.send_header(k, r.getheader(k))
+        self.send_header("Cache-Control", "max-age=86400" if key.endswith("i") else "no-store")
+        self.end_headers()
+        if self.command == "HEAD":
+            conn.close()
+            return
+        try:
+            while True:
+                chunk = r.read(32 * 1024) if r.getheader("Content-Length") else r.read1(32 * 1024)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass
+        finally:
+            conn.close()
+
     def proxy(self, vid, c, retry=True):
         u = urllib.parse.urlparse(c["url"])
         conn = http.client.HTTPSConnection(u.netloc, timeout=30)
@@ -1888,7 +2183,7 @@ httpd = None
 
 def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs=None, token=""):
     """la llama MainActivity (Kotlin) al abrir la app; devuelve cuando el servidor ya escucha"""
-    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN, TASTE, AUDD
+    global S, LIB, ST, PL, DL, httpd, APP_VERSION, TOKEN, TASTE, AUDD, CAST
     if httpd:
         return port
     APP_VERSION = version
@@ -1912,6 +2207,13 @@ def start(data_dir, music_dir, video_dir, version="0.0.0", port=37373, scan_dirs
     PL = JsonStore(os.path.join(data_dir, "playlists.json"), lambda: {"items": []})
     TASTE = JsonStore(os.path.join(data_dir, "taste.json"), lambda: {"events": []})
     AUDD = JsonStore(os.path.join(data_dir, "audd.json"), lambda: {"token": ""})
+    CAST = JsonStore(os.path.join(data_dir, "cast.json"), lambda: {"urls": {}})
+    for f in os.listdir(cast_dir()):   # restos de descargas cortadas
+        if f.endswith(".part"):
+            try:
+                os.remove(os.path.join(cast_dir(), f))
+            except OSError:
+                pass
     httpd = ThreadingHTTPServer(("127.0.0.1", port), H)
     httpd.daemon_threads = True
     threading.Thread(target=httpd.serve_forever, daemon=True).start()

@@ -64,8 +64,10 @@ class Engine {
       // cada reproductor mide su propio volumen (así, durante un fundido, cada canción se mide sola)
       const lgain = ctx.createGain();
       const meter = ctx.createAnalyser(); meter.fftSize = 2048;
-      src.connect(meter); src.connect(lgain); lgain.connect(gain); gain.connect(this.mix);
-      const d = { el, gain, lgain, meter, buf: new Float32Array(2048), video: el.tagName === 'VIDEO' };
+      // graves de cada reproductor: en el modo DJ, durante el cruce, la que entra suma los graves de a poco (no se pisan dos bajos)
+      const lo = ctx.createBiquadFilter(); lo.type = 'lowshelf'; lo.frequency.value = 180; lo.gain.value = 0;
+      src.connect(meter); src.connect(lgain); lgain.connect(lo); lo.connect(gain); gain.connect(this.mix);
+      const d = { el, gain, lgain, lo, meter, buf: new Float32Array(2048), video: el.tagName === 'VIDEO' };
       this.bind(d);
       return d;
     };
@@ -158,7 +160,7 @@ class Engine {
   level() { return dbToGain(this.songDb); }
 
   // carga y reproduce una pista; fade > 0 = fundido cruzado con la anterior
-  async load(track, { fade = 0, autoplay = true, startAt = 0 } = {}) {
+  async load(track, { fade = 0, autoplay = true, startAt = 0, rate = 1, dj = false } = {}) {
     if (!this.ctx) throw new Error('motor no iniciado');
     if (this.ctx.state === 'suspended' && autoplay) this.ctx.resume();
     const token = ++this.fadeToken;
@@ -166,6 +168,7 @@ class Engine {
     const next = track.video ? this.vdeck : this.decks.find((d) => d !== old && !d.video) || this.decks[0];
     // si el deck destino estaba sonando (salto rápido), cortarlo
     if (next !== old) { next.el.pause(); next.gain.gain.cancelScheduledValues(this.ctx.currentTime); next.gain.gain.value = 0; }
+    clearInterval(next.rateT); next.lo.gain.cancelScheduledValues(this.ctx.currentTime); next.lo.gain.value = 0;
     this.track = track;
     this.active = next;
     this.nearEndFired = false;
@@ -190,11 +193,29 @@ class Engine {
       setTimeout(() => { if (this.active !== old) { old.el.pause(); old.el.removeAttribute('src'); old.el.load(); } }, f * 1000 + 120);
     }
     if (!autoplay) { next.gain.gain.value = this.level(); bus.emit('eng:state', 'pause'); return; }
+    // modo DJ: la que entra arranca al tempo de la que sale y después vuelve sola a su velocidad (sin cambiar el tono)
+    try { next.el.preservesPitch = true; next.el.playbackRate = rate > 0.9 && rate < 1.1 ? rate : 1; } catch {}
     try { await next.el.play(); }
     catch (e) { if (token === this.fadeToken) this.playFailed(e, track.id); return; }
     if (token !== this.fadeToken) return;
     this.ramp(next, this.level(), fade > 0 ? fade : 0.03);
+    if (dj && fade > 0 && old && old !== next && !old.video) {
+      const t = this.ctx.currentTime;
+      next.lo.gain.setValueAtTime(-14, t); next.lo.gain.setTargetAtTime(0, t + fade * 0.45, fade * 0.12);
+      old.lo.gain.cancelScheduledValues(t); old.lo.gain.setValueAtTime(old.lo.gain.value, t); old.lo.gain.setTargetAtTime(-14, t + fade * 0.3, fade * 0.1);
+    }
+    if (next.el.playbackRate !== 1) {
+      const from = next.el.playbackRate, wait = Math.max(fade, 2) * 1000, dur = 12000, t0 = performance.now() + wait;
+      next.rateT = setInterval(() => {
+        if (token !== this.fadeToken) return clearInterval(next.rateT);
+        const k = (performance.now() - t0) / dur; if (k < 0) return;
+        if (k >= 1) { next.el.playbackRate = 1; return clearInterval(next.rateT); }
+        next.el.playbackRate = from + (1 - from) * k;
+      }, 250);
+    }
   }
+  // tempo real de la que suena (en el modo DJ puede estar ajustado unos segundos)
+  get rate() { return this.active && this.active.el ? this.active.el.playbackRate || 1 : 1; }
 
   // play() rechazado: si lo cortó una pausa o una carga nueva (AbortError) o el navegador pide un toque
   // (NotAllowedError), no es que la canción no suene: queda en pausa y no se salta a la siguiente

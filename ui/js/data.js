@@ -26,6 +26,14 @@ export function remoteTrack(it) {
   saveRemote();
   return t;
 }
+// radios y capítulos de podcast (cast.js): se guardan junto a las online para que la cola y la reanudación los encuentren
+export function keepRemote(t) {
+  t._s = norm([t.title, t.artist, t.album].join(' '));
+  t._a = mainArtist(t);
+  D.remote.set(t.id, t);
+  saveRemote();
+  return t;
+}
 export const ytm = { status: null, playlists: null, lists: new Map(), loading: new Set() };
 export async function loadYtmPlaylists() {
   try { ytm.playlists = (await api.get('/api/ytm/playlists')).items; } catch { ytm.playlists = null; }

@@ -92,11 +92,12 @@ class Lyrics {
   }
 
   // caché en disco: lo encontrado se guarda para siempre; "no hay" se reintenta a los 3 días
-  cache(key, fn) {
+  cache(key, fn, only = false) {
     const file = path.join(this.cacheDir, 'v2-' + key.replace(/[^\w-]/g, '_') + '.json');
     if (fs.existsSync(file)) {
-      try { const c = JSON.parse(fs.readFileSync(file, 'utf8')); if (c.text || Date.now() - c.at < 3 * 864e5) return Promise.resolve(c.text ? c : null); } catch {}
+      try { const c = JSON.parse(fs.readFileSync(file, 'utf8')); if (c.text || only || Date.now() - c.at < 3 * 864e5) return Promise.resolve(c.text ? c : null); } catch {}
     }
+    if (only) return Promise.resolve(null);   // sin internet: solo lo que ya quedó guardado
     if (this.inflight.has(file)) return this.inflight.get(file);
     const p = (async () => {
       let res = null;
@@ -109,7 +110,7 @@ class Lyrics {
   }
 
   // YouTube Music: primero el video exacto; si no tiene letra (videos subidos, versiones editadas), busca la canción oficial
-  async fromYtm(t, cand) {
+  async fromYtm(t, cand, only) {
     if (!this.ytm || !this.ytm.available()) return null;
     const c0 = cand.list[0];
     const q = c0 ? `${c0.title} ${c0.artist}`.trim() : '';
@@ -120,11 +121,11 @@ class Lyrics {
       let text = r.text;
       if (r.synced && r.matched && cand.edited && r.duration && t.duration) text = rescale(text, t.duration / r.duration);
       return { source: r.source + (r.matched ? ' · canción oficial' : ''), synced: !!r.synced, text };
-    });
+    }, only);
   }
 
   // LRCLIB: coincidencia exacta y, si no, búsqueda por cada candidato; elige la sincronizada de duración más parecida
-  async fromLrclib(t, cand) {
+  async fromLrclib(t, cand, only) {
     if (!cand.list.length) return null;
     return this.cache('lrclib-' + t.id, async () => {
       const d = Math.round(t.duration || 0);
@@ -152,7 +153,7 @@ class Lyrics {
       let text = hit.syncedLyrics || hit.plainLyrics;
       if (hit.syncedLyrics && cand.edited && d && hit.duration) text = rescale(text, d / hit.duration);
       return { source: `LRCLIB · ${hit.artistName} — ${hit.trackName}`, synced: !!hit.syncedLyrics, text };
-    });
+    }, only);
   }
 
   // id: pista local (hex16) o remota (yt_<videoId>, con título/artista/duración que manda la interfaz)
@@ -166,12 +167,14 @@ class Lyrics {
     const S = this.settings();
     const cand = candidates(t);
     const order = [];
-    if (S.lyricsYtm !== false) order.push(() => this.fromYtm(t, cand));
-    if (S.lyricsOnline !== false) order.push(() => this.fromLrclib(t, cand));
+    const only = !!meta.off;
+    if (S.lyricsYtm !== false) order.push(() => this.fromYtm(t, cand, only));
+    if (S.lyricsOnline !== false) order.push(() => this.fromLrclib(t, cand, only));
     // la primera sincronizada gana; si solo hay texto plano, se usa el primero que aparezca
     let plain = null;
     for (const f of order) { const r = await f(); if (r && r.synced) return r; if (r && !plain) plain = r; }
     if (plain) return plain;
+    if (only) return { none: true, offline: true };
     return { none: true, online: S.lyricsOnline !== false, ytm: S.lyricsYtm !== false, ytId: !!t.ytId, tried: cand.list.slice(0, 2) };
   }
 

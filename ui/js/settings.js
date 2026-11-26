@@ -57,6 +57,9 @@ export async function renderSettings() {
     </div>
     <div class="cfgsec"><h3>▶ reproducción</h3>
       <div class="cfrow"><span>fundido entre canciones${tip('Crossfade: la canción que termina baja mientras la siguiente sube. 0 = corte directo.')}<span class="m">segundos de crossfade</span></span><span><input type="range" min="0" max="10" step="0.5" value="${p.crossfade}" id="cXf"> <b id="cXfV">${p.crossfade} s</b></span></div>
+      ${chk('dj', '🎧 modo DJ', 'cruces largos a tempo, entrando en el golpe · ⇅ en la cola ordena por ritmo', 'Petalwave mide el tempo (BPM), dónde cae cada golpe y la energía de cada canción (una sola vez, en tu equipo). Al terminar una canción entra la siguiente justo en un golpe, al mismo tempo (después vuelve sola a su velocidad, sin cambiar el tono) y sin que se pisen los graves. Con el motor nativo de Android no está disponible.')}
+      <div class="cfrow"><span>largo del cruce en modo DJ<span class="m">segundos que suenan las dos juntas</span></span><span><input type="range" min="4" max="16" step="1" value="${p.djFade}" id="cDjf"> <b id="cDjfV">${p.djFade} s</b></span></div>
+      ${chk('djTempo', 'ajustar el tempo en los cruces', 'la que entra se acomoda al ritmo de la que sale (hasta 8%)')}
       ${isAndroid && window.PetalwaveNative.nativeOn ? `<label class="cfrow"><span>motor nativo de Android (beta)${tip('Hace sonar la música con el reproductor de Android (ExoPlayer) en vez del de la app: gasta menos batería, no se corta con la pantalla apagada y es necesario para Android Auto. Por ahora: ecualizador de Android (las bandas que tenga tu teléfono), sin fundido entre canciones ni volumen parejo, y el visualizador necesita el permiso de micrófono. Se aplica al reiniciar la app.')}<span class="m">necesario para Android Auto · menos batería</span></span><input type="checkbox" id="cNative" ${window.PetalwaveNative.nativeOn() ? 'checked' : ''}></label>` : ''}
       <div class="cfrow"><span>mis gustos<span class="m">géneros y artistas que te gustan, para las recomendaciones</span></span><button class="cb sm" id="cTaste">elegir</button></div>
       ${chk('karaoke', 'letra estilo karaoke', 'la línea que se canta se va llenando de color')}
@@ -90,6 +93,8 @@ export async function renderSettings() {
     </div>
     <div class="cfgsec" id="cfg-offline"><h3>✈ sin internet ${tip('Las canciones online que escuchás (más de 30 s) se guardan solas en Petalwave, no en tu carpeta de música. Sin internet suenan esas y las de tu biblioteca; la cola saltea las que no están guardadas. Cuando se llena el espacio se borran las que hace más que no escuchás. Letras y portadas que ya viste también quedan guardadas.')}</h3>
       ${chk('offlineAuto', 'guardar lo que escucho', 'cada canción online que escuchás queda para escucharla sin internet')}
+      ${chk('offlineLyrics', 'guardar las letras', 'la letra de lo que escuchás y guardás queda para verla sin internet', 'A los 20 segundos de cada canción (también las de tu biblioteca) se busca su letra y queda guardada. En la ventana ✈ podés guardar de una vez las letras de toda tu música.')}
+      ${chk('podAuto', 'guardar los capítulos nuevos', 'de los podcasts que seguís (biblioteca → podcasts)', 'Cada 3 horas Petalwave mira si salió un capítulo nuevo de los podcasts que seguís y lo guarda para escucharlo sin internet.' + (isAndroid ? ' Con "guardar solo con WiFi" activado, espera al WiFi.' : ''))}
       ${isAndroid ? chk('offlineWifi', 'guardar solo con WiFi', 'no gasta tus datos móviles') : ''}
       <div class="cfrow"><span>espacio para lo guardado<span class="m" id="cOffInfo">…</span></span><span><select id="cOffMax">${[[250, '250 MB'], [500, '500 MB'], [1024, '1 GB'], [2048, '2 GB'], [5120, '5 GB'], [10240, '10 GB']].map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select> <button class="cb sm" id="cOffClear">borrar lo guardado</button></span></div>
       ${chk('offlineMode', 'modo sin internet', 'no usar internet para la música: solo suena lo guardado (para ahorrar datos o en el avión)')}
@@ -170,6 +175,7 @@ export async function renderSettings() {
   box.querySelectorAll('[data-p]').forEach((c) => (c.onchange = () => {
     const k = c.dataset.p;
     if (k === 'dyn') return setDyn(c.checked);
+    if (k === 'dj') return import('./dj.js').then((m) => { m.toggleDj(c.checked); c.checked = !!P.get('dj'); });
     P.set(k, c.checked); bus.emit('prefs', k);
   }));
   import('./offline.js').then(async (O) => {
@@ -247,6 +253,7 @@ export async function renderSettings() {
   $('#cCaps').onchange = (e) => setCaps(e.target.checked);
   $('#cWpTint').onchange = (e) => { P.set('wpTint', e.target.checked); document.body.classList.toggle('wptint', e.target.checked); };
   $('#cXf').oninput = (e) => { P.set('crossfade', +e.target.value); $('#cXfV').textContent = e.target.value + ' s'; };
+  $('#cDjf').oninput = (e) => { P.set('djFade', +e.target.value); $('#cDjfV').textContent = e.target.value + ' s'; };
   $('#cViz').onchange = (e) => setMode(e.target.value);
   $('#cFps').onchange = (e) => P.set('fps', +e.target.value);
   $('#cPart').oninput = (e) => { P.set('particles', +e.target.value); $('#cPartV').textContent = e.target.value; };

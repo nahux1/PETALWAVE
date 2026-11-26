@@ -24,14 +24,17 @@ export const ago = (t) => {
 export const icon = (name, cls = '') => `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
 // pistas locales: id de 16 hex · pistas online de YouTube Music: "yt_<videoId>"
 export const isRemote = (id) => typeof id === 'string' && id.startsWith('yt_');
+// radios (rd_<clave>) y capítulos de podcast (pc_<clave>): el servidor los sirve por /cast/<clave> (imagen: <clave>i)
+export const isCast = (id) => typeof id === 'string' && (id.startsWith('rd_') || id.startsWith('pc_'));
 // size: 't' (128 px, filas) o 'm' (256 px, tarjetas). Solo si "carátulas livianas" está activado (por defecto sí)
 export const coverUrl = (id, size) => {
+  if (isCast(id)) return `/cast/${id.slice(3)}i`;
   const base = isRemote(id) ? `/ytcover/${id.slice(3)}` : `/cover/${id}`;
   return size && P.get('thumbs') !== false ? base + '?s=' + size : base;
 };
 // miniaturas de Google (YouTube Music): se piden directamente del tamaño en que se muestran
 export const thumbUrl = (u, px = 120) => (u && P.get('thumbs') !== false ? String(u).replace(/=w\d+-h\d+[^&?#]*/, `=w${px}-h${px}-l90-rj`) : u);
-export const mediaUrl = (id) => (isRemote(id) ? `/stream/${id.slice(3)}` : `/media/${id}`);
+export const mediaUrl = (id) => (isCast(id) ? `/cast/${id.slice(3)}` : isRemote(id) ? `/stream/${id.slice(3)}` : `/media/${id}`);
 
 // ---------- API ----------
 async function req(method, url, body, headers) {
@@ -63,7 +66,7 @@ export const bus = {
 // eventos del servidor (una sola conexión para todo)
 export function connectStream() {
   const es = new EventSource('/api/stream');
-  for (const t of ['dl', 'dllog', 'dlfile', 'scan', 'library', 'sync', 'cookies', 'spotify', 'update', 'remote']) {
+  for (const t of ['dl', 'dllog', 'dlfile', 'scan', 'library', 'sync', 'cookies', 'spotify', 'update', 'remote', 'cast']) {
     es.addEventListener(t, (e) => { try { bus.emit('sse:' + t, JSON.parse(e.data)); } catch {} });
   }
   es.onopen = () => bus.emit('sse:open');
@@ -90,7 +93,7 @@ export const SHORTCUT_LABELS = {
   lyrics: 'ver letra', queue: 'ver cola', radio: 'radio de la canción', peek: 'ver el fondo', like: 'me gusta', recognize: '¿qué suena?', ws0: 'inicio', ws1: 'música', ws2: 'descargas', ws3: 'sync', ws4: 'estadísticas', ws5: 'ajustes',
 };
 const DEFAULT_PREFS = {
-  theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, resume: true, autoRecs: true, autoLevel: true, smartGaps: true, smartDl: false, smartDlMax: 50, smartDlWifi: true, karaoke: true, batterySaver: true, autoTheme: false, dayTheme: 'petal', nightTheme: 'blood', dayFrom: 7, nightFrom: 20,
+  theme: 'blood', dyn: true, viz: 'spectrum', fps: 60, particles: 160, crossfade: 2, dj: false, djFade: 8, djTempo: true, podAuto: true, offlineLyrics: true, resume: true, autoRecs: true, autoLevel: true, smartGaps: true, smartDl: false, smartDlMax: 50, smartDlWifi: true, karaoke: true, batterySaver: true, autoTheme: false, dayTheme: 'petal', nightTheme: 'blood', dayFrom: 7, nightFrom: 20,
   notify: true, notifyToast: true, blur: true, anim: true, compact: false, sideTab: 'queue', ws: 'home',
   libView: 'songs', libSort: { key: 'added', dir: -1 },
   shortcuts: { ...DEFAULT_SHORTCUTS },

@@ -12,6 +12,7 @@ export const isLiked = (id) => { const l = likedList(); return !!(l && id && l.t
 export async function toggleLike(id, on) {
   const t = T(id);
   if (!t) return;
+  if (t.cast) { if (t.cast === 'radio') bus.emit('cast:fav', t); return; }   // ♥ en una radio: va a "mis radios"
   const want = on === undefined ? !isLiked(id) : on;
   // la interfaz cambia al instante; si el servidor falla, se vuelve atrás
   const l = likedList();
@@ -39,7 +40,7 @@ export function likeCurrent() {
 // todos los corazones del reproductor (barra, barra del celular, pantalla completa)
 export function updateLike() {
   const t = current();
-  const on = !!(t && isLiked(t.id));
+  const on = !!(t && (t.cast ? t.fav : isLiked(t.id)));
   for (const b of $$('[data-act="like"]')) {
     b.hidden = !t;
     b.classList.toggle('on', on);

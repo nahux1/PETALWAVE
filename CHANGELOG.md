@@ -1,5 +1,29 @@
 # petalwave — registro de cambios
 
+## 2.23.0 — modo DJ, radios, podcasts, letras sin internet y repetidas mejoradas
+- **Modo DJ** (`ui/js/dj.js`):
+  - Cada canción se decodifica a 11 kHz (`OfflineAudioContext`). De ahí sale la curva de golpes (subidas de energía, con más peso en los graves).
+  - El tempo sale de una autocorrelación con preferencia por ~122 BPM y se afina comparando golpes a 16 pulsos. También se miden la fase del golpe, el primer sonido y la energía. Se guarda en `localStorage` `pw-dj` (v2).
+  - Con tonos de prueba conocidos, el tempo da ±0,05 BPM y la fase ±10 ms.
+  - En el cruce, `player.setTransition()` espera el próximo golpe y pasa `rate` y `startAt` a `engine.load()`. `playbackRate` usa `preservesPitch` y vuelve a 1 en 12 s.
+  - Cada reproductor tiene un `lowshelf` de 180 Hz para cambiar los graves en el cruce. Cuando ya suenan las dos, `align()` mide el corrimiento y mueve la que entra.
+  - Medido en canciones reales: 0 a 24 ms de diferencia. `djOrder()` ordena lo que queda de la cola por tempo (con mitad y doble) y energía.
+- **Radios y podcasts** (`src/cast.js`, `server.py`, `ui/js/cast.js`):
+  - `/cast/<clave>` sirve el audio o la imagen de una dirección registrada antes con `/api/cast/reg`, así no queda un proxy abierto. Se rechazan direcciones locales y privadas. Respeta `Range` y sigue redirecciones.
+  - Otras rutas: `/api/cast/fetch` (feeds y JSON, hasta 8 MB, con el charset correcto), `/api/cast/meta/<clave>` (StreamTitle ICY) y `/api/cast/save|saved|remove` (capítulos en `data/podcasts`, servidos desde el disco).
+  - Las radios salen de Radio Browser y los podcasts de Apple Podcasts (búsqueda, populares por país y lookup) más el RSS de cada uno.
+  - Ids: `rd_<clave>` y `pc_<clave>` (`core.isCast`, `mediaUrl`, `coverUrl`). `NativeService.kt` también los entiende.
+  - Siguiendo un podcast, cada 3 h se miran los capítulos nuevos y se guardan (con WiFi en Android). La posición de cada capítulo se guarda en `pw-podpos`.
+  - Ni las radios ni los podcasts suman música a la cola infinita.
+- **Letras sin internet:**
+  - `?off=1` en `/api/lyrics` usa solo la caché, sin esperar a YouTube Music ni a LRCLIB.
+  - En Android, un error de red ya no se guarda como "no hay letra".
+  - `offline.js` pide la letra a los 20 s de cada canción y al guardar canciones. El botón "guardar letras de todo" está en la ventana ✈ y el contador de letras en `pw-lyr-saved`.
+- **Repetidas** (`ui/js/tidy.js` `findDupes`/`bestOf`/`onlineTwins`):
+  - Detección: nombres limpios, el mismo título con artista desconocido y duración casi igual, y unión con lo que encuentra el servidor.
+  - Marca la mejor copia con ★. "Dejar solo la mejor" cambia las playlists antes de mandar el resto a la papelera, y hay un botón para cambiar las canciones online de las playlists por tus archivos.
+- Textos nuevos en inglés y portugués (93). Pruebas automáticas: 27, con 3 nuevas de seguridad de `/cast`.
+
 ## 2.22.1 — arreglo: canciones online en el celular
 - **Android (`server.py`):** `/stream/<id>` ya no llama a `net_online()` antes de resolver. Solo lo hace si `resolve()` falló, para responder 503 "sin internet" en vez de 502. `net_online()` prueba primero `http://connectivitycheck.gstatic.com/generate_204` (la de Android), con 8 s de espera en vez de 4.
 - **PC (`src/stream.js`):** igual. `proxy`/`warm` cortan antes solo si la última prueba (menos de 20 s) dio sin internet; si no, intentan, y al fallar se vuelve a probar.

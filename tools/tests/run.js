@@ -99,6 +99,13 @@ async function req(method, p, body, headers = {}) {
       check('cuerpo "null" no rompe nada', r.status === 200);
       r = await req('GET', '/api/stats?range=year');
       check('estadísticas del año', r.status === 200 && r.j && r.j.range === 'year');
+      // radios y podcasts: no es un proxy abierto
+      r = await req('GET', '/api/cast/fetch?u=' + encodeURIComponent('http://127.0.0.1:' + PORT + '/api/settings'));
+      check('radios/podcasts: no lee direcciones locales', r.status === 502 && /no permitida/.test(r.t));
+      r = await req('GET', '/cast/zzzzzzzzzzzz');
+      check('radios/podcasts: clave sin registrar = 404', r.status === 404);
+      r = await req('POST', '/api/cast/reg', JSON.stringify({ items: [{ key: '../../x', url: 'https://a.com/x.mp3' }, { key: 'abcdefgh', url: 'file:///C:/Windows/win.ini' }, { key: 'abcdefgi', url: 'http://192.168.0.1/' }] }), { 'Content-Type': 'application/json' });
+      check('radios/podcasts: registro rechaza claves y direcciones malas', r.status === 200 && r.j && r.j.ok === 0);
       // ---------- 3. ataque ----------
       console.log('\n3. ataque con datos rotos (más de 600 pedidos)');
       const f = spawnSync(process.execPath, [path.join(__dirname, 'fuzz.js'), BASE], { encoding: 'utf8', timeout: 300000 });

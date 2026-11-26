@@ -21,6 +21,8 @@ import { initIntegrations } from './integrations.js';
 import { initAlarm } from './alarm.js';
 import { initRemote } from './remotectl.js';
 import { initParty } from './party.js';
+import { initCast } from './cast.js';
+import { initDj } from './dj.js';
 import { renderHome, initHome } from './home.js';
 import { renderExplore, initExplore } from './explore.js';
 import { initGsearch, open as openSearch } from './gsearch.js';
@@ -397,6 +399,8 @@ async function boot() {
   initAlarm();
   initRemote();
   initParty();
+  initCast();
+  initDj();
   initHome();
   initExplore();
   initAdapt();
@@ -453,9 +457,10 @@ async function boot() {
     return topping;
   };
   // quedan 2 o menos: sumar antes de que se termine (así no hay silencio entre canciones)
-  bus.on('np', () => { const S = player.S; if (S.queue.length && S.queue.length - S.qi - 1 <= 2) topUpQueue(); });
+  // radios y podcasts no suman música a la cola
+  bus.on('np', () => { const S = player.S, c = player.current(); if (c && c.cast) return; if (S.queue.length && S.queue.length - S.qi - 1 <= 2) topUpQueue(); });
   // se terminó igual (o tocaste "siguiente" en la última): sumar y seguir
-  bus.on('ended-queue', async () => { if (await topUpQueue()) player.next({ auto: true }); });
+  bus.on('ended-queue', async () => { const c = player.current(); if (c && c.cast) return; if (await topUpQueue()) player.next({ auto: true }); });
   // eventos del servidor
   const reload = debounce(async () => { await loadLibrary(); loadAuto(); }, 700);
   bus.on('sse:library', reload);

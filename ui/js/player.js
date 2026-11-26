@@ -11,6 +11,11 @@ export const current = () => T(S.queue[S.qi]);
 let gate = null;
 export function setGate(fn) { gate = fn; }
 const canPlay = (id) => !gate || gate(T(id));
+// modo DJ (dj.js): decide cómo pasar a la siguiente (tempo, momento justo); devuelve true si se encarga
+let transition = null;
+export function setTransition(fn) { transition = fn; }
+export const djOn = () => P.get('dj') === true && !engine.native;
+const fadeLen = () => (djOn() ? +P.get('djFade') || 8 : +P.get('crossfade') || 0);
 let errors = 0;
 let errorAdvance = 0;
 
@@ -63,7 +68,7 @@ function endSession(completed) {
 }
 
 // ---------- reproducir ----------
-async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false, adopt = false } = {}) {
+async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false, adopt = false, rate = 1, dj = false } = {}) {
   let id = S.queue[i];
   let t = T(id);
   if (!t) return;
@@ -85,14 +90,14 @@ async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false
   if (!silent) { S.history = [id, ...S.history.filter((x) => x !== id)].slice(0, 200); }
   sess = { id, sec: 0 };
   engine.setSongDb(+P.get('vol').perSong[id] || 0);
-  engine.crossfade = +P.get('crossfade') || 0;
+  engine.crossfade = t.live ? 0 : fadeLen();
   themeForTrack(t);
   renderNP();
   bus.emit('queue');
   bus.emit('np', t);
   mediaSession(t);
   if (!silent && autoplay) notifyChange(t);
-  if (!adopt) await engine.load(t, { fade, autoplay, startAt });   // adopt: el motor nativo ya la está reproduciendo
+  if (!adopt) await engine.load(t, { fade, autoplay, startAt, rate, dj });   // adopt: el motor nativo ya la está reproduciendo
   persist();
   prefetchNext();
 }
@@ -122,7 +127,7 @@ function prefetchNext() {
   }
 }
 
-export function playList(ids, index = 0, { shuffle } = {}) {
+export function playList(ids, index = 0, { shuffle, startAt = 0 } = {}) {
   ids = ids.filter((id) => T(id));
   if (!ids.length) return;
   if (shuffle !== undefined) S.shuffle = shuffle;
@@ -137,7 +142,7 @@ export function playList(ids, index = 0, { shuffle } = {}) {
     i = 0;
   }
   renderModes();
-  start(i);
+  start(i, { startAt });
 }
 export function playId(id, context) {
   const list = context && context.includes(id) ? context : [id];
@@ -188,7 +193,7 @@ export function clearQueue() {
 }
 export function jump(i) { if (S.queue[i]) start(i); }
 
-export function next({ auto = false, fade = 0 } = {}) {
+export function next({ auto = false, fade = 0, dj = null } = {}) {
   if (!auto) { clearTimeout(errorAdvance); errorAdvance = 0; }
   if (!S.queue.length) return;
   if (auto && S.repeat === 'one') return start(S.qi, { fade: 0 });
@@ -211,7 +216,7 @@ export function next({ auto = false, fade = 0 } = {}) {
     if (j < 0) { if (auto || P.get('autoRecs') !== false) bus.emit('ended-queue'); else toast('✈ sin internet: no quedan canciones guardadas en la cola'); return; }
     i = j;
   }
-  start(i, { fade });
+  start(i, { fade, ...(dj || {}) });
 }
 export function prev() {
   if (engine.time > 3 || S.qi <= 0) return engine.seek(0);
@@ -315,9 +320,10 @@ if (engine.native) {
 bus.on('eng:nearend', (id) => {
   if (id && (!current() || current().id !== id)) return;
   if (sleep.endOfTrack) return;                                  // el temporizador corta al final: no fundir
-  const fade = +P.get('crossfade') || 0;
+  const fade = fadeLen();
   if (fade <= 0 || S.repeat === 'one') return;
   if (S.qi + 1 >= S.queue.length && S.repeat !== 'all') return;
+  if (transition && transition(id, fade)) return;                // modo DJ: entra a tempo
   next({ auto: true, fade });
 });
 bus.on('eng:ended', (id) => {
@@ -348,8 +354,11 @@ bus.on('eng:error', (detail) => {
 });
 bus.on('eng:state', (s) => {
   const t = current();
-  if (t && t.remote) setText('fmt', s === 'wait' ? '☁ conectando con YouTube Music…' : '☁ online · YouTube Music');
+  if (t && t.remote && !t.cast) setText('fmt', s === 'wait' ? '☁ conectando con YouTube Music…' : '☁ online · YouTube Music');
+  if (t && t.cast) setText('fmt', castFmt(t, s));
   renderPlayState(s); if (s === 'play' && engine.time > 0.5) { errors = 0; errFor = null; } if ('mediaSession' in navigator) navigator.mediaSession.playbackState = s === 'pause' ? 'paused' : 'playing'; });
+
+const castFmt = (t, s) => (s === 'wait' ? 'conectando…' : t.cast === 'radio' ? '📻 radio en vivo' + (t.bitrate ? ` · ${t.bitrate} kbps` : '') : '🎙 podcast');
 
 // ---------- notificaciones de cambio de canción ----------
 function notifyChange(t) {
@@ -425,7 +434,7 @@ export function renderNP() {
   setText('title', t ? t.title : 'nada sonando');
   setText('artist', t ? t.artist || '—' : '—');
   setText('album', t ? (t.album ? t.album + (t.year ? ` (${t.year})` : '') : '—') : '—');
-  setText('fmt', !t ? '—' : t.remote ? '☁ online · YouTube Music' : [t.ext, t.bitrate ? t.bitrate + ' kbps' : '', t.sampleRate ? (t.sampleRate / 1000) + ' kHz' : ''].filter(Boolean).join(' · '));
+  setText('fmt', !t ? '—' : t.cast ? castFmt(t) : t.remote ? '☁ online · YouTube Music' : [t.ext, t.bitrate ? t.bitrate + ' kbps' : '', t.sampleRate ? (t.sampleRate / 1000) + ' kHz' : ''].filter(Boolean).join(' · '));
   setText('queue', `${S.qi + 1 > 0 ? S.qi + 1 : 0} / ${S.queue.length}`);
   setText('plays', t ? String(D.plays[t.id] || 0) : '—');
   setText('line', t ? trackLabel(t) : 'sin reproducir');
@@ -505,7 +514,7 @@ function renderTime(force) {
   $$('[data-np="knob"]').forEach((el) => (el.style.left = pct + '%'));
   if (force || performance.now() - lastDraw > 250) {
     lastDraw = performance.now();
-    setText('pos', fmtTime(t)); setText('dur', fmtTime(d));
+    setText('pos', fmtTime(t)); setText('dur', engine.track && engine.track.live ? 'en vivo' : fmtTime(d));
     const b = d ? (engine.buffered / d) * 100 : 0;
     $$('[data-np="buffered"]').forEach((el) => (el.style.width = b + '%'));
     if ('mediaSession' in navigator && d && navigator.mediaSession.setPositionState) {

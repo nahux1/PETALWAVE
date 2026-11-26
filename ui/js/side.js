@@ -6,6 +6,8 @@ import { engine } from './audio.js';
 import { karaoke } from './comfort.js';
 import { getLang } from './i18n.js';
 import { getDragIds, trackMenu, newPlaylist } from './library.js';
+import { djInfo, djOn, toggleDj, djOrder } from './dj.js';
+import { isOffline, noteLyrics } from './offline.js';
 
 let tab = 'queue';
 export function setSideTab(t) {
@@ -16,10 +18,11 @@ export function setSideTab(t) {
 }
 
 // ---------- cola ----------
+let dj = false;
 function qrow(t, i, cls) {
   return `<div class="qrow ${cls}" data-qi="${i}" draggable="true"><span class="ix">${i === S.qi ? '♪' : i + 1}</span>
     <img loading="lazy" src="${coverUrl(t.id, 't')}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'th'}))">
-    <div style="min-width:0"><div class="n">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')} · ${fmtTime(t.duration)}</div></div>
+    <div style="min-width:0"><div class="n">${esc(t.title)}</div><div class="a">${esc(t.artist || '—')} · ${t.live ? 'en vivo' : fmtTime(t.duration)}${dj && djInfo(t.id) ? ` · <span class="bpm">${Math.round(djInfo(t.id).b)} bpm</span>` : ''}</div></div>
     <button class="x" data-qx="${i}" title="quitar">${icon('x')}</button></div>`;
 }
 function renderQueue() {
@@ -28,7 +31,8 @@ function renderQueue() {
   const box = $('#sbQueue');
   if (!S.queue.length) { box.innerHTML = emptyState('La cola está vacía', 'Tocá una canción, un mix de Inicio o arrastrá canciones acá.', [{ label: 'ir al inicio', attr: 'data-goto="home"' }], '♫'); return; }
   const from = Math.max(0, S.qi - 2), to = Math.min(S.queue.length, S.qi + 150);
-  let html = `<div class="m" style="display:flex;justify-content:space-between;gap:6px;padding:2px 6px 6px"><span style="flex:1">${S.queue.length} en cola${S.shuffle ? ' · aleatorio' : ''}${S.repeat !== 'off' ? ' · repetir ' + (S.repeat === 'one' ? 'una' : 'todo') : ''}</span><button class="cb sm" id="qSave" title="guardar la cola como playlist">guardar</button><button class="cb sm" id="qClear">limpiar</button></div>`;
+  dj = djOn();
+  let html = `<div class="m" style="display:flex;justify-content:space-between;gap:6px;padding:2px 6px 6px;flex-wrap:wrap"><span style="flex:1">${S.queue.length} en cola${S.shuffle ? ' · aleatorio' : ''}${S.repeat !== 'off' ? ' · repetir ' + (S.repeat === 'one' ? 'una' : 'todo') : ''}</span><button class="cb sm ${dj ? 'on' : ''}" data-act="dj" id="qDj" title="modo DJ: cruces largos a tempo, entrando en el golpe">🎧 DJ</button>${dj ? '<button class="cb sm" id="qDjSort" title="ordenar lo que queda por ritmo y energía">⇅ ordenar</button>' : ''}<button class="cb sm" id="qSave" title="guardar la cola como playlist">guardar</button><button class="cb sm" id="qClear">limpiar</button></div>`;
   for (let i = from; i < to; i++) { const t = T(S.queue[i]); if (t) html += qrow(t, i, i === S.qi ? 'cur' : i < S.qi ? 'past' : ''); }
   if (to < S.queue.length) html += `<div class="m" style="padding:6px">… y ${S.queue.length - to} más</div>`;
   box.innerHTML = html;
@@ -39,6 +43,8 @@ function renderQueue() {
     toast('cola vaciada', { action: { label: 'deshacer', fn: () => restoreQueue(q, qi) }, ms: 5000 });
   };
   $('#qSave').onclick = () => newPlaylist(S.queue.slice());
+  $('#qDj').onclick = () => toggleDj();
+  const ds = $('#qDjSort'); if (ds) ds.onclick = () => djOrder();
 }
 // quitar con "deshacer" (por si se tocó sin querer)
 function removeWithUndo(i) {
@@ -123,14 +129,19 @@ function parseLrc(text) {
 export async function loadLyrics(t) {
   if (!t) { lyr = { id: null }; return paintLyrics(); }
   if (lyr.id === t.id && (lyr.lines || lyr.plain || lyr.none)) return paintLyrics();
+  if (t.cast) { lyr = { id: t.id, none: true, cast: t.cast }; return paintLyrics(); }
   lyr = { id: t.id, loading: true };
   paintLyrics();
   try {
     // las canciones online no tienen archivo: se manda título/artista/duración para buscar la letra
-    const qs = String(t.id).startsWith('yt_') ? '?' + new URLSearchParams({ title: t.title || '', artist: t.artist || '', album: t.album || '', duration: String(Math.round(t.duration || 0)) }) : '';
+    const off = isOffline();
+    const prm = String(t.id).startsWith('yt_') ? { title: t.title || '', artist: t.artist || '', album: t.album || '', duration: String(Math.round(t.duration || 0)) } : {};
+    if (off) prm.off = '1';   // sin internet: solo las guardadas (no esperar a que fallen las búsquedas)
+    const qs = Object.keys(prm).length ? '?' + new URLSearchParams(prm) : '';
     const j = await api.get('/api/lyrics/' + t.id + qs);
     if (lyr.id !== t.id) return;
-    if (j.none || j.error) lyr = { id: t.id, none: true, online: j.online, ytm: j.ytm, ytId: j.ytId };
+    if (j.text) noteLyrics(t.id);
+    if (j.none || j.error) lyr = { id: t.id, none: true, online: j.online, ytm: j.ytm, ytId: j.ytId, offline: j.offline || off };
     else if (j.synced) lyr = { id: t.id, lines: parseLrc(j.text), source: j.source };
     else lyr = { id: t.id, plain: j.text, source: j.source };
   } catch { lyr = { id: t.id, none: true }; }
@@ -142,6 +153,8 @@ function lyricsHtml() {
   const empty = (title, sub, hint) => `<div class="lyr-empty"><svg class="i"><use href="#i-lyr"/></svg><b>${title}</b>${sub ? `<span class="m">${sub}</span>` : ''}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
   if (!lyr.id) return empty('nada sonando', 'la letra aparece acá cuando pongas una canción');
   if (lyr.loading) return `<div class="lyr-empty loading"><svg class="i"><use href="#i-lyr"/></svg><b>buscando la letra…</b></div>`;
+  if (lyr.none && lyr.cast) return empty(lyr.cast === 'radio' ? 'radio en vivo' : 'podcast', lyr.cast === 'radio' ? 'las radios no tienen letra · arriba se ve el tema que está pasando (si la radio lo manda)' : 'los podcasts no tienen letra');
+  if (lyr.none && lyr.offline) return empty('✈ sin internet', 'la letra de esta canción no quedó guardada', 'cuando vuelva internet aparece sola · las letras de lo que escuchás se guardan solas');
   if (lyr.none) return empty('sin letra',
     lyr.ytm && lyr.ytId ? 'YouTube Music no tiene letra para esta versión' : 'no se encontró letra para esta canción',
     lyr.online ? 'se buscó en YouTube Music y LRCLIB' : 'activá LRCLIB en ajustes → letras para buscar en más lugares');
@@ -218,6 +231,9 @@ export function initSide() {
   });
   bus.on('queue', () => { renderQueue(); renderHist(); });
   bus.on('np', (t) => { if (tab === 'lyrics' || !$('#full').hidden) loadLyrics(t); else lyr = { id: null }; });
+  bus.on('queue:paint', () => { if (tab === 'queue' && djOn()) renderQueue(); });
+  // volvió internet: si la letra no estaba guardada, buscarla de nuevo
+  bus.on('offline', (off) => { if (!off && lyr.offline && lyr.id) { const t = T(lyr.id); lyr = { id: null }; if (t && (tab === 'lyrics' || !$('#full').hidden)) loadLyrics(t); } });
   bus.on('time', (t) => syncLyrics(t));
   setSideTab(P.get('sideTab') || 'queue');
 }

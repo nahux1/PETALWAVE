@@ -33,8 +33,10 @@ class NativeService : MediaLibraryService() {
         fun item(t: JSONObject): MediaItem {
             val id = t.optString("id")
             val yt = t.optString("ytId")
-            val uri = if (id.startsWith("yt_")) "$BASE/stream/${id.removePrefix("yt_")}" else "$BASE/media/$id"
-            val art = if (id.startsWith("yt_")) "$BASE/ytcover/${id.removePrefix("yt_")}" else "$BASE/cover/$id"
+            // radios (rd_) y capítulos de podcast (pc_): los sirve /cast/<clave> (la imagen, /cast/<clave>i)
+            val cast = id.startsWith("rd_") || id.startsWith("pc_")
+            val uri = if (cast) "$BASE/cast/${id.substring(3)}" else if (id.startsWith("yt_")) "$BASE/stream/${id.removePrefix("yt_")}" else "$BASE/media/$id"
+            val art = if (cast) "$BASE/cast/${id.substring(3)}i" else if (id.startsWith("yt_")) "$BASE/ytcover/${id.removePrefix("yt_")}" else "$BASE/cover/$id"
             val md = MediaMetadata.Builder()
                 .setTitle(t.optString("title").ifEmpty { "Petalwave" })
                 .setArtist(t.optString("artist"))

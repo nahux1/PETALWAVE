@@ -18,6 +18,7 @@ const { Streamer } = require('./src/stream');
 const { Spotify } = require('./src/spotify');
 const { Discord } = require('./src/discord');
 const { Remote, newToken } = require('./src/remote');
+const { Cast } = require('./src/cast');
 
 const PORT = +process.env.PORT || 3737;
 const ROOT = __dirname;
@@ -95,6 +96,7 @@ const callbackPage = (ok, msg) => `<!doctype html><meta charset="utf-8"><title>p
 <p>${msg}</p><p style="color:#9a8a8b">ya podés cerrar esta pestaña y volver a petalwave.</p></div></body>`;
 const lyrics = new Lyrics({ dataDir: DATA, library, ffprobe: FFPROBE, settings: getSettings, ytm });
 const updater = new Updater({ root: ROOT, dataDir: DATA, broadcast });
+const cast = new Cast({ dataDir: DATA, broadcast });   // radios y podcasts
 
 // marca cada resultado de YouTube Music con la canción local si ya la tenés (por ID de YouTube o por artista + título)
 function annotate(list) {
@@ -484,7 +486,7 @@ async function route(req, res) {
   }
   if ((mm = m(/^\/api\/lyrics\/(yt_[\w-]{11})$/))) {
     const q = u.searchParams, cut = (k) => String(q.get(k) || '').slice(0, 300);
-    return U.json(res, 200, await lyrics.get(mm[1], { title: cut('title'), artist: cut('artist'), album: cut('album'), duration: +q.get('duration') || 0 }));
+    return U.json(res, 200, await lyrics.get(mm[1], { title: cut('title'), artist: cut('artist'), album: cut('album'), duration: +q.get('duration') || 0, off: q.get('off') === '1' }));
   }
   if ((mm = m(/^\/api\/lyrics\/([0-9a-f]{16})$/))) {
     if (M === 'POST') {
@@ -492,8 +494,20 @@ async function route(req, res) {
       if (!buf) return U.json(res, 413, { error: 'muy grande' });
       try { return U.json(res, 200, lyrics.saveSidecar(mm[1], buf.toString('utf8'))); } catch (e) { return U.json(res, 400, { error: e.message }); }
     }
-    return U.json(res, 200, await lyrics.get(mm[1]));
+    return U.json(res, 200, await lyrics.get(mm[1], { off: u.searchParams.get('off') === '1' }));
   }
+
+  // ---------- radios y podcasts ----------
+  if ((mm = m(/^\/cast\/([a-z0-9]{6,24})$/))) return cast.serve(req, res, mm[1]);
+  if (p === '/api/cast/reg' && M === 'POST') { const b = await body(); return U.json(res, 200, { ok: cast.reg(b.items) }); }
+  if (p === '/api/cast/fetch') {
+    try { const txt = await cast.fetchText(u.searchParams.get('u')); res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(txt); }
+    catch (e) { return U.json(res, 502, { error: e.message }); }
+  }
+  if ((mm = m(/^\/api\/cast\/meta\/([a-z0-9]{6,24})$/))) return U.json(res, 200, await cast.meta(mm[1]));
+  if (p === '/api/cast/saved') return U.json(res, 200, cast.saved());
+  if (p === '/api/cast/save' && M === 'POST') { const b = await body(); return U.json(res, 200, { queued: cast.save([].concat(b.keys || []).map(String)) }); }
+  if (p === '/api/cast/remove' && M === 'POST') { const b = await body(); cast.remove([].concat(b.keys || []).map(String), !!b.all); return U.json(res, 200, cast.saved()); }
   if (p === '/api/open' && M === 'POST') {
     const b = await body();
     U.openInExplorer(b.path && S.folders.concat(S.downloadDir, S.videoDir || []).includes(b.path) ? b.path : S.downloadDir);

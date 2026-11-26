@@ -1,7 +1,7 @@
 // ordenar mi música: portadas que faltan, nombres desprolijos ("Artista - Canción (Official Video)") y duplicados.
 // Todo se escribe en tus archivos con ffmpeg, sin recodificar el audio (solo en la PC).
 import { api, toast, modal, esc, norm, bus } from './core.js';
-import { D, loadLibrary } from './data.js';
+import { D, T, loadLibrary } from './data.js';
 
 const NOISE = /\s*[([][^)\]]*(official|oficial|video|v[ií]deo|audio|lyric|letra|visuali[sz]er|music video|\bmv\b|\bhd\b|\b4k\b|clip|en vivo\b(?=.*video)|remaster(ed)?\s*\d*)[^)\]]*[)\]]/gi;
 const TAIL = /\s*[|•]\s*.*$|\s+-\s+(official|video|audio|lyric).*$/i;
@@ -45,7 +45,8 @@ export async function openTidy() {
   const L = local();
   const noCover = L.filter((t) => !t.hasCover && coverable(t));
   const names = L.filter(messy);
-  let dupes = 0; try { dupes = (await api.get('/api/library/duplicates')).groups.length; } catch {}
+  let srv = []; try { srv = (await api.get('/api/library/duplicates')).groups; } catch {}
+  const dupes = findDupes(srv).length;
   let chosen = null;
   const row = (id, title, n, sub, btn) => `<div class="tidy-row"><div><b>${title}</b><span class="m">${sub}</span></div><button class="${n ? 'go' : 'cb'} sm" data-t="${id}" ${n ? '' : 'disabled'}>${n ? btn : '✓ todo bien'}</button></div>`;
   const r = await modal({
@@ -53,7 +54,7 @@ export async function openTidy() {
     html: `<p class="m">Se escribe en tus archivos con ffmpeg, sin tocar el audio. Antes de cambiar nombres te muestro la lista.</p>
       ${row('cover', `🖼 portadas que faltan: ${noCover.length}`, noCover.length, 'las busca en YouTube Music y las pone dentro del archivo (mp3, m4a, flac)', 'buscar y poner')}
       ${row('names', `✎ nombres para arreglar: ${names.length}`, names.length, 'saca "(Official Video)", "[HD]", y separa "Artista - Canción"', 'ver y arreglar')}
-      ${row('dupes', `⧉ canciones repetidas: ${dupes}`, dupes, 'misma canción en más de un archivo: elegís cuál mandar a la papelera', 'ver repetidas')}`,
+      ${row('dupes', `⧉ canciones repetidas: ${dupes}`, dupes, 'misma canción en más de un archivo (aunque tenga otro nombre o formato): te marco cuál conviene dejar', 'ver repetidas')}`,
     actions: [{ label: 'cerrar', value: null }],
     onOpen: (box) => box.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => { chosen = b.dataset.t; box.querySelector('.mact button').click(); })),
   });
@@ -99,4 +100,81 @@ export async function changeCover(t) {
     await loadLibrary(); bus.emit('library');
     toast('portada puesta ✓');
   } catch (e) { toast(e.message, { kind: 'err' }); }
+}
+
+// ---------- canciones repetidas ----------
+// Más que "mismo artista + título": limpia los nombres (Official Video, [HD], "Artista - Tema", feat.) y junta
+// el mismo tema en otro formato. Las versiones distintas (slowed de 4 min vs. original de 3) quedan separadas por la duración.
+const LOSSLESS = new Set(['flac', 'wav', 'alac', 'aiff']);
+const clean = (s) => norm(s).replace(/\s+(ft|feat|prod)\.?\s.*$/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const dkey = (t) => { const s = suggestName(t); return clean(String(s.artist || '').split(/\s*(?:,|&| feat\.? | ft\.? | x | y )\s*/i)[0]) + '|' + clean(s.title); };
+export function findDupes(serverGroups = []) {
+  const L = local();
+  const byKey = new Map();
+  for (const t of L) { const k = dkey(t); if (!k.split('|')[1]) continue; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(t); }
+  const groups = [];
+  for (const list of byKey.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => (a.duration || 0) - (b.duration || 0));
+    let c = [list[0]];
+    const flush = () => { if (c.length > 1) groups.push(c.map((t) => t.id)); };
+    for (let i = 1; i < list.length; i++) {
+      const a = c[c.length - 1], b = list[i];
+      if (!a.duration || !b.duration || Math.abs(b.duration - a.duration) <= 4) c.push(b); else { flush(); c = [b]; }
+    }
+    flush();
+  }
+  // sin artista ("desconocido"): mismo título y casi la misma duración que otra canción → es la misma
+  const unknown = (t) => !t.artist || /^(desconocido|unknown|various artists|artista desconocido)$/i.test(String(t.artist).trim());
+  const byTitle = new Map();
+  for (const t of L) { const k = dkey(t).split('|')[1]; if (!k) continue; if (!byTitle.has(k)) byTitle.set(k, []); byTitle.get(k).push(t); }
+  for (const list of byTitle.values()) {
+    if (list.length < 2) continue;
+    for (const u of list.filter(unknown)) {
+      const twin = list.find((x) => x !== u && u.duration && x.duration && Math.abs(x.duration - u.duration) <= 1.5);
+      if (twin) groups.push([u.id, twin.id]);
+    }
+  }
+  // juntar con lo que encontró el servidor (grupos que se tocan pasan a ser uno)
+  const ok = new Set(L.map((t) => t.id));
+  const all = [...groups, ...serverGroups.map((g) => g.filter((id) => ok.has(id)))].filter((g) => g.length > 1);
+  const out = [];
+  for (const g of all) {
+    const hit = out.filter((o) => g.some((id) => o.has(id)));
+    const merged = new Set(g); for (const h of hit) { for (const id of h) merged.add(id); out.splice(out.indexOf(h), 1); }
+    out.push(merged);
+  }
+  return out.map((s) => [...s]);
+}
+const score = (t) => (LOSSLESS.has(t.ext) ? 400 : 0) + Math.min(t.bitrate || 0, 320) + (t.hasCover ? 40 : 0) + (D.plays[t.id] || 0) * 4 + (messy(t) ? -15 : 0) + (t.album ? 8 : 0);
+export const bestOf = (ts) => ts.reduce((a, b) => (score(b) > score(a) ? b : a), ts[0]);
+export function whyBest(t, ts) {
+  const others = ts.filter((x) => x !== t), why = [];
+  if (LOSSLESS.has(t.ext) && !others.some((x) => LOSSLESS.has(x.ext))) why.push('sin pérdida (' + t.ext.toUpperCase() + ')');
+  else if ((t.bitrate || 0) > Math.max(...others.map((x) => x.bitrate || 0)) + 16) why.push(`mejor calidad (${t.bitrate} kbps)`);
+  if (t.hasCover && others.some((x) => !x.hasCover)) why.push('tiene portada');
+  if ((D.plays[t.id] || 0) > Math.max(...others.map((x) => D.plays[x.id] || 0))) why.push('la que más escuchaste');
+  if (!messy(t) && others.some(messy)) why.push('nombre prolijo');
+  return why.join(' · ') || 'la más completa';
+}
+// canciones online en tus playlists que ya tenés como archivo: se pueden cambiar por el archivo
+export function onlineTwins() {
+  const byYt = new Map(), byKey = new Map();
+  for (const t of local()) { if (t.ytId) byYt.set(t.ytId, t); const k = dkey(t); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(t); }
+  const twin = (t) => {
+    if (t.ytId && byYt.has(t.ytId)) return byYt.get(t.ytId);
+    const c = byKey.get(dkey(t)) || [];
+    return c.find((x) => !t.duration || !x.duration || Math.abs(x.duration - t.duration) <= 4) || null;
+  };
+  const changes = []; let count = 0;
+  for (const p of D.playlists) {
+    let n = 0; const set = [];
+    for (const id of p.tracks) {
+      const t = T(id), loc = t && t.remote && !t.cast ? twin(t) : null;
+      const v = loc ? loc.id : id; if (loc) n++;
+      if (!set.includes(v)) set.push(v);
+    }
+    if (n) { changes.push([p.id, set]); count += n; }
+  }
+  return { n: changes.length, count, changes };
 }

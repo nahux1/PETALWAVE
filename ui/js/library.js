@@ -43,6 +43,8 @@ function tasteLine() {
 import { C } from './custom.js';
 import { renderHistory } from './history.js';
 import { recordNav } from './adapt.js';
+import { renderCast, castMenu } from './cast.js';
+import { findDupes, bestOf, whyBest, onlineTwins } from './tidy.js';
 
 const ROW_H = () => (document.body.classList.contains('compact') ? 38 : C().rowH);
 const COLS = '44px minmax(0,2.6fr) minmax(0,1.3fr) 60px 42px 64px 32px';
@@ -72,7 +74,7 @@ export function go(v) {
   if (v.type === 'disc' && !REC.disc) { const c = cachedDiscover(); if (c) { REC.disc = c; for (const it of c.items) WHY.set('yt_' + it.videoId, it.why); } else loadDisc(false); }
   sel.clear(); anchor = -1;
   $$('#lnav [data-view], #lnav [data-pl], #lnav [data-auto], #lnav [data-ytm]').forEach((b) => b.classList.toggle('on',
-    (b.dataset.view && b.dataset.view === v.type && !v.key) || (b.dataset.pl && v.type === 'pl' && b.dataset.pl === v.key) ||
+    (b.dataset.view && (b.dataset.view === v.type || (b.dataset.view === 'pods' && v.type === 'pod')) && (!v.key || v.type === 'pod')) || (b.dataset.pl && v.type === 'pl' && b.dataset.pl === v.key) ||
     (b.dataset.auto && v.type === 'auto' && b.dataset.auto === v.key) || (b.dataset.ytm && v.type === 'ytm' && b.dataset.ytm === v.key)));
   $('#lbody').scrollTop = 0;
   if (['songs', 'artists', 'albums', 'genres', 'years', 'recent', 'dupes'].includes(v.type) && !v.key) P.set('libView', v.type);
@@ -173,6 +175,7 @@ export function render() {
   const q = $('#q').value.trim();
   if (['artists', 'albums', 'genres', 'years'].includes(view.type) && !q) return renderGroups(head, body);
   if (view.type === 'dupes') return renderDupes(head, body);
+  if (view.type === 'radio' || view.type === 'pods' || view.type === 'pod') { ids = []; $('#qCount').textContent = ''; return renderCast(view, head, body); }
   if (view.type === 'hist') { ids = []; return renderHistory(head, body); }
   // con búsqueda escrita en una vista de grupos, mostrar canciones
   const list = ['artists', 'albums', 'genres', 'years'].includes(view.type) ? sorted(filtered(D.tracks), P.get('libSort')) : viewTracks();
@@ -349,6 +352,7 @@ export function trackMenu(x, y, idsArg) {
   if (!chosen.length) return;
   const one = chosen.length === 1 ? T(chosen[0]) : null;
   const plIn = view.type === 'pl' ? view.key : null;
+  if (chosen.some((id) => T(id) && T(id).cast)) return castMenu(x, y, chosen.filter((id) => T(id) && T(id).cast));   // radios y podcasts
   const remote = chosen.map(T).filter((t) => t && t.remote);
   if (remote.length) {   // canciones online de YouTube Music
     const yt = (one && one.ytId) || null;
@@ -500,21 +504,68 @@ function renderGroups(head, body) {
 // ---------- duplicados ----------
 async function renderDupes(head, body) {
   ids = [];
-  head.innerHTML = `<div class="ttlbar"><div><h2>duplicados</h2><div class="sub">misma canción (artista + título) con duración parecida</div></div></div>`;
+  head.innerHTML = `<div class="ttlbar"><div><h2>duplicados</h2><div class="sub">la misma canción en más de un archivo (aunque tenga otro nombre o formato) · ★ = la copia que conviene dejar</div><div class="acts" id="dActs"></div></div></div>`;
   body.innerHTML = '<div class="empty">buscando…</div>';
-  try { dupes = (await api.get('/api/library/duplicates')).groups; } catch { dupes = []; }
+  let server = [];
+  try { server = (await api.get('/api/library/duplicates')).groups; } catch {}
+  dupes = findDupes(server);
+  const twins = onlineTwins();
   $('#cDupes').textContent = dupes.length || '';
-  if (!dupes.length) { body.innerHTML = '<div class="empty">no hay duplicados ✓</div>'; return; }
-  body.innerHTML = dupes.map((g, gi) => {
-    const ts = g.map(T).filter(Boolean);
-    return `<div class="dgroup"><div class="dh">${esc(trackLabel(ts[0]))} · ${ts.length} copias</div>${ts.map((t) => `
-      <div class="drow"><div style="min-width:0"><div>${esc(t.name)}</div><div class="p">${esc(t.folder)}</div></div>
-      <span class="m">${t.ext} · ${t.bitrate || '?'}k · ${fmtSize(t.size)} · ${fmtTime(t.duration)}</span>
+  const extra = dupes.reduce((a, g) => a + g.length - 1, 0);
+  $('#dActs').innerHTML = (dupes.length ? `<button class="go" data-dall>★ dejar solo la mejor de cada una (${extra} a la papelera)</button>` : '') +
+    (twins.n ? `<button class="cb" data-dtw title="en tus playlists, las canciones online que ya tenés como archivo pasan a usar el archivo">☁→♪ usar tus archivos en ${twins.n} de tus playlists</button>` : '');
+  if (!dupes.length) { body.innerHTML = `<div class="empty">no hay canciones repetidas ✓${twins.n ? '<br><span class="m">pero hay canciones online en tus playlists que ya tenés como archivo (botón de arriba)</span>' : ''}</div>`; bindDupes(head, body, twins); return; }
+  body.innerHTML = dupes.map((g) => {
+    const ts = g.map(T).filter(Boolean), best = bestOf(ts);
+    return `<div class="dgroup"><div class="dh">${esc(trackLabel(best))} · ${ts.length} copias</div>${ts.map((t) => `
+      <div class="drow ${t === best ? 'best' : ''}"><div style="min-width:0"><div>${t === best ? '★ ' : ''}${esc(t.name)}</div><div class="p">${t === best ? '<b class="ok">conviene dejar esta: ' + esc(whyBest(t, ts)) + '</b> · ' : ''}${esc(t.folder)}</div></div>
+      <span class="m">${t.ext} · ${t.bitrate || '?'}k · ${fmtSize(t.size)} · ${fmtTime(t.duration)}${D.plays[t.id] ? ' · ▶ ' + D.plays[t.id] : ''}</span>
       <button class="cb sm" data-dplay="${t.id}">${icon('play')}</button>
       <button class="cb sm danger" data-dtrash="${t.id}">papelera</button></div>`).join('')}</div>`;
   }).join('');
+  bindDupes(head, body, twins);
+}
+function bindDupes(head, body, twins) {
   body.querySelectorAll('[data-dplay]').forEach((b) => (b.onclick = () => playList([b.dataset.dplay], 0)));
-  body.querySelectorAll('[data-dtrash]').forEach((b) => (b.onclick = async () => { await trash([b.dataset.dtrash]); }));
+  body.querySelectorAll('[data-dtrash]').forEach((b) => (b.onclick = async () => { const id = b.dataset.dtrash; const g = dupes.find((x) => x.includes(id)); await keepOnly(g ? bestOf(g.filter((x) => x !== id).map(T).filter(Boolean)) : null, [id]); render(); }));
+  const all = head.querySelector('[data-dall]');
+  if (all) all.onclick = async () => {
+    const plan = dupes.map((g) => { const ts = g.map(T).filter(Boolean), best = bestOf(ts); return { best, out: ts.filter((t) => t !== best).map((t) => t.id) }; });
+    const n = plan.reduce((a, p) => a + p.out.length, 0);
+    const ok = await confirm2('Dejar solo la mejor copia', `De cada canción repetida queda la marcada con ★ (mejor calidad, con portada, la que más escuchaste). Las otras <b>${n}</b> van a la <b>papelera de reciclaje</b>${window.PetalwaveNative ? '' : ' de Windows'} y se pueden recuperar desde ahí.<br><br>En tus playlists, las copias que se van se cambian por la que queda.`, `enviar ${n} a la papelera`, true);
+    if (!ok) return;
+    let moved = 0;
+    for (const p of plan) moved += await keepOnly(p.best, p.out, true);
+    toast(`listo: ${moved} copias a la papelera ✓`, { sub: 'tus playlists usan la copia que quedó', ms: 3000 });
+    await loadLibrary(); render();
+  };
+  const tw = head.querySelector('[data-dtw]');
+  if (tw) tw.onclick = async () => {
+    for (const [pid, set] of twins.changes) await plOp({ id: pid, set });
+    toast(`listo: ${twins.count} canciones online cambiadas por tus archivos ✓`, { sub: 'suenan sin internet y con la calidad de tu archivo', ms: 3000 });
+    render();
+  };
+}
+// mandar copias a la papelera; en las playlists, donde estaban, pasa a estar la que queda
+async function keepOnly(keep, out, quiet = false) {
+  if (!quiet) {
+    const list = out.map(T).filter(Boolean);
+    const ok = await confirm2('Enviar a la papelera', `${list.length === 1 ? `«${esc(list[0].name || list[0].title)}»` : list.length + ' canciones'} va${list.length > 1 ? 'n' : ''} a la <b>papelera de reciclaje</b>. Se puede recuperar desde ahí.${keep ? '<br>En tus playlists se cambia por la copia que queda.' : ''}`, 'enviar a la papelera', true);
+    if (!ok) return 0;
+  }
+  const gone = new Set(out);
+  if (keep) for (const p of D.playlists) {
+    if (!p.tracks.some((id) => gone.has(id))) continue;
+    const set = []; for (const id of p.tracks) { const v = gone.has(id) ? keep.id : id; if (!set.includes(v)) set.push(v); }
+    try { await plOp({ id: p.id, set }); } catch {}
+  }
+  let n = 0;
+  for (const id of out) {
+    if (current() && current().id === id) { toast('no se puede borrar la canción que está sonando', { kind: 'warn' }); continue; }
+    try { await api.post(`/api/track/${id}/trash`); n++; } catch (e) { toast(e.message, { kind: 'err' }); }
+  }
+  if (!quiet && n) toast(`${n} a la papelera`);
+  return n;
 }
 
 // ---------- arrastrar canciones: a playlists, a la cola, o reordenar una playlist ----------
