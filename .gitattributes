@@ -1,0 +1,2 @@
+# los .bat siempre con saltos de linea de Windows (si no, cmd los lee mal)
+*.bat text eol=crlf
