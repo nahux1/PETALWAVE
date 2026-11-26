@@ -272,8 +272,17 @@ bus.on('custom', () => { const c = C(); const k = c.miniPos + '|' + c.minimizeTo
   document.documentElement.addEventListener('mouseenter', () => { if (!miniOn || C().miniExpand === false) return; clearTimeout(shrinkT); growT = setTimeout(() => host.send('mini:grow'), 140); });
   document.documentElement.addEventListener('mouseleave', () => { if (!miniOn) return; clearTimeout(growT); shrinkT = setTimeout(() => host.send('mini:shrink'), 650); });
   const mu = $('#miniUi');
-  mu.addEventListener('mousedown', (e) => { if (e.button === 0 && miniOn && !e.target.closest('button,input,[data-seek]')) { e.preventDefault(); host.send('mini:drag'); } });
-  mu.addEventListener('dblclick', (e) => { if (!e.target.closest('button,input,[data-seek]')) toggleMini(false); });
+  // arrastrar mueve la ventana (lo hace Windows) y eso se "come" el doble clic: se detecta acá, con dos toques seguidos
+  let lastDown = 0, lastX = 0, lastY = 0;
+  mu.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || !miniOn || e.target.closest('button,input,[data-seek]')) return;
+    e.preventDefault();
+    const now = performance.now(), near = Math.abs(e.screenX - lastX) < 12 && Math.abs(e.screenY - lastY) < 12;
+    if (now - lastDown < 450 && near) { lastDown = 0; return toggleMini(false); }   // doble clic: volver a la ventana grande
+    lastDown = now; lastX = e.screenX; lastY = e.screenY;
+    host.send('mini:drag');
+  });
+  mu.addEventListener('dblclick', (e) => { if (miniOn && !e.target.closest('button,input,[data-seek]')) toggleMini(false); });
 }
 bus.on('host:win', (w) => { if (w === 'mini-on') toggleMini(true); if (w === 'minipos:free') setC('miniPos', 'free'); if (w === 'full-off') { const f = $('#full'); if (!f.hidden) { f.hidden = true; document.body.classList.remove('full-on'); } } });
 

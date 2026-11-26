@@ -18,6 +18,7 @@ export const djOn = () => P.get('dj') === true && !engine.native;
 const fadeLen = () => (djOn() ? +P.get('djFade') || 8 : +P.get('crossfade') || 0);
 let errors = 0;
 let errorAdvance = 0;
+let retried = null;   // canción online que ya se reintentó una vez
 
 // ---------- persistencia (cola, posición, modos) ----------
 function persist() {
@@ -86,6 +87,7 @@ async function start(i, { fade = 0, autoplay = true, startAt = 0, silent = false
   ensure();
   endSession(false);
   errFor = null;   // canción nueva: su error (si lo hay) cuenta de nuevo
+  if (!adopt && retried !== id) retried = null;
   S.qi = i;
   if (!silent) { S.history = [id, ...S.history.filter((x) => x !== id)].slice(0, 200); }
   sess = { id, sec: 0 };
@@ -342,6 +344,13 @@ bus.on('eng:error', (detail) => {
   if (id && (!t || t.id !== id)) return;
   if (t && errFor === t.id) return;
   errFor = t ? t.id : null;
+  // online (YouTube, radio, podcast): a veces falla una vez y a la segunda anda. Se reintenta solo, sin avisar
+  if (t && t.remote && retried !== t.id && !engine.native) {
+    retried = t.id;
+    const at = engine.time > 1 && !t.live ? engine.time : 0;
+    setTimeout(() => { if (current() && current().id === t.id) { errFor = null; engine.load(t, { startAt: at }); } }, 1200);
+    return;
+  }
   errors++;
   toast('no se pudo reproducir ' + (t ? '«' + t.title + '»' : ''), { kind: 'err', sub: String(msg || '') });
   if (errors < 3 && S.qi + 1 < S.queue.length) {

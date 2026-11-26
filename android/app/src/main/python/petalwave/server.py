@@ -2135,11 +2135,12 @@ class H(BaseHTTPRequestHandler):
             hd["Range"] = self.headers["Range"]
         conn.request("GET", u.path + ("?" + u.query if u.query else ""), headers=hd)
         r = conn.getresponse()
-        if r.status in (403, 410) and retry:
+        bad = r.status not in (200, 206, 416)   # 403/410 (enlace vencido), 429, 5xx…: antes los raros llegaban como "Format error"
+        if bad and retry:
             r.read()
             conn.close()
             return self.proxy(vid, resolve(vid, force=True), retry=False)
-        if r.status in (403, 410):   # YouTube sigue rechazando el enlace: bajarla entera con yt-dlp y servirla del disco
+        if bad:   # YouTube sigue rechazando el enlace: bajarla entera con yt-dlp y servirla del disco
             r.read()
             conn.close()
             try:

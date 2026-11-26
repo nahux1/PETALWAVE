@@ -186,7 +186,14 @@ class Streamer {
     let r;
     try {
       r = await fetch(info.url, { headers: { Range: req.headers.range || 'bytes=0-', 'User-Agent': 'Mozilla/5.0' }, signal: ctl.signal });
-    } catch (e) { if (!res.headersSent) { res.writeHead(502); res.end(); } return; }
+    } catch (e) {
+      if (ctl.signal.aborted) return;
+      // se cortó la conexión con YouTube: una vez más con un enlace nuevo
+      this.cache.delete(id);
+      if (retry) { try { await this.resolve(id, true); } catch {} return this.proxy(req, res, id, false); }
+      if (!res.headersSent) { res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('no se pudo conectar con YouTube'); }
+      return;
+    }
     // recién resuelta y YouTube igual la rechaza: no tiene sentido volver a pedirla, directo a bajarla
     if ((r.status === 403 || r.status === 410) && retry && Date.now() - (info.at || 0) < 90e3) retry = false;
     if ((r.status === 403 || r.status === 410) && retry) {        // URL vencida: resolver de nuevo una vez
@@ -197,6 +204,15 @@ class Streamer {
     }
     if (r.status === 403 || r.status === 410) {                    // YouTube sigue rechazando el enlace: bajarla con yt-dlp
       try { r.body && r.body.cancel(); } catch {}
+      try { const f = await this.fileFallback(id); return serveRange(req, res, f, f.endsWith('.webm') ? 'audio/webm' : 'audio/mp4'); }
+      catch (e) { if (!res.headersSent) { res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end(e.message); } return; }
+    }
+    // otra respuesta rara (429 "demasiados pedidos", 5xx…): antes se pasaba tal cual y el reproductor decía "Format error".
+    // Ahora: otra vez con un enlace nuevo y, si sigue, bajarla entera con yt-dlp
+    if (r.status !== 200 && r.status !== 206 && r.status !== 416) {
+      try { r.body && r.body.cancel(); } catch {}
+      this.cache.delete(id);
+      if (retry) { try { await this.resolve(id, true); } catch {} return this.proxy(req, res, id, false); }
       try { const f = await this.fileFallback(id); return serveRange(req, res, f, f.endsWith('.webm') ? 'audio/webm' : 'audio/mp4'); }
       catch (e) { if (!res.headersSent) { res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end(e.message); } return; }
     }
