@@ -1,5 +1,5 @@
 // temas fijos + colores dinámicos tomados de la carátula de cada canción
-import { $, P, host, bus, toast } from './core.js';
+import { $, P, host, bus, toast, coverUrl } from './core.js';
 
 const T = (o) => o;
 export const THEMES = {
@@ -213,7 +213,7 @@ export function themeForTrack(track) {
   const img = new Image();
   img.onload = () => { if (my !== req || !P.get('dyn')) return; const p = extractPalette(img); setVars(p ? themeFromPalette(p) : themeFromName(track.title)); };
   img.onerror = () => { if (my === req && P.get('dyn')) setVars(themeFromName(track.title)); };
-  img.src = '/cover/' + track.id;
+  img.src = coverUrl(track.id);   // las online tienen la portada en /ytcover/
 }
 
 // colores actuales ya interpolados (para el canvas del visualizador)

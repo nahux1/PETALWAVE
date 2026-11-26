@@ -695,9 +695,10 @@ def net_online(force=False):
         if not force and time.time() - _net["at"] < 20:
             return _net["ok"]
         ok = False
-        for host in ("music.youtube.com", "www.google.com"):
+        # la misma prueba que usa Android (http, liviana) y después YouTube Music; con datos móviles lentos hay margen
+        for host, https in (("connectivitycheck.gstatic.com", False), ("music.youtube.com", True), ("www.google.com", True)):
             try:
-                c = http.client.HTTPSConnection(host, timeout=4)
+                c = (http.client.HTTPSConnection if https else http.client.HTTPConnection)(host, timeout=8)
                 c.request("HEAD", "/generate_204")
                 ok = c.getresponse().status < 500
                 c.close()
@@ -1728,12 +1729,12 @@ class H(BaseHTTPRequestHandler):
                     except OSError:
                         pass
                 return self.send_file(cf, "audio/webm" if cf.endswith(".webm") else "audio/mp4")
-            if vid not in _streams and not net_online():
-                return self.send_json(503, {"error": "sin internet: esta canción no está guardada", "offline": True})
             try:
                 c = resolve(vid)
             except Exception as e:  # noqa: BLE001
-                _net["at"] = 0
+                # recién acá se mira si hay internet, para avisar bien (antes se miraba siempre y con datos lentos frenaba canciones)
+                if not net_online(force=True):
+                    return self.send_json(503, {"error": "sin internet: esta canción no está guardada", "offline": True})
                 return self.send_json(502, {"error": str(e)})
             if q.get("prefetch"):
                 # preparar la siguiente: si YouTube rechaza el enlace, bajarla ya para que suene enseguida

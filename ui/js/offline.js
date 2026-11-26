@@ -38,9 +38,15 @@ export async function refreshOffline() {
   return st;
 }
 
+let fails = 0;
 async function checkNet(force = false) {
   let ok = navigator.onLine !== false;
-  if (ok) { try { ok = !!(await api.get('/api/net' + (force ? '?force=1' : ''))).online; } catch { ok = false; } }
+  if (ok) {
+    let r = true;
+    try { r = !!(await api.get('/api/net' + (force ? '?force=1' : ''))).online; } catch { r = true; }   // si el servidor no contesta, no es falta de internet
+    fails = r ? 0 : fails + 1;
+    ok = fails < 2;   // una sola prueba lenta (datos móviles) no alcanza para decir "sin internet"
+  }
   if (ok !== st.online) {
     st.online = ok;
     if (P.get('offlineMode') !== true) {

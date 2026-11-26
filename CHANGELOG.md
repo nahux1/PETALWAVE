@@ -1,5 +1,12 @@
 # petalwave — registro de cambios
 
+## 2.22.1 — arreglo: canciones online en el celular
+- **Android (`server.py`):** `/stream/<id>` ya no llama a `net_online()` antes de resolver. Solo lo hace si `resolve()` falló, para responder 503 "sin internet" en vez de 502. `net_online()` prueba primero `http://connectivitycheck.gstatic.com/generate_204` (la de Android), con 8 s de espera en vez de 4.
+- **PC (`src/stream.js`):** igual. `proxy`/`warm` cortan antes solo si la última prueba (menos de 20 s) dio sin internet; si no, intentan, y al fallar se vuelve a probar.
+- **`ui/js/offline.js`:** pasa a "sin internet" con 2 fallos seguidos de `/api/net` o con `navigator.onLine === false`. Si el servidor no contesta, no cuenta como falta de internet.
+- **`ui/js/theme.js`:** los colores de la carátula usan `coverUrl()` (las online están en `/ytcover/`; antes daba 404).
+- Probado en el emulador con la 1.17.1: canciones online con internet, modo avión (503 en 2,7 s) y vuelta a la normalidad.
+
 ## 2.22.0 — idiomas, escuchar juntos, control remoto, alarma, karaoke, ordenar, Discord y Last.fm
 - **Idiomas** (`ui/js/i18n.js` + `i18n-data.js`, ~1250 textos ES→EN/PT):
   - Se traduce al mostrarse, en el mismo recorrido de `caps.js`, que saltea títulos, artistas, letras y campos.

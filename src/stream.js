@@ -38,8 +38,8 @@ class Streamer {
     if (this.netJob) return this.netJob;
     this.netJob = (async () => {
       let ok = false;
-      for (const url of ['https://music.youtube.com/generate_204', 'https://www.google.com/generate_204']) {
-        try { const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(4000) }); if (r.status < 500) { ok = true; break; } } catch {}
+      for (const url of ['http://connectivitycheck.gstatic.com/generate_204', 'https://music.youtube.com/generate_204', 'https://www.google.com/generate_204']) {
+        try { const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(8000) }); if (r.status < 500) { ok = true; break; } } catch {}
       }
       this.netOk = ok; this.netAt = Date.now();
       return ok;
@@ -175,11 +175,12 @@ class Streamer {
     // ya está en la caché (porque YouTube rechazó el enlace antes): desde el disco
     const local = this.cachedFile(id);
     if (local) { if (!req.headers.range || /^bytes=0-/.test(req.headers.range)) this.touch(local); return serveRange(req, res, local, local.endsWith('.webm') ? 'audio/webm' : 'audio/mp4'); }
-    // sin internet y sin guardar: avisar enseguida (si no, yt-dlp tarda hasta un minuto en rendirse)
-    if (!this.cache.has(id) && !(await this.online())) { res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('sin internet: esta canción no está guardada'); }
+    // sin internet y sin guardar: se avisa enseguida solo si la última prueba (de hace menos de 20 s) dio "sin internet";
+    // si no se sabe, se intenta igual (la prueba nunca frena una canción)
+    if (!this.cache.has(id) && Date.now() - this.netAt < 20000 && !this.netOk) { res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('sin internet: esta canción no está guardada'); }
     let info;
     try { info = await this.resolve(id); }
-    catch (e) { this.netAt = 0; res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end(e.message); }
+    catch (e) { if (!(await this.online(true))) { res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('sin internet: esta canción no está guardada'); } res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end(e.message); }
     const ctl = new AbortController();
     req.on('close', () => ctl.abort());
     let r;
@@ -209,7 +210,7 @@ class Streamer {
   // preparar la siguiente: resolver y, si YouTube rechaza el enlace, bajarla ya (así cuando le toque suena enseguida)
   async warm(id) {
     if (this.cachedFile(id)) return { ok: true, cached: true };
-    if (!this.cache.has(id) && !(await this.online())) return { ok: false, offline: true };
+    if (!this.cache.has(id) && Date.now() - this.netAt < 20000 && !this.netOk) return { ok: false, offline: true };
     const info = await this.resolve(id);
     try {
       const r = await fetch(info.url, { headers: { Range: 'bytes=0-0', 'User-Agent': 'Mozilla/5.0' } });
