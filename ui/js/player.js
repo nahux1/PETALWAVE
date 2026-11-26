@@ -138,12 +138,12 @@ export function playNext(ids) {
   bus.emit('queue'); persist();
   toast(ids.length > 1 ? `${ids.length} canciones van a sonar después` : 'va a sonar después ↵', { ms: 1600 });
 }
-export function addQueue(ids) {
+export function addQueue(ids, { silent = false } = {}) {
   ids = [].concat(ids).filter((id) => T(id));
   if (S.qi < 0) return playList(ids);
   S.queue.push(...ids);
   bus.emit('queue'); persist();
-  toast(ids.length > 1 ? `${ids.length} canciones agregadas a la cola` : 'agregada a la cola', { ms: 1600 });
+  if (!silent) toast(ids.length > 1 ? `${ids.length} canciones agregadas a la cola` : 'agregada a la cola', { ms: 1600 });
 }
 export function removeAt(i) {
   if (i === S.qi) return next();
@@ -183,7 +183,11 @@ export function next({ auto = false, fade = 0 } = {}) {
   let i = S.qi + 1;
   if (i >= S.queue.length) {
     if (S.repeat === 'all' || !auto) {
-      if (!auto && S.repeat !== 'all') { toast('fin de la cola', { ms: 1400 }); return; }
+      if (!auto && S.repeat !== 'all') {
+        // cola infinita: "siguiente" en la última también suma canciones
+        if (P.get('autoRecs') !== false) { bus.emit('ended-queue'); return; }
+        toast('fin de la cola', { ms: 1400 }); return;
+      }
       if (S.shuffle) { const cur = S.queue[S.qi]; shuffleArr(S.queue); if (S.queue[0] === cur && S.queue.length > 1) S.queue.push(S.queue.shift()); }
       i = 0;
     } else { endSession(true); bus.emit('ended-queue'); return; }

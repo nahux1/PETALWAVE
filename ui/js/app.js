@@ -2,7 +2,7 @@
 import { $, $$, bus, P, api, toast, host, connectStream, closeCtx, debounce, osd, ctxMenu, coverUrl } from './core.js';
 import { applyTheme, cycleTheme, setDyn } from './theme.js';
 import { engine } from './audio.js';
-import { D, loadLibrary, loadPlaylists, loadAuto, T } from './data.js';
+import { D, loadLibrary, loadPlaylists, loadAuto, T, remoteTrack } from './data.js';
 import * as player from './player.js';
 import { toggleVolPop, openEq } from './eq.js';
 import { initLibrary, go, render as renderLib, newPlaylist } from './library.js';
@@ -401,19 +401,41 @@ async function boot() {
   setTimeout(() => import('./welcome.js').then((m) => m.maybeWelcome()), 600);   // bienvenida la primera vez
   player.renderNP();
   setWs(P.get('ws') || 'music');
-  // cola terminada: seguir con canciones según tus gustos (ajustes → reproducción)
-  bus.on('ended-queue', async () => {
-    if (P.get('autoRecs') === false) return;
-    const inQ = new Set(player.S.queue);
-    let ids = [];
-    try { const r = await Promise.race([recsOnline(), new Promise((_, no) => setTimeout(() => no(new Error('lento')), 12000))]); ids = r.items.map((it) => 'yt_' + it.videoId); } catch {}
-    if (ids.filter((id) => !inQ.has(id)).length < 5) ids = ids.concat(recsLocal(30).map((r) => r.id));
-    ids = [...new Set(ids)].filter((id) => !inQ.has(id) && T(id)).slice(0, 12);
-    if (!ids.length) return;
-    player.addQueue(ids);
-    toast('sigue con recomendaciones para vos ❀', { sub: 'ajustes → reproducción para apagarlo', ms: 2200 });
-    player.next({ auto: true });
-  });
+  // ---- cola infinita: mientras Petalwave esté abierto (aunque esté minimizado o en la bandeja) la música no se corta.
+  // Cuando quedan pocas canciones se suman más: primero parecidas a la que suena, después tus recomendaciones,
+  // después de tu biblioteca. Se apaga en ajustes → reproducción, o poniendo "repetir". Solo se corta al cerrar Petalwave.
+  const late = (ms) => new Promise((_, no) => setTimeout(() => no(new Error('lento')), ms));
+  let topping = null, toldInfinite = false;
+  const topUpQueue = () => {
+    if (P.get('autoRecs') === false || player.S.repeat !== 'off') return Promise.resolve(false);
+    if (topping) return topping;
+    topping = (async () => {
+      const S = player.S, cur = player.current();
+      // no repetir lo que sonó hace poco ni lo que ya está en la cola
+      const avoid = new Set([...S.queue.slice(Math.max(0, S.qi - 80)), ...(S.history || []).slice(0, 120)]);
+      const fresh = (ids) => [...new Set(ids)].filter((id) => T(id) && !avoid.has(id));
+      let ids = [];
+      if (cur && cur.ytId) {   // 1) radio de la canción que suena: parecidas de verdad
+        try { const r = await Promise.race([api.get('/api/ytm/radio/' + cur.ytId), late(10000)]); ids = (r.tracks || r.items || []).filter((x) => x && x.videoId && !x.isVideo).map((x) => (T('yt_' + x.videoId) || remoteTrack(x)).id); } catch {}
+      }
+      if (fresh(ids).length < 6) {   // 2) recomendaciones para vos
+        try { const r = await Promise.race([recsOnline(), late(12000)]); ids = ids.concat(r.items.map((it) => 'yt_' + it.videoId)); } catch {}
+      }
+      if (fresh(ids).length < 6) ids = ids.concat(recsLocal(40).map((r) => r.id));   // 3) de tu biblioteca, a tu gusto
+      if (fresh(ids).length < 6) ids = ids.concat(D.tracks.filter((t) => !t.video).map((t) => t.id).sort(() => Math.random() - 0.5).slice(0, 40));   // 4) al azar
+      let add = fresh(ids).slice(0, 12);
+      if (!add.length) add = [...new Set(ids)].filter((id) => T(id) && !S.queue.slice(-10).includes(id)).slice(0, 12);   // poca música: se puede repetir
+      if (!add.length) return false;
+      player.addQueue(add, { silent: true });
+      if (!toldInfinite) { toldInfinite = true; toast('cola infinita ❀', { sub: 'se van sumando canciones parecidas · ajustes → reproducción para apagarla', ms: 3000 }); }
+      return true;
+    })().finally(() => { topping = null; });
+    return topping;
+  };
+  // quedan 2 o menos: sumar antes de que se termine (así no hay silencio entre canciones)
+  bus.on('np', () => { const S = player.S; if (S.queue.length && S.queue.length - S.qi - 1 <= 2) topUpQueue(); });
+  // se terminó igual (o tocaste "siguiente" en la última): sumar y seguir
+  bus.on('ended-queue', async () => { if (await topUpQueue()) player.next({ auto: true }); });
   // eventos del servidor
   const reload = debounce(async () => { await loadLibrary(); loadAuto(); }, 700);
   bus.on('sse:library', reload);

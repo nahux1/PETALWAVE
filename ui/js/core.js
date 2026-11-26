@@ -97,6 +97,7 @@ const DEFAULT_PREFS = {
   vol: { master: 0.8, muted: false, norm: false, perSong: {} },
   eq: { on: true, preset: 'plano', bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], bass: 0, treble: 0, balance: 0, preamp: 0, custom: {} },
   dl: { format: 'mp3', quality: '320', cookies: '', playlist: false },
+  dlAsk: true, dlPick: 'mp3',
 };
 let prefs = structuredClone(DEFAULT_PREFS);
 const pushPrefs = debounce(() => api.post('/api/settings', { ui: prefs }).catch(() => {}), 800);

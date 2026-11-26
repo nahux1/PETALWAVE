@@ -1,6 +1,7 @@
 // biblioteca: vistas (canciones, artistas, álbumes, géneros, años, recientes, duplicados, playlists, automáticas),
 // búsqueda instantánea, lista virtualizada, selección múltiple, menú contextual, arrastrar a playlists y edición de etiquetas
 import { $, $$, bus, P, api, esc, fmtTime, fmtSize, norm, icon, coverUrl, toast, modal, prompt2, confirm2, ctxMenu, debounce, ago, emptyState } from './core.js';
+import { chooseFormat } from './dlpick.js';
 import { D, T, loadLibrary, loadPlaylists, loadAuto, plOp, trackLabel, ytm, loadYtmList, loadYtmPlaylists } from './data.js';
 import { playList, playNext, addQueue, radio, S as PS, current } from './player.js';
 import { openRadio } from './ytmui.js';
@@ -265,8 +266,8 @@ function bindHeader(head, list) {
     if (a === 'ytmsync') { await loadYtmList(view.key, true); toast('lista sincronizada con YouTube Music ⟳', { ms: 1500 }); }
     if (a === 'ytmdl') {
       const online = ids.map(T).filter((t) => t && t.remote && t.available !== false);
-      const d = P.get('dl'), format = d.format === 'mp4' ? 'mp3' : d.format;
-      try { const r = await api.post('/api/downloads', { urls: online.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' }); toast(`${r.ids.length} descargas en cola ⇣`, { sub: 'cuando terminen, suenan desde tu PC' }); }
+      const pick = await chooseFormat(online.length); if (!pick) return;
+      try { const r = await api.post('/api/downloads', { urls: online.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), ...pick }); toast(`${r.ids.length} descargas en cola ⇣`, { sub: 'cuando terminen, suenan desde tu PC' }); }
       catch (e) { toast(e.message, { kind: 'err' }); }
     }
     if (a === 'savepl') { const au = D.auto.find((x) => x.id === view.key); const n = await prompt2('Guardar como playlist', 'Nombre:', au.name.replace(/^\W+\s*/, '')); if (n) { await plOp({ create: { name: n, tracks: au.tracks } }); toast('playlist guardada'); } }
@@ -364,8 +365,8 @@ export function trackMenu(x, y, idsArg) {
       plIn && { label: 'quitar de esta playlist', icon: 'x', fn: async () => { await plOp({ id: plIn, remove: chosen }); render(); } },
       (view.type === 'recs' || view.type === 'disc' || view.type === 'mix') && { label: 'no me interesa', icon: 'x', fn: () => notInterested(chosen) },
       { label: remote.length > 1 ? `descargar ${remote.length} a mi PC` : 'descargar a mi PC', icon: 'dl', fn: async () => {
-        const d = P.get('dl'), format = d.format === 'mp4' ? 'mp3' : d.format;
-        try { const r = await api.post('/api/downloads', { urls: remote.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' }); toast(`${r.ids.length} en cola ⇣`); }
+        const pick = await chooseFormat(remote.length, remote.length === 1 ? remote[0].title : ''); if (!pick) return;
+        try { const r = await api.post('/api/downloads', { urls: remote.map((t) => `https://music.youtube.com/watch?v=${t.ytId}`), ...pick }); toast(`${r.ids.length} en cola ⇣`, { sub: pick.format === 'mp4' ? 'en video (MP4)' : 'en audio (MP3)' }); }
         catch (e) { toast(e.message, { kind: 'err' }); }
       } },
       yt && { label: 'copiar link', icon: 'plus', fn: () => navigator.clipboard.writeText(`https://music.youtube.com/watch?v=${yt}`).then(() => toast('link copiado')) },

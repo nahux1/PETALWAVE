@@ -1,5 +1,10 @@
 # petalwave — registro de cambios
 
+## 2.20.0 — MP3 o MP4 al descargar y cola infinita
+- **`ui/js/dlpick.js`:** `chooseFormat(n, title)` abre un modal con MP3 (`dl.quality`, por defecto 320) o MP4 (`dl.vquality`, por defecto 1080p) y devuelve `{format, quality, cookies}`, o `null` si se cancela. "Recordar" guarda `dlAsk: false` + `dlPick`. Lo usan todas las descargas: biblioteca (lista y menú), YouTube Music, lo que falta de Spotify y *¿qué suena?*. Antes MP4 se forzaba a MP3.
+- **Ajustes → descargas:** "preguntar MP3 o MP4 al descargar" y "si no pregunta, bajar en".
+- **Cola infinita** (`topUpQueue` en `ui/js/app.js`): cuando quedan ≤2 canciones (`np`) o la cola termina (`ended-queue`) suma hasta 12. Las fuentes, en orden: radio de YTM de la canción actual (10 s) → `recsOnline` (12 s) → `recsLocal(40)` → al azar de la biblioteca. Evita las últimas 80 de la cola y 120 del historial, con una sola búsqueda a la vez. "Siguiente" en la última también suma (`player.next`). `addQueue(ids, {silent})` sin toast. Con `repeat` ≠ off no hace nada; `autoRecs` pasa a llamarse "cola infinita" en ajustes.
+
 ## 2.19.0 — canciones online más rápidas
 - **Medido:** en Windows, encontrar el audio con `yt-dlp.exe` tardaba ~4 s por canción (~1 s solo en arrancar). El modo `player_skip=webpage` ahorraba 1,5 s, pero YouTube pide "no soy un robot" en algunas canciones, así que se descartó.
 - **`src/resolve_bridge.py`:** proceso Python persistente con `yt_dlp` en memoria (en `lib/py`, misma versión que el exe). Atiende 3 canciones a la vez, con un YoutubeDL por hilo y por modo, y resuelve en ~1 s. `Streamer.resolveFast()` lo usa primero; si no está o falla, vuelve a `yt-dlp.exe`. Se cierra tras 15 minutos sin uso (~60 MB).

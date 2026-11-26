@@ -1,5 +1,6 @@
 // workspace YouTube Music (ytmusicapi): cuenta, búsqueda, me gusta, playlists, historial, radio, descargar lo que falta
 import { $, $$, bus, P, api, esc, toast, fmtTime, icon, ctxMenu, debounce, host, confirm2, thumbUrl } from './core.js';
+import { chooseFormat } from './dlpick.js';
 import { D, T, plOp, remoteTrack } from './data.js';
 import { playList, current } from './player.js';
 import { cookieHelp } from './downloads.js';
@@ -186,10 +187,9 @@ export function openRadio(videoId, title) {
 async function download(items) {
   items = items.filter((x) => x.videoId && !downloading.has(x.videoId));
   if (!items.length) return;
-  const d = P.get('dl');
-  const format = d.format === 'mp4' ? 'mp3' : d.format;
+  const pick = await chooseFormat(items.length, items.length === 1 ? items[0].title : ''); if (!pick) return;
   try {
-    const r = await api.post('/api/downloads', { urls: items.map((x) => `https://music.youtube.com/watch?v=${x.videoId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' });
+    const r = await api.post('/api/downloads', { urls: items.map((x) => `https://music.youtube.com/watch?v=${x.videoId}`), ...pick });
     items.forEach((x) => downloading.add(x.videoId));
     toast(items.length > 1 ? `${r.ids.length} descargas en cola ⇣` : 'descargando ⇣', { sub: items.length > 1 ? 'se bajan de a poco (workspace 2)' : items[0].title });
     render();

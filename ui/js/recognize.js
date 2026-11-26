@@ -2,6 +2,7 @@
 // Graba 10 segundos, saca una huella del audio en tu equipo (fingerprint.js, inspirado en SongRec) y la busca sin
 // necesidad de clave. Si no la encuentra y cargaste una clave de AudD, prueba también con AudD. Solo se graba cuando tocás.
 import { $, api, bus, esc, icon, toast, local, P } from './core.js';
+import { chooseFormat } from './dlpick.js';
 import { D, T, remoteTrack } from './data.js';
 import { playList, current } from './player.js';
 import { engine } from './audio.js';
@@ -86,8 +87,8 @@ function showResult(r, fromHist) {
       if (a === 'like') await toggleLike(t.id, true);
       if (a === 'dl') {
         if (!t.remote) return toast('Ya la tenés en tu biblioteca ✓');
-        const d = P.get('dl') || {}; const format = d.format === 'mp4' || !d.format ? 'mp3' : d.format;
-        await api.post('/api/downloads', { urls: ['https://music.youtube.com/watch?v=' + t.ytId], format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' });
+        const pick = await chooseFormat(1, r.title); if (!pick) return;
+        await api.post('/api/downloads', { urls: ['https://music.youtube.com/watch?v=' + t.ytId], ...pick });
         toast('descargando ⇣', { sub: r.title });
       }
     } catch (e) { toast(e.message, { kind: 'err' }); } finally { b.disabled = false; }

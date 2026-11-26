@@ -60,7 +60,7 @@ export async function renderSettings() {
       ${chk('autoLevel', 'volumen parejo', 'todas las canciones suenan a un volumen parecido', 'Petalwave mide el volumen real de cada canción mientras suena y la sube o la baja (hasta 8 dB) para que no haya saltos entre una muy baja y una muy fuerte. La medida se recuerda para la próxima vez.')}
       ${chk('smartGaps', 'transiciones inteligentes', 'salta los silencios largos al principio y al final', 'Si una canción termina con varios segundos de silencio (o arranca callada), pasa a la siguiente sin esperar, con el fundido de arriba.')}
       ${chk('resume', 'reanudar al abrir', 'vuelve a donde quedaste')}
-      ${chk('autoRecs', 'seguir con recomendaciones', 'cuando termina la cola, sigue con canciones según tus gustos', 'Usa las recomendaciones de "para vos": de YouTube Music (canciones nuevas) si está disponible, si no de tu biblioteca.')}
+      ${chk('autoRecs', 'cola infinita', 'la música nunca se corta: cuando quedan pocas canciones se suman parecidas (solo para al cerrar Petalwave)', 'Primero suma canciones parecidas a la que suena (radio de YouTube Music), después tus recomendaciones y después tu biblioteca. Minimizado o en la bandeja sigue sonando; se corta solo al cerrar Petalwave del todo (bandeja → Salir). Con "repetir" activado no suma nada.')}
       <label class="cfrow"><span>la ✕ minimiza a la bandeja${tip('Al tocar la cruz, petalwave se esconde al lado del reloj de Windows y la música sigue sonando. Para cerrarlo del todo: clic derecho en la flor de la bandeja → Salir.')}<span class="m">la música sigue sonando · se cierra desde la bandeja</span></span><input type="checkbox" id="cTray" ${p.closeToTray !== false ? 'checked' : ''}></label>
       ${chk('notifyToast', 'aviso al cambiar de canción', 'en la esquina de la ventana')}
       ${chk('notify', 'notificación de Windows', 'si petalwave está en segundo plano')}
@@ -77,6 +77,8 @@ export async function renderSettings() {
     <div class="cfgsec"><h3>⇣ descargas</h3>
       <div class="cfrow"><span>carpeta de destino<span class="m" style="word-break:break-all">${esc(server.downloadDir || '')}</span></span><button class="cb" id="cDest">cambiar</button></div>
       <label class="cfrow"><span>videos (mp4) a la carpeta Descargas${tip('Los videos se guardan en la carpeta Descargas de Windows, así los encontrás fácil y los podés pasar al celular o a WhatsApp. Siguen apareciendo en la biblioteca de Petalwave. La música sigue yendo a la carpeta de destino.')}<span class="m" style="word-break:break-all">${esc(server.videoDir || '')}</span></span><span><input type="checkbox" id="cVidDl" ${server.videoToDownloads !== false ? 'checked' : ''}> <button class="cb sm" id="cVidDir">cambiar</button> <button class="cb sm" data-open="${esc(server.videoDir || '')}">abrir</button></span></label>
+      ${chk('dlAsk', 'preguntar MP3 o MP4 al descargar', 'al tocar "descargar" en una canción o lista te pregunta si la querés en audio o en video')}
+      <div class="cfrow"><span>si no pregunta, bajar en<span class="m">lo que se usa cuando la pregunta está apagada</span></span><select id="cDlPick"><option value="mp3">🎵 MP3 (audio)</option><option value="mp4">🎬 MP4 (video)</option></select></div>
       <label class="cfrow"><span>descargas inteligentes${tip('Petalwave baja solo tus ♥ que todavía suenan online y lo mejor de "descubrí", para que tengas tu música sin internet. Como mucho 10 cada 3 horas, hasta el límite que elijas. Las que ya bajó no se vuelven a contar.')}<span class="m">baja solo tus favoritas para escuchar sin internet</span></span><input type="checkbox" data-p="smartDl" ${p.smartDl ? 'checked' : ''}></label>
       <div class="cfrow"><span>límite de descargas inteligentes<span class="m" id="cSdlInfo"></span></span><span><select id="cSdlMax">${[20, 50, 100, 200, 500].map((n) => `<option value="${n}" ${+p.smartDlMax === n ? 'selected' : ''}>${n} canciones</option>`).join('')}</select> <button class="cb sm" id="cSdlNow">bajar ahora</button></span></div>
       ${isAndroid ? `<label class="cfrow"><span>solo con WiFi<span class="m">no gasta tus datos móviles</span></span><input type="checkbox" data-p="smartDlWifi" ${p.smartDlWifi !== false ? 'checked' : ''}></label>` : ''}
@@ -139,6 +141,7 @@ export async function renderSettings() {
     if (k === 'dyn') return setDyn(c.checked);
     P.set(k, c.checked); bus.emit('prefs', k);
   }));
+  const dp = $('#cDlPick'); if (dp) { dp.value = P.get('dlPick') === 'mp4' ? 'mp4' : 'mp3'; dp.onchange = () => P.set('dlPick', dp.value); }
   import('./recognize.js').then((m) => m.auddSettings($('#cAudd')));
   // cuentas
   const paintAcc = (st) => {

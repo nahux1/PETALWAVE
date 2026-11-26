@@ -1,6 +1,7 @@
 // Spotify en petalwave: sesión oficial (OAuth), tus playlists y guardadas, links públicos.
 // El audio nunca sale de Spotify (DRM): cada canción se busca en YouTube Music y se escucha/descarga desde ahí.
 import { $, $$, bus, P, api, esc, toast, fmtTime, icon, host } from './core.js';
+import { chooseFormat } from './dlpick.js';
 import { D, T, plOp, remoteTrack } from './data.js';
 import { playList } from './player.js';
 import { go } from './library.js';
@@ -157,9 +158,9 @@ async function matchAll(v) {
 }
 async function downloadMissing() {
   const ms = view.matches.filter((m) => m && !m.local);
-  const d = P.get('dl'), format = d.format === 'mp4' ? 'mp3' : d.format;
+  const pick = await chooseFormat(ms.length); if (!pick) return;
   try {
-    const r = await api.post('/api/downloads', { urls: ms.map((m) => `https://music.youtube.com/watch?v=${m.videoId}`), format, quality: format === 'mp3' ? d.quality || '320' : 'best', cookies: d.cookies || '' });
+    const r = await api.post('/api/downloads', { urls: ms.map((m) => `https://music.youtube.com/watch?v=${m.videoId}`), ...pick });
     toast(`${r.ids.length} descargas en cola ⇣`, { sub: 'el audio viene de YouTube Music' });
   } catch (e) { toast(e.message, { kind: 'err' }); }
 }
