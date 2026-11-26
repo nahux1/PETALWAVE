@@ -357,6 +357,8 @@ export function renderCast(view, head, body) {
   if (view.type === 'pods') { head.innerHTML = podsHead(); bindPods(head, body); paintPods(); return; }
   if (view.type === 'pod') return renderPod(view.key, head, body);
 }
+// la biblioteca pasó a otra vista: no volver a dibujar radios/podcasts encima
+export function castLeave() { box = null; }
 function repaint() {
   if (!box || !document.body.contains(box.body)) return;
   if (box.view.type === 'radio') paintRadios();

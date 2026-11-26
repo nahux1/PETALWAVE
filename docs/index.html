@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Petalwave · música gratis, sin publicidad y sin cuenta</title>
-<meta name="description" content="Reproductor de música gratis para Windows y Android: lo más escuchado de tu país, recomendaciones según tus gustos, reconocé canciones y fondos animados que laten con la música. Sin publicidad y sin cuenta.">
+<meta name="description" content="Reproductor de música gratis para Windows y Android: lo más escuchado de tu país, radios en vivo, podcasts, modo DJ, recomendaciones según tus gustos y música sin internet. Sin publicidad y sin cuenta.">
 <meta property="og:title" content="Petalwave · música gratis, sin publicidad y sin cuenta">
-<meta property="og:description" content="Reproductor de música gratis para Windows y Android. Sin publicidad y sin cuenta.">
+<meta property="og:description" content="Reproductor de música gratis para Windows y Android: radios, podcasts, modo DJ y música sin internet. Sin publicidad y sin cuenta.">
 <meta property="og:image" content="https://nahux1.github.io/PETALWAVE/capturas/inicio.jpg">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#140a0d">
@@ -14,7 +14,7 @@
 <style>
   :root {
     --bg: #0e0709; --bg2: #170b0f; --card: #1d0e13; --line: #3a1a22; --fg: #f1e6e9; --dim: #b39aa1;
-    --ac: #e8466a; --ac2: #ff9db2; --r: 16px;
+    --ac: #e8466a; --ac2: #ff9db2; --ok: #9be3a8; --r: 16px;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -27,10 +27,13 @@
   nav .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
   .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--fg); text-decoration: none; }
   .logo img { width: 30px; height: 30px; border-radius: 8px; }
-  nav .links { margin-left: auto; display: flex; gap: 18px; font-size: 14.5px; }
+  nav .links { margin-left: auto; display: flex; gap: 18px; font-size: 14.5px; align-items: center; }
   nav .links a { color: var(--dim); text-decoration: none; }
   nav .links a:hover { color: var(--fg); }
-  @media (max-width: 720px) { nav .links a:not(.dl) { display: none; } }
+  .lang { display: flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+  .lang button { background: none; border: 0; color: var(--dim); font: inherit; font-size: 12.5px; padding: 4px 9px; cursor: pointer; }
+  .lang button.on { background: var(--ac); color: #fff; }
+  @media (max-width: 760px) { nav .links a:not(.dl) { display: none; } nav .links { gap: 10px; } }
   /* portada */
   .hero { position: relative; padding: 70px 0 40px; overflow: hidden; }
   .hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 120%; background: radial-gradient(ellipse 50% 45% at 25% 30%, rgba(232,70,106,.28), transparent 70%), radial-gradient(ellipse 40% 40% at 80% 20%, rgba(255,157,178,.14), transparent 70%); pointer-events: none; }
@@ -39,6 +42,9 @@
   h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -.02em; }
   h1 span { color: var(--ac2); }
   .lead { font-size: 19px; color: var(--dim); margin: 0 0 28px; max-width: 34em; }
+  .ver { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; color: var(--dim); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; margin-bottom: 18px; text-decoration: none; }
+  .ver b { color: var(--ok); font-weight: 600; }
+  .ver[hidden] { display: none; }
   .btns { display: flex; flex-wrap: wrap; gap: 12px; }
   .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 16.5px; border: 1px solid transparent; transition: transform .15s, box-shadow .15s; }
   .btn:hover { transform: translateY(-2px); }
@@ -63,6 +69,7 @@
   .feat p { color: var(--dim); margin: 0 0 12px; }
   .feat ul { margin: 0; padding-left: 20px; color: var(--dim); }
   .tag { display: inline-block; font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: rgba(232,70,106,.15); color: var(--ac2); margin-bottom: 10px; }
+  .new { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--ok); color: #0b2a12; margin-left: 6px; vertical-align: 2px; letter-spacing: .03em; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; }
   .card > b { display: block; margin-bottom: 6px; font-size: 17px; }
@@ -91,78 +98,114 @@
 <nav><div class="wrap">
   <a class="logo" href="#"><img src="icono.png" alt="">Petalwave</a>
   <div class="links">
-    <a href="#funciones">Funciones</a><a href="#instalar">Instalar</a><a href="#preguntas">Preguntas</a>
+    <a href="#funciones" data-t="nav1">Funciones</a><a href="#instalar" data-t="nav2">Instalar</a><a href="#preguntas" data-t="nav3">Preguntas</a>
     <a href="https://github.com/nahux1/PETALWAVE">GitHub</a>
-    <a class="dl" href="#descargar" style="color:var(--ac2)">Descargar</a>
+    <a class="dl" href="#descargar" style="color:var(--ac2)" data-t="nav4">Descargar</a>
+    <div class="lang" role="group" aria-label="Idioma / Language"><button data-l="es">ES</button><button data-l="en">EN</button><button data-l="pt">PT</button></div>
   </div>
 </div></nav>
 
 <header class="hero" id="descargar"><div class="wrap">
   <div>
-    <h1>Tu música,<br><span>gratis y sin publicidad.</span></h1>
-    <p class="lead">Escuchá lo más escuchado de tu país, descubrí canciones según tus gustos, reconocé la que suena cerca y disfrutala con fondos animados que laten con la música. <b>Sin cuenta.</b></p>
+    <a class="ver" id="ver" href="https://github.com/nahux1/PETALWAVE/releases/latest" hidden><b>●</b> <span data-t="ver">última versión</span> <span id="verN"></span></a>
+    <h1 data-t="h1">Tu música,<br><span>gratis y sin publicidad.</span></h1>
+    <p class="lead" data-t="lead">Lo más escuchado de tu país, radios en vivo, podcasts, un modo DJ que mezcla a tempo y recomendaciones según tus gustos. Y sigue sonando sin internet. <b>Sin cuenta.</b></p>
     <div class="btns">
       <a class="btn main" href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3zm8.5-1.2L21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zm8.5 0H21V21l-9.5-1.3z"/></svg>
-        <span>Descargar para Windows<small>Windows 10 y 11 · instalador de un clic</small></span></a>
+        <span data-t="win">Descargar para Windows<small>Windows 10 y 11 · instalador de un clic</small></span></a>
       <a class="btn alt" href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48 19.44 6.3a.38.38 0 0 0-.66-.38l-1.86 3.22a11.5 11.5 0 0 0-9.84 0L5.22 5.92a.38.38 0 1 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52M7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5m10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5"/></svg>
-        <span>Descargar para Android<small>APK · Android 8 o más nuevo</small></span></a>
+        <span data-t="and">Descargar para Android<small>APK · Android 8 o más nuevo</small></span></a>
     </div>
-    <p class="note">¿Preferís el zip sin instalador? <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/petalwave-windows.zip">petalwave-windows.zip</a> · <a href="https://github.com/nahux1/PETALWAVE/releases/latest">todas las descargas y novedades</a></p>
+    <p class="note" data-t="zip">¿Preferís el zip sin instalador? <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/petalwave-windows.zip">petalwave-windows.zip</a> · <a href="https://github.com/nahux1/PETALWAVE/releases/latest">todas las descargas y novedades</a></p>
   </div>
   <div class="phone"><video src="video/petalwave.mp4" poster="video/portada.jpg" autoplay muted loop playsinline aria-label="Video de 30 segundos mostrando Petalwave"></video></div>
 </div></header>
 
 <section id="funciones"><div class="wrap">
-  <h2>Todo lo que tiene</h2>
-  <p class="sub">Funciona aunque no tengas música descargada ni ninguna cuenta.</p>
+  <h2 data-t="fh">Todo lo que tiene</h2>
+  <p class="sub" data-t="fs">Funciona aunque no tengas música descargada ni ninguna cuenta.</p>
 
   <div class="feat">
     <img class="shot" src="capturas/explorar.jpg" alt="Explorar: rankings, artistas y géneros" loading="lazy">
-    <div><span class="tag">🧭 Explorar</span><h3>Música para escuchar ya</h3>
+    <div data-t="f1"><span class="tag">🧭 Explorar</span><h3>Música para escuchar ya</h3>
       <p>Lo más escuchado de tu país, artistas populares y playlists por ánimo y género. Tocás y suena.</p>
       <ul><li>Rankings de cada país</li><li>Ánimos: entrenar, fiesta, relax, concentrarse…</li><li>Ordenado según lo que te gusta</li></ul></div>
   </div>
 
   <div class="feat rev">
+    <img class="shot" src="capturas/radios.jpg" alt="Radios en vivo de todo el mundo" loading="lazy">
+    <div data-t="f2"><span class="tag">📻 Radios</span><span class="new">NUEVO</span><h3>Radios en vivo de todo el mundo</h3>
+      <p>Las radios de tu país, las más escuchadas del mundo y por estilo: rock, cumbia, reggaetón, electrónica, jazz, noticias, deportes… Guardá tus favoritas y cambiá de radio con ⏭.</p>
+      <ul><li>Se ve el tema que está pasando</li><li>Con el ecualizador y el visualizador de Petalwave</li></ul></div>
+  </div>
+
+  <div class="feat">
+    <img class="shot" src="capturas/podcasts.jpg" alt="Podcasts con capítulos guardados" loading="lazy">
+    <div data-t="f3"><span class="tag">🎙 Podcasts</span><span class="new">NUEVO</span><h3>Tus podcasts, también sin internet</h3>
+      <p>Buscá cualquier podcast o mirá los populares de tu país. Seguí los que te gustan: los capítulos nuevos se guardan solos para escucharlos sin internet (en el celular, con WiFi).</p>
+      <ul><li>Recuerda dónde quedaste en cada capítulo</li><li>También por dirección RSS</li></ul></div>
+  </div>
+
+  <div class="feat rev">
+    <img class="shot" src="capturas/modo-dj.jpg" alt="Modo DJ: la cola con el tempo de cada canción" loading="lazy">
+    <div data-t="f4"><span class="tag">🎧 Modo DJ</span><span class="new">NUEVO</span><h3>Mezcla como un DJ</h3>
+      <p>Petalwave mide el tempo y el golpe de cada canción. La siguiente entra justo en un golpe, al mismo ritmo y sin que se pisen los graves. Después vuelve sola a su velocidad, sin cambiar el tono.</p>
+      <ul><li>⇅ ordena la cola por ritmo y energía</li><li>Cruces de 4 a 16 segundos</li></ul></div>
+  </div>
+
+  <div class="feat">
+    <img class="shot" src="capturas/sin-internet.jpg" alt="Sin internet: lo que podés escuchar" loading="lazy">
+    <div data-t="f5"><span class="tag">✈ Sin internet</span><span class="new">NUEVO</span><h3>Sigue sonando sin internet</h3>
+      <p>Lo que escuchás online queda guardado solo, con su letra. Si se corta internet (o en el avión), suena lo que tenés y la cola salta lo que no está guardado.</p>
+      <ul><li>Vos elegís cuánto espacio usar</li><li>Modo sin internet para no gastar datos</li></ul></div>
+  </div>
+
+  <div class="feat rev">
     <img class="shot" src="capturas/inicio.jpg" alt="Inicio con mixes y recomendaciones" loading="lazy">
-    <div><span class="tag">❀ Aprende tus gustos</span><h3>Recomendaciones que te conocen</h3>
+    <div data-t="f6"><span class="tag">❀ Aprende tus gustos</span><h3>Recomendaciones que te conocen</h3>
       <p>Petalwave aprende de lo que escuchás entero, lo que saltás, tus ♥ y tus 👎. Desde el primer día, si le contás qué te gusta.</p>
-      <ul><li>Mixes por momento del día y por ánimo</li><li>"Descubrí": canciones nuevas parecidas a tus favoritas</li><li>El look de la app sigue a tu música</li></ul></div>
+      <ul><li>Mixes por momento del día y por ánimo</li><li>"Descubrí": canciones nuevas parecidas a tus favoritas</li><li>Cola infinita: la música nunca se corta</li></ul></div>
   </div>
 
   <div class="feat">
     <img class="shot" src="capturas/que-suena.jpg" alt="¿Qué suena? reconoce canciones" loading="lazy">
-    <div><span class="tag">🎙️ ¿Qué suena?</span><h3>Reconocé la canción que suena</h3>
+    <div data-t="f7"><span class="tag">🎙️ ¿Qué suena?</span><h3>Reconocé la canción que suena</h3>
       <p>Tocás el botón, escucha 10 segundos y te dice qué canción es. Sin clave ni cuenta. La grabación no sale de tu equipo: solo se manda una huella del audio.</p></div>
   </div>
 
   <div class="feat rev">
     <img class="shot" src="capturas/fondo-animado.jpg" alt="Fondo animado synthwave" loading="lazy">
-    <div><span class="tag">✺ Fondos y efectos</span><h3>Fondos que laten con la música</h3>
+    <div data-t="f8"><span class="tag">✺ Fondos y efectos</span><h3>Fondos que laten con la música</h3>
       <p>17 fondos (8 animados) que se pintan con los colores de tu tema. Con los efectos activados, el fondo tiembla y late con cada golpe de la canción. Se apagan con un toque.</p></div>
   </div>
 
   <div class="feat">
     <img class="shot" src="capturas/pantalla-completa.jpg" alt="Pantalla completa con letra y visualizador" loading="lazy">
-    <div><span class="tag">♪ Pantalla completa</span><h3>Letras sincronizadas y visualizador</h3>
-      <p>Letra al ritmo de la canción, visualizador que lee el audio real y modo karaoke.</p></div>
+    <div data-t="f9"><span class="tag">♪ Pantalla completa</span><h3>Letras sincronizadas y karaoke</h3>
+      <p>Letra al ritmo de la canción, palabra por palabra en modo karaoke, traducción con un toque y visualizador que lee el audio real.</p></div>
   </div>
 
   <div class="grid">
-    <div class="card"><span class="ic">🎚️</span><b>Ecualizador de 10 bandas</b><span>Con presets (bass boost, phonk, voces, noche…) y volumen parejo entre canciones.</span></div>
-    <div class="card"><span class="ic">🕘</span><b>Historial</b><span>Todo lo que escuchaste, por día, con cuánto escuchaste de cada canción.</span></div>
-    <div class="card"><span class="ic">⇣</span><b>Descargas</b><span>Bajá canciones y playlists en mp3, m4a, opus o mp4 para escuchar sin internet.</span></div>
-    <div class="card"><span class="ic">🎨</span><b>A tu gusto</b><span>Temas, tipografías, diseño de ventanas, fondos propios (imagen, GIF o video).</span></div>
-    <div class="card"><span class="ic">📱</span><b>Windows y Android</b><span>Mismo diseño en la PC y en el celular, con controles en la notificación y Android Auto.</span></div>
-    <div class="card"><span class="ic">🔒</span><b>Privada</b><span>Sin publicidad, sin cuenta y sin rastreo. Tus gustos se calculan en tu equipo.</span></div>
+    <div class="card" data-t="c1"><span class="ic">👥</span><b>Escuchar juntos <span class="new">NUEVO</span></b><span>Armá una sala con un código: tus amigos escuchan lo mismo que vos, al mismo tiempo, con chat.</span></div>
+    <div class="card" data-t="c2"><span class="ic">📱</span><b>Control remoto <span class="new">NUEVO</span></b><span>Escaneá un QR con el celular y manejá la música de la PC desde el sillón.</span></div>
+    <div class="card" data-t="c3"><span class="ic">⏰</span><b>Alarma con música <span class="new">NUEVO</span></b><span>Despertate con tus canciones, con el volumen subiendo de a poco.</span></div>
+    <div class="card" data-t="c4"><span class="ic">🌐</span><b>Español, English, Português <span class="new">NUEVO</span></b><span>Toda la app en tres idiomas.</span></div>
+    <div class="card" data-t="c5"><span class="ic">🎚️</span><b>Ecualizador de 10 bandas</b><span>Con presets (bass boost, phonk, voces, noche…) y volumen parejo entre canciones.</span></div>
+    <div class="card" data-t="c6"><span class="ic">✨</span><b>Ordenar tu música</b><span>Pone portadas que faltan, arregla nombres desprolijos y encuentra canciones repetidas.</span></div>
+    <div class="card" data-t="c7"><span class="ic">🕘</span><b>Historial y tu año</b><span>Todo lo que escuchaste, por día, y un resumen de tu año en música.</span></div>
+    <div class="card" data-t="c8"><span class="ic">⇣</span><b>Descargas</b><span>Bajá canciones y playlists en mp3, m4a, opus o mp4.</span></div>
+    <div class="card" data-t="c9"><span class="ic">💬</span><b>Discord y Last.fm</b><span>Mostrá en Discord lo que escuchás y registrá tus escuchas en Last.fm (si querés).</span></div>
+    <div class="card" data-t="c10"><span class="ic">🎨</span><b>A tu gusto</b><span>Temas, tipografías, diseño de ventanas, fondos propios (imagen, GIF o video) y mini reproductor.</span></div>
+    <div class="card" data-t="c11"><span class="ic">📲</span><b>Windows y Android</b><span>Mismo diseño en la PC y en el celular, con widgets, controles en la notificación y Android Auto.</span></div>
+    <div class="card" data-t="c12"><span class="ic">🔒</span><b>Privada</b><span>Sin publicidad, sin cuenta y sin rastreo. Tus gustos se calculan en tu equipo.</span></div>
   </div>
 </div></section>
 
 <section class="alt"><div class="wrap">
-  <h2>También en el celular</h2>
-  <p class="sub">La misma experiencia, pensada para el dedo.</p>
+  <h2 data-t="ph">También en el celular</h2>
+  <p class="sub" data-t="ps">La misma experiencia, pensada para el dedo.</p>
   <div class="phones">
     <img src="capturas/celular-inicio.jpg" alt="Inicio en el celular" loading="lazy">
     <img src="capturas/celular-explorar.jpg" alt="Explorar en el celular" loading="lazy">
@@ -171,17 +214,17 @@
 </div></section>
 
 <section id="instalar"><div class="wrap">
-  <h2>Cómo instalarla</h2>
-  <p class="sub">Dos minutos, sin saber nada de computación.</p>
+  <h2 data-t="ih">Cómo instalarla</h2>
+  <p class="sub" data-t="is">Dos minutos, sin saber nada de computación.</p>
   <div class="steps">
-    <div class="card"><b>💻 Windows</b>
+    <div class="card" data-t="iw"><b>💻 Windows</b>
       <ol>
         <li>Descargá <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe"><b>Instalar-Petalwave.exe</b></a>.</li>
         <li>Abrilo. Si aparece <b>"Windows protegió su PC"</b>, tocá <b>Más información → Ejecutar de todas formas</b> (sale porque el programa es nuevo y no tiene una firma paga).</li>
         <li>Tocá <b>Instalar</b>. Baja la última versión, la verifica y crea los accesos directos.</li>
       </ol>
       <span>Se actualiza sola desde la app (botón ⬆) y se desinstala desde <b>Configuración → Aplicaciones</b>.</span></div>
-    <div class="card"><b>📱 Android</b>
+    <div class="card" data-t="ia"><b>📱 Android</b>
       <ol>
         <li>Desde el celular, descargá <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk"><b>Petalwave-android.apk</b></a>.</li>
         <li>Abrilo. Si el teléfono pregunta, activá <b>Permitir de esta fuente</b> y volvé.</li>
@@ -192,29 +235,30 @@
 </div></section>
 
 <section id="apoyar"><div class="wrap" style="text-align:center">
-  <h2>❀ Apoyar Petalwave</h2>
-  <p class="sub">Petalwave es gratis y sin publicidad, para todos, y lo va a seguir siendo.<br>Si te sirve y querés ayudar a que siga creciendo, podés hacerlo con lo que quieras.</p>
+  <h2 data-t="ah">❀ Apoyar Petalwave</h2>
+  <p class="sub" data-t="as">Petalwave es gratis y sin publicidad, para todos, y lo va a seguir siendo.<br>Si te sirve y querés ayudar a que siga creciendo, podés hacerlo con lo que quieras.</p>
   <div class="btns" style="justify-content:center">
-    <a class="btn main" href="https://cafecito.app/nahux01">☕ Invitame un cafecito<small>con Mercado Pago o tarjeta</small></a>
+    <a class="btn main" href="https://cafecito.app/nahux01" data-t="ab">☕ Invitame un cafecito<small>con Mercado Pago o tarjeta</small></a>
   </div>
-  <p class="note">Donar no desbloquea nada: todo es igual para todos.</p>
+  <p class="note" data-t="an">Donar no desbloquea nada: todo es igual para todos.</p>
 </div></section>
 
 <section class="alt" id="preguntas"><div class="wrap">
-  <h2>Preguntas frecuentes</h2>
-  <p class="sub">Y si tu duda no está, <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">preguntanos</a>.</p>
-  <details><summary>¿Es gratis de verdad?</summary><p>Sí. Es gratis, sin publicidad y sin partes pagas. Todo lo que tiene es para todos.</p></details>
-  <details><summary>¿Necesito una cuenta?</summary><p>No. Explorar, las recomendaciones y "¿qué suena?" funcionan sin cuenta. Si tenés YouTube Music, podés iniciar sesión para ver tus playlists, pero es opcional.</p></details>
-  <details><summary>¿Por qué Windows o el celular me avisan que no es seguro?</summary><p>Porque Petalwave es nuevo, no tiene una firma digital paga y no está en Play Store. El código es abierto: cualquiera puede revisarlo en GitHub. Las actualizaciones se verifican con una huella (SHA-256) antes de instalarse.</p></details>
-  <details><summary>¿De dónde sale la música?</summary><p>De tu propia biblioteca y, online, de YouTube Music. Petalwave no aloja música: es un reproductor. Lo que no está disponible para tu cuenta o tu país no suena.</p></details>
-  <details><summary>¿Gasta mucho?</summary><p>No. Si tu PC es lenta, el modo <b>⚡ máximo rendimiento</b> apaga los efectos. En el celular, el ahorro de batería se activa solo.</p></details>
-  <details><summary>Encontré un error o tengo una idea</summary><p>¡Contanos! <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=error.yml">Avisar un error</a> · <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=sugerencia.yml">Sugerir algo</a>. También desde la app: ajustes → acerca de.</p></details>
+  <h2 data-t="qh">Preguntas frecuentes</h2>
+  <p class="sub" data-t="qs">Y si tu duda no está, <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">preguntanos</a>.</p>
+  <details data-t="q1"><summary>¿Es gratis de verdad?</summary><p>Sí. Es gratis, sin publicidad y sin partes pagas. Todo lo que tiene es para todos.</p></details>
+  <details data-t="q2"><summary>¿Necesito una cuenta?</summary><p>No. Explorar, las radios, los podcasts, las recomendaciones y "¿qué suena?" funcionan sin cuenta. Si tenés YouTube Music, podés iniciar sesión para ver tus playlists, pero es opcional.</p></details>
+  <details data-t="q3"><summary>¿Funciona sin internet?</summary><p>Sí. Suena tu biblioteca y todo lo que escuchaste online (se guarda solo, con su letra), más los capítulos de podcast guardados. Las radios sí necesitan internet.</p></details>
+  <details data-t="q4"><summary>¿Por qué Windows o el celular me avisan que no es seguro?</summary><p>Porque Petalwave es nuevo, no tiene una firma digital paga y no está en Play Store. El código es abierto: cualquiera puede revisarlo en GitHub. Las actualizaciones se verifican con una huella (SHA-256) antes de instalarse.</p></details>
+  <details data-t="q5"><summary>¿De dónde sale la música?</summary><p>De tu propia biblioteca y, online, de YouTube Music. Las radios vienen de Radio Browser y los podcasts del feed de cada uno. Petalwave no aloja música: es un reproductor. Lo que no está disponible para tu cuenta o tu país no suena.</p></details>
+  <details data-t="q6"><summary>¿Gasta mucho?</summary><p>No. Si tu PC es lenta, el modo <b>⚡ máximo rendimiento</b> apaga los efectos. En el celular, el ahorro de batería se activa solo, y lo que se guarda para escuchar sin internet espera al WiFi.</p></details>
+  <details data-t="q7"><summary>Encontré un error o tengo una idea</summary><p>¡Contanos! <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=error.yml">Avisar un error</a> · <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=sugerencia.yml">Sugerir algo</a>. También desde la app: ajustes → acerca de.</p></details>
 </div></section>
 
 <footer><div class="wrap">
   <a class="logo" href="#"><img src="icono.png" alt="">Petalwave</a>
-  <span>Código abierto · licencia Apache 2.0</span>
-  <div class="right">
+  <span data-t="fl">Código abierto · licencia Apache 2.0</span>
+  <div class="right" data-t="fr">
     <a href="https://github.com/nahux1/PETALWAVE/releases/latest">Novedades</a>
     <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">Errores e ideas</a>
     <a href="#apoyar">Apoyar</a>
@@ -222,5 +266,126 @@
   </div>
 </div></footer>
 
+<script>
+// idiomas de la página: el español está en el HTML; inglés y portugués acá (por clave data-t)
+const I18N = {
+  en: {
+    _title: 'Petalwave · free music, no ads, no account',
+    nav1: 'Features', nav2: 'Install', nav3: 'FAQ', nav4: 'Download', ver: 'latest version',
+    h1: 'Your music,<br><span>free and ad-free.</span>',
+    lead: 'The most played songs in your country, live radio, podcasts, a DJ mode that mixes on beat and recommendations based on your taste. And it keeps playing offline. <b>No account.</b>',
+    win: 'Download for Windows<small>Windows 10 and 11 · one-click installer</small>',
+    and: 'Download for Android<small>APK · Android 8 or newer</small>',
+    zip: 'Prefer the zip without installer? <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/petalwave-windows.zip">petalwave-windows.zip</a> · <a href="https://github.com/nahux1/PETALWAVE/releases/latest">all downloads and release notes</a>',
+    fh: 'Everything it has', fs: 'Works even without downloaded music or any account.',
+    f1: '<span class="tag">🧭 Explore</span><h3>Music to play right now</h3><p>The most played songs in your country, popular artists and playlists by mood and genre. Tap and it plays.</p><ul><li>Charts for every country</li><li>Moods: workout, party, chill, focus…</li><li>Sorted by what you like</li></ul>',
+    f2: '<span class="tag">📻 Radio</span><span class="new">NEW</span><h3>Live radio from around the world</h3><p>Stations from your country, the most popular worldwide and by style: rock, cumbia, reggaeton, electronic, jazz, news, sports… Save your favorites and switch stations with ⏭.</p><ul><li>Shows the song on air</li><li>With Petalwave\'s equalizer and visualizer</li></ul>',
+    f3: '<span class="tag">🎙 Podcasts</span><span class="new">NEW</span><h3>Your podcasts, offline too</h3><p>Search any podcast or browse the top ones in your country. Follow the ones you like: new episodes are saved automatically for offline listening (on your phone, over WiFi).</p><ul><li>Remembers where you left off</li><li>Also by RSS address</li></ul>',
+    f4: '<span class="tag">🎧 DJ mode</span><span class="new">NEW</span><h3>Mix like a DJ</h3><p>Petalwave measures the tempo and beat of every song. The next one comes in right on the beat, at the same tempo, without clashing basslines. Then it eases back to its own speed, without changing pitch.</p><ul><li>⇅ sorts the queue by tempo and energy</li><li>Transitions from 4 to 16 seconds</li></ul>',
+    f5: '<span class="tag">✈ Offline</span><span class="new">NEW</span><h3>Keeps playing offline</h3><p>What you play online is saved automatically, with its lyrics. If the internet drops (or on a plane), what you have keeps playing and the queue skips what isn\'t saved.</p><ul><li>You choose how much space to use</li><li>Offline mode to save mobile data</li></ul>',
+    f6: '<span class="tag">❀ Learns your taste</span><h3>Recommendations that know you</h3><p>Petalwave learns from what you play to the end, what you skip, your ♥ and your 👎. From day one, if you tell it what you like.</p><ul><li>Mixes by time of day and mood</li><li>"Discover": new songs similar to your favorites</li><li>Endless queue: the music never stops</li></ul>',
+    f7: '<span class="tag">🎙️ What\'s playing?</span><h3>Identify the song that\'s playing</h3><p>Tap the button, it listens for 10 seconds and tells you the song. No key, no account. The recording never leaves your device: only an audio fingerprint is sent.</p>',
+    f8: '<span class="tag">✺ Backgrounds & effects</span><h3>Backgrounds that beat with the music</h3><p>17 backgrounds (8 animated) painted with your theme colors. With effects on, the background shakes and pulses with every beat. Turn them off with one tap.</p>',
+    f9: '<span class="tag">♪ Full screen</span><h3>Synced lyrics and karaoke</h3><p>Lyrics in time with the song, word by word in karaoke mode, one-tap translation and a visualizer that reads the real audio.</p>',
+    c1: '<span class="ic">👥</span><b>Listen together <span class="new">NEW</span></b><span>Create a room with a code: your friends hear what you hear, at the same time, with chat.</span>',
+    c2: '<span class="ic">📱</span><b>Remote control <span class="new">NEW</span></b><span>Scan a QR with your phone and control the PC\'s music from the couch.</span>',
+    c3: '<span class="ic">⏰</span><b>Music alarm <span class="new">NEW</span></b><span>Wake up to your songs, with the volume slowly rising.</span>',
+    c4: '<span class="ic">🌐</span><b>Español, English, Português <span class="new">NEW</span></b><span>The whole app in three languages.</span>',
+    c5: '<span class="ic">🎚️</span><b>10-band equalizer</b><span>With presets (bass boost, phonk, vocals, night…) and even volume across songs.</span>',
+    c6: '<span class="ic">✨</span><b>Tidy up your music</b><span>Adds missing covers, fixes messy names and finds repeated songs.</span>',
+    c7: '<span class="ic">🕘</span><b>History and your year</b><span>Everything you listened to, by day, and a recap of your year in music.</span>',
+    c8: '<span class="ic">⇣</span><b>Downloads</b><span>Download songs and playlists as mp3, m4a, opus or mp4.</span>',
+    c9: '<span class="ic">💬</span><b>Discord and Last.fm</b><span>Show what you\'re playing on Discord and scrobble to Last.fm (if you want).</span>',
+    c10: '<span class="ic">🎨</span><b>Your way</b><span>Themes, fonts, window layout, your own backgrounds (image, GIF or video) and mini player.</span>',
+    c11: '<span class="ic">📲</span><b>Windows and Android</b><span>Same design on PC and phone, with widgets, notification controls and Android Auto.</span>',
+    c12: '<span class="ic">🔒</span><b>Private</b><span>No ads, no account and no tracking. Your taste is computed on your device.</span>',
+    ph: 'On your phone too', ps: 'The same experience, made for your thumb.',
+    ih: 'How to install it', is: 'Two minutes, no computer skills needed.',
+    iw: '<b>💻 Windows</b><ol><li>Download <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe"><b>Instalar-Petalwave.exe</b></a>.</li><li>Open it. If <b>"Windows protected your PC"</b> appears, tap <b>More info → Run anyway</b> (it shows because the app is new and has no paid signature).</li><li>Tap <b>Install</b>. It downloads the latest version, verifies it and creates the shortcuts.</li></ol><span>It updates itself from the app (⬆ button) and uninstalls from <b>Settings → Apps</b>.</span>',
+    ia: '<b>📱 Android</b><ol><li>On your phone, download <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk"><b>Petalwave-android.apk</b></a>.</li><li>Open it. If the phone asks, enable <b>Allow from this source</b> and go back.</li><li>If <b>Play Protect</b> appears, tap <b>More details → Install anyway</b> (it shows because it\'s not on the Play Store).</li></ol><span>Updates install from the app (⬆ button).</span>',
+    ah: '❀ Support Petalwave', as: 'Petalwave is free and ad-free, for everyone, and it will stay that way.<br>If it helps you and you want to help it grow, you can chip in whatever you like.',
+    ab: '☕ Buy me a coffee<small>Cafecito · Mercado Pago or card</small>', an: 'Donating doesn\'t unlock anything: it\'s the same for everyone.',
+    qh: 'Frequently asked questions', qs: 'And if your question isn\'t here, <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">ask us</a>.',
+    q1: '<summary>Is it really free?</summary><p>Yes. Free, no ads and no paid parts. Everything is for everyone.</p>',
+    q2: '<summary>Do I need an account?</summary><p>No. Explore, radio, podcasts, recommendations and "what\'s playing?" work without an account. If you have YouTube Music you can sign in to see your playlists, but it\'s optional.</p>',
+    q3: '<summary>Does it work offline?</summary><p>Yes. Your library plays, plus everything you listened to online (saved automatically, with lyrics) and saved podcast episodes. Radio does need internet.</p>',
+    q4: '<summary>Why does Windows or my phone warn me it isn\'t safe?</summary><p>Because Petalwave is new, has no paid digital signature and isn\'t on the Play Store. The code is open: anyone can review it on GitHub. Updates are verified with a fingerprint (SHA-256) before installing.</p>',
+    q5: '<summary>Where does the music come from?</summary><p>From your own library and, online, from YouTube Music. Radio comes from Radio Browser and podcasts from each one\'s feed. Petalwave doesn\'t host music: it\'s a player. What isn\'t available for your account or country won\'t play.</p>',
+    q6: '<summary>Is it heavy?</summary><p>No. If your PC is slow, <b>⚡ max performance</b> mode turns effects off. On phones, battery saver turns on by itself, and offline saving waits for WiFi.</p>',
+    q7: '<summary>I found a bug or have an idea</summary><p>Tell us! <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=error.yml">Report a bug</a> · <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=sugerencia.yml">Suggest something</a>. Also from the app: settings → about.</p>',
+    fl: 'Open source · Apache 2.0 license',
+    fr: '<a href="https://github.com/nahux1/PETALWAVE/releases/latest">Release notes</a><a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">Bugs and ideas</a><a href="#apoyar">Support</a><a href="https://github.com/nahux1/PETALWAVE">GitHub</a>',
+  },
+  pt: {
+    _title: 'Petalwave · música grátis, sem anúncios e sem conta',
+    nav1: 'Recursos', nav2: 'Instalar', nav3: 'Perguntas', nav4: 'Baixar', ver: 'última versão',
+    h1: 'Sua música,<br><span>grátis e sem anúncios.</span>',
+    lead: 'As mais ouvidas do seu país, rádios ao vivo, podcasts, um modo DJ que mixa no tempo e recomendações pelo seu gosto. E continua tocando sem internet. <b>Sem conta.</b>',
+    win: 'Baixar para Windows<small>Windows 10 e 11 · instalador de um clique</small>',
+    and: 'Baixar para Android<small>APK · Android 8 ou mais novo</small>',
+    zip: 'Prefere o zip sem instalador? <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/petalwave-windows.zip">petalwave-windows.zip</a> · <a href="https://github.com/nahux1/PETALWAVE/releases/latest">todos os downloads e novidades</a>',
+    fh: 'Tudo o que ele tem', fs: 'Funciona mesmo sem música baixada e sem nenhuma conta.',
+    f1: '<span class="tag">🧭 Explorar</span><h3>Música para ouvir agora</h3><p>As mais ouvidas do seu país, artistas populares e playlists por humor e gênero. Toca e já começa.</p><ul><li>Rankings de cada país</li><li>Humores: treino, festa, relaxar, concentrar…</li><li>Ordenado pelo que você gosta</li></ul>',
+    f2: '<span class="tag">📻 Rádios</span><span class="new">NOVO</span><h3>Rádios ao vivo do mundo todo</h3><p>As rádios do seu país, as mais ouvidas do mundo e por estilo: rock, cumbia, reggaeton, eletrônica, jazz, notícias, esportes… Salve suas favoritas e troque de rádio com ⏭.</p><ul><li>Mostra a música que está tocando</li><li>Com o equalizador e o visualizador do Petalwave</li></ul>',
+    f3: '<span class="tag">🎙 Podcasts</span><span class="new">NOVO</span><h3>Seus podcasts, também sem internet</h3><p>Busque qualquer podcast ou veja os populares do seu país. Siga os que você gosta: os episódios novos são salvos sozinhos para ouvir sem internet (no celular, com WiFi).</p><ul><li>Lembra onde você parou</li><li>Também por endereço RSS</li></ul>',
+    f4: '<span class="tag">🎧 Modo DJ</span><span class="new">NOVO</span><h3>Mixe como um DJ</h3><p>O Petalwave mede o tempo e a batida de cada música. A próxima entra bem na batida, no mesmo ritmo e sem os graves se atropelarem. Depois volta sozinha à sua velocidade, sem mudar o tom.</p><ul><li>⇅ ordena a fila por ritmo e energia</li><li>Transições de 4 a 16 segundos</li></ul>',
+    f5: '<span class="tag">✈ Sem internet</span><span class="new">NOVO</span><h3>Continua tocando sem internet</h3><p>O que você ouve online fica salvo sozinho, com a letra. Se a internet cair (ou no avião), toca o que você tem e a fila pula o que não está salvo.</p><ul><li>Você escolhe quanto espaço usar</li><li>Modo sem internet para economizar dados</li></ul>',
+    f6: '<span class="tag">❀ Aprende seu gosto</span><h3>Recomendações que te conhecem</h3><p>O Petalwave aprende com o que você ouve até o fim, o que pula, seus ♥ e seus 👎. Desde o primeiro dia, se você contar do que gosta.</p><ul><li>Mixes por hora do dia e por humor</li><li>"Descobrir": músicas novas parecidas com suas favoritas</li><li>Fila infinita: a música nunca para</li></ul>',
+    f7: '<span class="tag">🎙️ Que música é?</span><h3>Reconheça a música que está tocando</h3><p>Toque no botão, ele escuta 10 segundos e diz qual é. Sem chave nem conta. A gravação não sai do seu aparelho: só vai uma impressão digital do áudio.</p>',
+    f8: '<span class="tag">✺ Fundos e efeitos</span><h3>Fundos que pulsam com a música</h3><p>17 fundos (8 animados) pintados com as cores do seu tema. Com os efeitos ligados, o fundo treme e pulsa a cada batida. Desligam com um toque.</p>',
+    f9: '<span class="tag">♪ Tela cheia</span><h3>Letras sincronizadas e karaokê</h3><p>Letra no ritmo da música, palavra por palavra no modo karaokê, tradução com um toque e visualizador que lê o áudio real.</p>',
+    c1: '<span class="ic">👥</span><b>Ouvir juntos <span class="new">NOVO</span></b><span>Crie uma sala com um código: seus amigos ouvem o mesmo que você, ao mesmo tempo, com chat.</span>',
+    c2: '<span class="ic">📱</span><b>Controle remoto <span class="new">NOVO</span></b><span>Escaneie um QR com o celular e controle a música do PC do sofá.</span>',
+    c3: '<span class="ic">⏰</span><b>Alarme com música <span class="new">NOVO</span></b><span>Acorde com suas músicas, com o volume subindo aos poucos.</span>',
+    c4: '<span class="ic">🌐</span><b>Español, English, Português <span class="new">NOVO</span></b><span>O app inteiro em três idiomas.</span>',
+    c5: '<span class="ic">🎚️</span><b>Equalizador de 10 bandas</b><span>Com presets (bass boost, phonk, vozes, noite…) e volume igual entre músicas.</span>',
+    c6: '<span class="ic">✨</span><b>Organizar sua música</b><span>Coloca capas que faltam, arruma nomes bagunçados e encontra músicas repetidas.</span>',
+    c7: '<span class="ic">🕘</span><b>Histórico e seu ano</b><span>Tudo o que você ouviu, por dia, e um resumo do seu ano em música.</span>',
+    c8: '<span class="ic">⇣</span><b>Downloads</b><span>Baixe músicas e playlists em mp3, m4a, opus ou mp4.</span>',
+    c9: '<span class="ic">💬</span><b>Discord e Last.fm</b><span>Mostre no Discord o que está ouvindo e registre no Last.fm (se quiser).</span>',
+    c10: '<span class="ic">🎨</span><b>Do seu jeito</b><span>Temas, fontes, layout das janelas, fundos próprios (imagem, GIF ou vídeo) e mini player.</span>',
+    c11: '<span class="ic">📲</span><b>Windows e Android</b><span>Mesmo visual no PC e no celular, com widgets, controles na notificação e Android Auto.</span>',
+    c12: '<span class="ic">🔒</span><b>Privado</b><span>Sem anúncios, sem conta e sem rastreamento. Seu gosto é calculado no seu aparelho.</span>',
+    ph: 'Também no celular', ps: 'A mesma experiência, pensada para o dedo.',
+    ih: 'Como instalar', is: 'Dois minutos, sem precisar saber de computação.',
+    iw: '<b>💻 Windows</b><ol><li>Baixe <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Instalar-Petalwave.exe"><b>Instalar-Petalwave.exe</b></a>.</li><li>Abra. Se aparecer <b>"O Windows protegeu o computador"</b>, toque em <b>Mais informações → Executar assim mesmo</b> (aparece porque o programa é novo e não tem assinatura paga).</li><li>Toque em <b>Instalar</b>. Ele baixa a última versão, verifica e cria os atalhos.</li></ol><span>Atualiza sozinho pelo app (botão ⬆) e se desinstala em <b>Configurações → Aplicativos</b>.</span>',
+    ia: '<b>📱 Android</b><ol><li>No celular, baixe <a href="https://github.com/nahux1/PETALWAVE/releases/latest/download/Petalwave-android.apk"><b>Petalwave-android.apk</b></a>.</li><li>Abra. Se o celular perguntar, ative <b>Permitir desta fonte</b> e volte.</li><li>Se aparecer o <b>Play Protect</b>, toque em <b>Mais detalhes → Instalar assim mesmo</b> (aparece porque não está na Play Store).</li></ol><span>As atualizações são instaladas pelo app (botão ⬆).</span>',
+    ah: '❀ Apoiar o Petalwave', as: 'O Petalwave é grátis e sem anúncios, para todos, e vai continuar assim.<br>Se ele te ajuda e você quer ajudar a crescer, pode contribuir com o que quiser.',
+    ab: '☕ Me pague um cafezinho<small>Cafecito · Mercado Pago ou cartão</small>', an: 'Doar não desbloqueia nada: é tudo igual para todos.',
+    qh: 'Perguntas frequentes', qs: 'E se sua dúvida não estiver aqui, <a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">pergunte</a>.',
+    q1: '<summary>É grátis mesmo?</summary><p>Sim. Grátis, sem anúncios e sem partes pagas. Tudo é para todos.</p>',
+    q2: '<summary>Preciso de conta?</summary><p>Não. Explorar, rádios, podcasts, recomendações e "que música é?" funcionam sem conta. Se você tem YouTube Music, pode entrar para ver suas playlists, mas é opcional.</p>',
+    q3: '<summary>Funciona sem internet?</summary><p>Sim. Toca sua biblioteca e tudo o que você ouviu online (salvo sozinho, com a letra), além dos episódios de podcast salvos. As rádios precisam de internet.</p>',
+    q4: '<summary>Por que o Windows ou o celular avisam que não é seguro?</summary><p>Porque o Petalwave é novo, não tem assinatura digital paga e não está na Play Store. O código é aberto: qualquer um pode revisar no GitHub. As atualizações são verificadas com uma impressão (SHA-256) antes de instalar.</p>',
+    q5: '<summary>De onde vem a música?</summary><p>Da sua própria biblioteca e, online, do YouTube Music. As rádios vêm do Radio Browser e os podcasts do feed de cada um. O Petalwave não hospeda música: é um player. O que não está disponível para sua conta ou país não toca.</p>',
+    q6: '<summary>Gasta muito?</summary><p>Não. Se seu PC é lento, o modo <b>⚡ desempenho máximo</b> desliga os efeitos. No celular, a economia de bateria liga sozinha, e o que é salvo para ouvir sem internet espera o WiFi.</p>',
+    q7: '<summary>Achei um erro ou tenho uma ideia</summary><p>Conta pra gente! <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=error.yml">Avisar um erro</a> · <a href="https://github.com/nahux1/PETALWAVE/issues/new?template=sugerencia.yml">Sugerir algo</a>. Também pelo app: ajustes → sobre.</p>',
+    fl: 'Código aberto · licença Apache 2.0',
+    fr: '<a href="https://github.com/nahux1/PETALWAVE/releases/latest">Novidades</a><a href="https://github.com/nahux1/PETALWAVE/issues/new/choose">Erros e ideias</a><a href="#apoyar">Apoiar</a><a href="https://github.com/nahux1/PETALWAVE">GitHub</a>',
+  },
+};
+const ES_TITLE = document.title;
+function setLang(l) {
+  if (!I18N[l]) l = 'es';
+  document.documentElement.lang = l;
+  for (const el of document.querySelectorAll('[data-t]')) {
+    if (el.dataset.es == null) el.dataset.es = el.innerHTML;
+    el.innerHTML = l === 'es' ? el.dataset.es : I18N[l][el.dataset.t] || el.dataset.es;
+  }
+  document.title = l === 'es' ? ES_TITLE : I18N[l]._title;
+  document.querySelectorAll('.lang button').forEach((b) => b.classList.toggle('on', b.dataset.l === l));
+  try { localStorage.setItem('pw-web-lang', l); } catch {}
+}
+document.querySelectorAll('.lang button').forEach((b) => (b.onclick = () => setLang(b.dataset.l)));
+let saved = null; try { saved = localStorage.getItem('pw-web-lang'); } catch {}
+const nav = (navigator.language || 'es').slice(0, 2).toLowerCase();
+setLang(saved || (nav === 'pt' ? 'pt' : nav === 'es' ? 'es' : 'en'));
+// número de la última versión (si GitHub contesta; si no, no se muestra)
+fetch('https://api.github.com/repos/nahux1/PETALWAVE/releases/latest').then((r) => (r.ok ? r.json() : null)).then((j) => {
+  if (!j || !j.tag_name) return;
+  document.getElementById('verN').textContent = j.tag_name.replace(/^v/, '');
+  document.getElementById('ver').hidden = false;
+}).catch(() => {});
+</script>
 </body>
 </html>

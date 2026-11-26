@@ -43,7 +43,7 @@ function tasteLine() {
 import { C } from './custom.js';
 import { renderHistory } from './history.js';
 import { recordNav } from './adapt.js';
-import { renderCast, castMenu } from './cast.js';
+import { renderCast, castMenu, castLeave } from './cast.js';
 import { findDupes, bestOf, whyBest, onlineTwins } from './tidy.js';
 
 const ROW_H = () => (document.body.classList.contains('compact') ? 38 : C().rowH);
@@ -173,6 +173,7 @@ export function render() {
   const head = $('#lhead'), body = $('#lbody');
   body.oncontextmenu = null;
   const q = $('#q').value.trim();
+  if (!['radio', 'pods', 'pod'].includes(view.type)) castLeave();
   if (['artists', 'albums', 'genres', 'years'].includes(view.type) && !q) return renderGroups(head, body);
   if (view.type === 'dupes') return renderDupes(head, body);
   if (view.type === 'radio' || view.type === 'pods' || view.type === 'pod') { ids = []; $('#qCount').textContent = ''; return renderCast(view, head, body); }
