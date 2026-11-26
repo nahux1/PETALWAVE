@@ -2,6 +2,7 @@
 // se muestran con la primera letra en mayúscula. Se puede apagar en ajustes → diseño.
 // Nunca se tocan datos tuyos: títulos, artistas, álbumes, playlists, letras, rutas ni lo que escribís.
 import { P, bus } from './core.js';
+import { tr } from './i18n.js';
 
 // zonas con contenido del usuario o de internet: se dejan exactamente como vienen
 const SKIP = [
@@ -44,8 +45,9 @@ function fixText(t) {
   const v = t.nodeValue;
   if (!v) return;
   const el = t.parentElement;
-  if (!el || el.closest(SKIP)) return;
-  let n = brand(v);
+  if (!el) return;
+  const sk = el.closest(SKIP); if (sk) return trOnly(sk);
+  let n = brand(tr(v));
   // las rutas (~/.config/…, C:\…, /algo) no llevan mayúscula
   if (on && LOWER.test(n) && !PATHLIKE.test(n) && startsBlock(t)) n = upFirst(n);
   if (n === v) return;
@@ -57,19 +59,28 @@ function fixAttr(el) {
   for (const a of ['placeholder', 'title', 'aria-label']) {
     const v = el.getAttribute && el.getAttribute(a);
     if (!v || el.closest('[data-raw]') || el.dataset['orig' + a.replace('-', '')]) continue;
-    let n = brand(v); if (on && LOWER.test(n)) n = upFirst(n);
+    let n = brand(tr(v)); if (on && LOWER.test(n)) n = upFirst(n);
     if (n !== v) { el.dataset['orig' + a.replace('-', '')] = v; el.setAttribute(a, n); }
   }
+}
+// zonas salteadas que igual son texto de la interfaz: el (i) de ayuda y el subtítulo de los avisos (solo se traducen)
+const PLACEHOLDER = new Set(['sin reproducir', 'nada sonando', 'nada sonando todavía', 'buscando la letra…', 'sin letra', 'la letra aparece acá cuando pongas una canción', 'no se encontró letra para esta canción', 'se buscó en youtube music y lrclib', 'youtube music no tiene letra para esta versión', 'activá lrclib en ajustes → letras para buscar en más lugares', '🌐 traducir', 'ocultar traducción']);
+function trOnly(el) {
+  if (el.classList.contains('tipi')) { const v = el.getAttribute('title'); if (v && !el.dataset.origtitle) { const n = tr(v); if (n !== v) { el.dataset.origtitle = v; el.setAttribute('title', n); } } return; }
+  // en la zona de "lo que suena" solo los textos de relleno (cuando no hay canción), nunca un título
+  if (el.matches('[data-np], .np-t, .lyr, #fLyrics')) { for (const t of el.querySelectorAll ? [el, ...el.querySelectorAll('*')] : [el]) for (const x of t.childNodes) if (x.nodeType === 3 && PLACEHOLDER.has(x.nodeValue.trim().toLowerCase()) && !done.has(x)) { const n = tr(x.nodeValue); if (n !== x.nodeValue) { done.add(x); x.__orig = x.nodeValue; x.nodeValue = n; } } return; }
+  if (el.matches('.toast .ts')) for (const t of el.childNodes) if (t.nodeType === 3 && !done.has(t)) { const n = tr(t.nodeValue); if (n !== t.nodeValue) { done.add(t); t.__orig = t.nodeValue; t.nodeValue = n; } }
 }
 function walk(root) {
   if (!root) return;
   if (root.nodeType === 3) return fixText(root);
-  if (root.nodeType !== 1 || root.closest(SKIP)) return;
+  if (root.nodeType !== 1) return;
+  const sk = root.closest(SKIP); if (sk) return trOnly(sk);
   fixAttr(root);
   // los campos de texto se saltean, pero su texto de ayuda (placeholder) es de la interfaz
   root.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(fixAttr);
   const it = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
-    acceptNode: (n) => (n.nodeType === 1 ? (n.matches(SKIP) ? NodeFilter.FILTER_REJECT : (fixAttr(n), NodeFilter.FILTER_SKIP)) : NodeFilter.FILTER_ACCEPT),
+    acceptNode: (n) => (n.nodeType === 1 ? (n.matches(SKIP) ? (trOnly(n), NodeFilter.FILTER_REJECT) : (fixAttr(n), NodeFilter.FILTER_SKIP)) : NodeFilter.FILTER_ACCEPT),
   });
   for (let n = it.nextNode(); n; n = it.nextNode()) fixText(n);
 }

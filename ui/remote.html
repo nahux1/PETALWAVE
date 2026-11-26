@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0708">
+<title>Petalwave · control remoto</title>
+<style>
+:root{--bg:#0b0708;--fg:#f3e9ea;--dim:#b49a9d;--ac:#f08a8f;--card:#1a1113;--bd:#3a2427}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100%}
+body{padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));max-width:520px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+header b{letter-spacing:.2em;font-size:12px;color:var(--ac)}
+header span{font-size:12px;color:var(--dim)}
+.cover{width:100%;aspect-ratio:1;border-radius:18px;background:var(--card) center/cover no-repeat;box-shadow:0 20px 60px #0008;display:grid;place-items:center;font-size:64px;color:var(--bd)}
+h1{font-size:22px;margin:18px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ar{color:var(--ac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{margin:16px 0 4px;height:6px;border-radius:3px;background:var(--bd);position:relative;touch-action:none}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--ac)}
+.tm{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
+.ctl{display:flex;align-items:center;justify-content:space-between;margin:14px 0}
+button{border:0;background:none;color:var(--fg);font:inherit;cursor:pointer;padding:10px;border-radius:50%;display:grid;place-items:center}
+button svg{width:28px;height:28px;fill:currentColor}
+button.on{color:var(--ac)}
+#pp{width:72px;height:72px;background:var(--ac);color:var(--bg)}
+#pp svg{width:36px;height:36px}
+.vol{display:flex;align-items:center;gap:10px;margin:6px 0 18px;color:var(--dim)}
+.vol input{flex:1;accent-color:var(--ac)}
+h2{font-size:13px;letter-spacing:.15em;color:var(--dim);font-weight:600;margin:10px 0}
+ol{list-style:none;margin:0;padding:0}
+li{display:flex;gap:10px;padding:10px;border-radius:12px;background:var(--card);margin-bottom:6px;cursor:pointer}
+li small{display:block;color:var(--dim)}
+li.cur{outline:1px solid var(--ac)}
+.msg{padding:30px 10px;text-align:center;color:var(--dim)}
+.msg b{display:block;color:var(--fg);font-size:18px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<header><b>PETALWAVE</b><span id="st">conectando…</span></header>
+<div id="app" hidden>
+  <div class="cover" id="cv">♪</div>
+  <h1 id="ti">—</h1>
+  <div class="ar" id="ar"></div>
+  <div class="bar" id="bar"><i id="fill"></i></div>
+  <div class="tm"><span id="t0">0:00</span><span id="t1">0:00</span></div>
+  <div class="ctl">
+    <button id="sh" title="aleatorio"><svg viewBox="0 0 24 24"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04z"/></svg></button>
+    <button id="pv" title="anterior"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+    <button id="pp" title="play / pausa"><svg viewBox="0 0 24 24"><path id="ppi" d="M8 5v14l11-7z"/></svg></button>
+    <button id="nx" title="siguiente"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zm10-12v12h2V6z"/></svg></button>
+    <button id="lk" title="me gusta"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z"/></svg></button>
+  </div>
+  <div class="vol">🔈<input type="range" id="vo" min="0" max="1" step="0.02">🔊</div>
+  <h2>SIGUEN</h2>
+  <ol id="q"></ol>
+</div>
+<div class="msg" id="msg" hidden></div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  // la clave viene en el QR (#k=…); se guarda en este celular y se saca de la dirección
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('k')) { try { localStorage.setItem('pwk', h.get('k')); } catch {} history.replaceState(null, '', location.pathname); }
+  let key = ''; try { key = localStorage.getItem('pwk') || ''; } catch {}
+  const fmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let st = null, at = 0, coverKey = '', dragging = false, volT = 0;
+  function msg(title, sub) { $('app').hidden = true; $('msg').hidden = false; $('msg').innerHTML = '<b>' + esc(title) + '</b>' + esc(sub || ''); }
+  async function api(path, body) {
+    const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'X-PW-Key': key, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+    if (r.status === 401) { const e = new Error('clave'); e.auth = true; throw e; }
+    return r.json();
+  }
+  const cmd = (c) => api('/r/cmd', { cmd: c }).then(() => setTimeout(poll, 250)).catch(() => {});
+  function render() {
+    if (!st) return;
+    $('msg').hidden = true; $('app').hidden = false;
+    $('st').textContent = st.title ? 'conectado ✓' : 'conectado · no suena nada';
+    $('ti').textContent = st.title || 'nada sonando';
+    $('ar').textContent = st.artist || '';
+    $('ppi').setAttribute('d', st.playing ? 'M6 19h4V5H6zm8-14v14h4V5z' : 'M8 5v14l11-7z');
+    $('lk').classList.toggle('on', !!st.liked);
+    $('sh').classList.toggle('on', !!st.shuffle);
+    if (document.activeElement !== $('vo')) $('vo').value = st.vol != null ? st.vol : 1;
+    const ck = st.id || '';
+    if (ck !== coverKey) {
+      coverKey = ck;
+      if (st.hasCover) fetch('/r/cover?x=' + encodeURIComponent(ck), { headers: { 'X-PW-Key': key } }).then((r) => (r.ok ? r.blob() : null)).then((b) => { $('cv').style.backgroundImage = b ? 'url(' + URL.createObjectURL(b) + ')' : ''; $('cv').textContent = b ? '' : '♪'; }).catch(() => {});
+      else { $('cv').style.backgroundImage = ''; $('cv').textContent = '♪'; }
+    }
+    $('q').innerHTML = (st.next || []).map((t) => '<li data-i="' + t.i + '"><span>' + esc(t.title) + '<small>' + esc(t.artist) + '</small></span></li>').join('') || '<li><small>la cola termina acá (o sigue sola con la cola infinita)</small></li>';
+    tick();
+  }
+  function tick() {
+    if (!st || dragging) return;
+    const pos = Math.min(st.dur || 0, (st.pos || 0) + (st.playing ? (Date.now() - at) / 1000 : 0));
+    $('fill').style.width = (st.dur ? (pos / st.dur) * 100 : 0) + '%';
+    $('t0').textContent = fmt(pos); $('t1').textContent = fmt(st.dur);
+  }
+  async function poll() {
+    if (!key) return msg('Falta la clave', 'Abrí esta página escaneando el código QR de Petalwave en la PC (ajustes → control remoto).');
+    try { st = await api('/r/state'); at = Date.now(); render(); }
+    catch (e) { if (e.auth) { msg('Clave incorrecta', 'Escaneá de nuevo el código QR de Petalwave (ajustes → control remoto).'); } else $('st').textContent = 'sin conexión con la PC…'; }
+  }
+  $('pp').onclick = () => { if (st) { st.playing = !st.playing; st.pos = (st.pos || 0) + 0; render(); } cmd('toggle'); };
+  $('nx').onclick = () => cmd('next');
+  $('pv').onclick = () => cmd('prev');
+  $('lk').onclick = () => cmd('like');
+  $('sh').onclick = () => cmd('shuffle');
+  $('vo').oninput = () => { clearTimeout(volT); volT = setTimeout(() => cmd('vol:' + (+$('vo').value).toFixed(2)), 120); };
+  $('q').onclick = (e) => { const li = e.target.closest('[data-i]'); if (li) cmd('jump:' + li.dataset.i); };
+  const seekAt = (x) => { const r = $('bar').getBoundingClientRect(); return Math.max(0, Math.min(1, (x - r.left) / r.width)); };
+  $('bar').onpointerdown = (e) => { dragging = true; $('bar').setPointerCapture(e.pointerId); $('fill').style.width = seekAt(e.clientX) * 100 + '%'; };
+  $('bar').onpointermove = (e) => { if (dragging) $('fill').style.width = seekAt(e.clientX) * 100 + '%'; };
+  $('bar').onpointerup = (e) => { if (!dragging) return; dragging = false; if (st && st.dur) { st.pos = seekAt(e.clientX) * st.dur; at = Date.now(); cmd('seek:' + st.pos.toFixed(1)); } };
+  poll();
+  setInterval(poll, 2000);
+  setInterval(tick, 500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+})();
+</script>
+</body>
+</html>

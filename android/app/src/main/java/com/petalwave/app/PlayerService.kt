@@ -31,7 +31,7 @@ class PlayerService : Service() {
 
     private var lock: PowerManager.WakeLock? = null
     private lateinit var session: MediaSession
-    private var title = "Petalwave"; private var artist = "sin reproducir"; private var playing = false
+    private var title = "Petalwave"; private var artist = "sin reproducir"; private var playing = false; private var liked = false; private var shuffle = false
     private var pos = 0L; private var dur = 0L; private var art: Bitmap? = null; private var artUrl = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -105,6 +105,8 @@ class PlayerService : Service() {
             title = j.optString("title").ifEmpty { "Petalwave" }
             artist = j.optString("artist").ifEmpty { if (j.optString("title").isEmpty()) "sin reproducir" else "" }
             playing = j.optBoolean("playing")
+            liked = j.optBoolean("liked")
+            shuffle = j.optBoolean("shuffle")
             pos = (j.optDouble("pos", 0.0) * 1000).toLong()
             dur = (j.optDouble("dur", 0.0) * 1000).toLong()
             val cover = j.optString("cover")
@@ -133,7 +135,7 @@ class PlayerService : Service() {
             .setState(if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, pos, if (playing) 1f else 0f, SystemClock.elapsedRealtime())
             .build())
         getSystemService(NotificationManager::class.java).notify(1, build())
-        PlayerWidget.push(this, title, artist, playing, art)   // el widget de la pantalla de inicio
+        PlayerWidget.push(this, title, artist, playing, art, liked, shuffle)   // el widget de la pantalla de inicio
     }
 
     override fun onDestroy() {

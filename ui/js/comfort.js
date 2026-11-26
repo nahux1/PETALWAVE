@@ -74,13 +74,32 @@ export async function toggleCar(force) {
 }
 
 // ---------- letra estilo karaoke: la línea actual se va "llenando" mientras se canta ----------
+// karaoke palabra por palabra: con los tiempos de la letra si los trae; si no, se reparten según el largo de cada
+// palabra, en lo que dura cantar la línea (no en todo el hueco hasta la siguiente, que puede ser un solo de guitarra)
+function wordTimes(a, end, n) {
+  if (a.wt && a.wt.length === n) return a.wt;
+  const ws = a.text.split(' ');
+  const len = ws.map((w) => Math.max(1, w.replace(/[^\p{L}\p{N}]/gu, '').length) + 1.5);
+  const total = len.reduce((x, y) => x + y, 0);
+  const span = Math.max(0.6, Math.min(end - a.t - 0.15, total * 0.085 + 0.3));
+  let acc = 0;
+  return len.map((l) => { const t = a.t + (span * acc) / total; acc += l; return t; }).concat([a.t + span]);
+}
 export function karaoke(time, lines, box) {
   if (P.get('karaoke') === false || !lines || !box) return;
   const on = box.querySelector('.ln.on'); if (!on) return;
   const i = +on.dataset.l, a = lines[i], b = lines[i + 1];
   const end = b ? b.t : a.t + 5;
-  const p = Math.max(0, Math.min(1, (time - a.t) / Math.max(0.5, end - a.t)));
-  on.style.setProperty('--lp', p.toFixed(3));
+  const ws = on.querySelectorAll('.lw'); if (!ws.length) return;
+  if (!a._wt || a._wt.n !== ws.length) { a._wt = wordTimes(a, end, ws.length); a._wt.n = ws.length; if (a._wt.length === ws.length) a._wt.push(end); }
+  const wt = a._wt;
+  let k = -1;
+  for (let j = 0; j < ws.length; j++) if (wt[j] <= time) k = j;
+  if (on.dataset.k !== String(k)) {
+    on.dataset.k = String(k);
+    ws.forEach((w, j) => { w.classList.toggle('sung', j < k); w.classList.toggle('now', j === k); });
+  }
+  if (k >= 0) { const p = Math.max(0, Math.min(1, (time - wt[k]) / Math.max(0.12, wt[k + 1] - wt[k]))); ws[k].style.setProperty('--wp', p.toFixed(3)); }
 }
 
 export function initComfort() {

@@ -465,6 +465,7 @@ function renderPlayState(s) {
   if (playing) loop();
 }
 function renderModes() {
+  bus.emit('modes', { shuffle: S.shuffle, repeat: S.repeat });
   $$('[data-act="shuffle"]').forEach((b) => b.classList.toggle('on', S.shuffle));
   $$('[data-act="repeat"]').forEach((b) => { b.classList.toggle('on', S.repeat !== 'off'); b.title = 'repetir: ' + { off: 'no', all: 'toda la cola', one: 'esta canción' }[S.repeat]; });
   $$('[data-np="repicon"] use').forEach((u) => u.setAttribute('href', S.repeat === 'one' ? '#i-rep1' : '#i-rep'));

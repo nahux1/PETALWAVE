@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- widget grande: carátula de fondo, canción y ♥ / anterior / play-pausa / siguiente / aleatorio -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg">
+
+    <ImageView
+        android:id="@+id/w_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_cover_bg"
+        android:contentDescription="carátula"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_note" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/widget_shade"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/w_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Petalwave"
+            android:textColor="#F3E9EA"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/w_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="tocá para abrir"
+            android:textColor="#F08A8F"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageButton android:id="@+id/w_like" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:background="@android:color/transparent" android:contentDescription="me gusta" android:src="@drawable/ic_heart" />
+            <ImageButton android:id="@+id/w_prev" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:background="@android:color/transparent" android:contentDescription="anterior" android:src="@android:drawable/ic_media_previous" />
+            <ImageButton android:id="@+id/w_toggle" android:layout_width="48dp" android:layout_height="48dp"
+                android:background="@drawable/widget_play_bg" android:contentDescription="play o pausa" android:src="@android:drawable/ic_media_play" />
+            <ImageButton android:id="@+id/w_next" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:background="@android:color/transparent" android:contentDescription="siguiente" android:src="@android:drawable/ic_media_next" />
+            <ImageButton android:id="@+id/w_shuffle" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:background="@android:color/transparent" android:contentDescription="aleatorio" android:src="@drawable/ic_shuffle" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

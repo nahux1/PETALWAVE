@@ -227,7 +227,7 @@ function headerHtml(list) {
       return `<div class="ttlbar"><div><div class="sub">mix · según tus gustos</div><h2>${esc(m.name)}</h2><div class="sub">${esc(m.desc)}${REC.mixLoading ? ' · buscando más…' : ''}</div><div class="sub">${sub}</div>${note}${acts(`<button class="cb" data-h="recsnew">${icon('sync')} otra mezcla</button>`)}</div></div>`;
     }
     case 'recent': return `<div class="ttlbar"><div><h2>recientes</h2><div class="sub">lo último que entró a la biblioteca · ${sub}</div>${acts()}</div></div>`;
-    default: return `<div class="ttlbar" style="padding-bottom:6px"><div><div class="sub">${sub}${D.scan && D.scan.scanning ? ' · escaneando…' : ''}</div>${acts()}</div></div>`;
+    default: return `<div class="ttlbar" style="padding-bottom:6px"><div><div class="sub">${sub}${D.scan && D.scan.scanning ? ' · escaneando…' : ''}</div>${acts(window.PetalwaveNative || view.type !== 'songs' ? '' : '<button class="cb" data-h="tidy" title="portadas que faltan, nombres desprolijos y canciones repetidas">✨ ordenar mi música</button>')}</div></div>`;
   }
 }
 function tableHead() {
@@ -266,6 +266,7 @@ function bindHeader(head, list) {
     if (a === 'novideo') { $('#fKind').value = $('#fKind').value === 'audio' ? '' : 'audio'; render(); return; }
     if (a === 'ytmsync') { await loadYtmList(view.key, true); toast('lista sincronizada con YouTube Music ⟳', { ms: 1500 }); }
     if (a === 'offsave') saveOffline(ids.map(T));
+    if (a === 'tidy') import('./tidy.js').then((m) => m.openTidy());
     if (a === 'ytmdl') {
       const online = ids.map(T).filter((t) => t && t.remote && t.available !== false);
       const pick = await chooseFormat(online.length); if (!pick) return;
@@ -395,6 +396,7 @@ export function trackMenu(x, y, idsArg) {
     one && { label: 'ir al artista', icon: 'radio', fn: () => go({ type: 'artist', key: one._a }) },
     one && one.album && { label: 'ir al álbum', icon: 'folder', fn: () => go({ type: 'album', key: { album: one.album, artist: one.albumArtist || one.artist } }) },
     one && { label: 'editar etiquetas…', icon: 'cfg', fn: () => editMeta(one) },
+    one && !one.video && !window.PetalwaveNative && { label: 'cambiar portada…', icon: 'cfg', fn: () => import('./tidy.js').then((m) => m.changeCover(one)) },
     one && { label: 'mostrar en la carpeta', icon: 'folder', fn: () => api.post(`/api/track/${one.id}/reveal`) },
     { sep: true },
     { label: chosen.length > 1 ? `enviar ${chosen.length} a la papelera` : 'enviar a la papelera', icon: 'x', danger: true, fn: () => trash(chosen) },

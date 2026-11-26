@@ -1,5 +1,31 @@
 # petalwave — registro de cambios
 
+## 2.22.0 — idiomas, escuchar juntos, control remoto, alarma, karaoke, ordenar, Discord y Last.fm
+- **Idiomas** (`ui/js/i18n.js` + `i18n-data.js`, ~1250 textos ES→EN/PT):
+  - Se traduce al mostrarse, en el mismo recorrido de `caps.js`, que saltea títulos, artistas, letras y campos.
+  - Hay plantillas para textos con números y prefijos ("conectado como …").
+  - El idioma se guarda en `localStorage` `pw-lang`; si no hay, se toma `navigator.language`. Ajustes → idioma.
+- **Escuchar juntos** (`ui/js/party.js`):
+  - WebRTC DataChannel (STUN de Google y Cloudflare). La señal va por ntfy.sh con mensajes AES-GCM derivados del código de la sala (SHA-256).
+  - El anfitrión manda `np` (ytId, posición, play) al cambiar y cada 5 s; los invitados reproducen `yt_<id>` y corrigen si se desfasan más de 2,5 s.
+  - Chat retransmitido por el anfitrión. `/pedir` busca en YTM y hace `playNext`.
+  - Se probó con dos copias: sincronía, chat y pedido.
+- **Control remoto** (`src/remote.js` + `ui/remote.html` + `ui/js/remotectl.js`):
+  - Servidor aparte en `0.0.0.0:3738` (el principal sigue en 127.0.0.1). La clave de 128 bits va en el `#` del QR, se compara en tiempo constante y hay bloqueo tras 10 fallos.
+  - Expone `/r/state`, `/r/cmd` (lista blanca) y `/r/cover` (proxy de la portada). La interfaz manda el estado y recibe los comandos por SSE `remote`.
+- **Alarma** (`ui/js/alarm.js`): días, fuente, subida de volumen, posponer.
+  - Android: `AlarmManager.setAlarmClock` → `pw_cmd=alarm` con la clave del widget, y `setShowWhenLocked`/`setTurnScreenOn`. Permisos `USE_EXACT_ALARM` y `SCHEDULE_EXACT_ALARM` (≤32).
+- **Karaoke palabra por palabra:** usa los tiempos `<mm:ss>` del LRC si vienen; si no, los estima por el largo de cada palabra (`.lw`, `--wp`).
+- **Traducción de letras:** MyMemory (`autodetect|<idioma>`), en tramos de ≤480 caracteres, con caché de 60 canciones en `localStorage`.
+- **Ordenar mi música** (`ui/js/tidy.js`): portadas que faltan (YTM), nombres desprolijos y duplicados. `Library.setCover()` usa ffmpeg con `attached_pic` sin recodificar. `POST /api/track/<id>/cover` acepta `{url}` (solo googleusercontent/ytimg/ggpht) o `{data}`.
+- **Discord** (`src/discord.js`): IPC por `\\?\pipe\discord-ipc-N`, `SET_ACTIVITY` tipo 2 (escuchando), portada de YTM o i.ytimg. Necesita el Application ID del usuario.
+- **Last.fm** (`ui/js/integrations.js` + `md5.js`): desde la interfaz (CORS permitido).
+  - Usa `auth.getToken` → autorización → `auth.getSession`.
+  - Hace `updateNowPlaying`, `scrobble` en tandas de 50 con cola sin conexión, y love/unlove con ♥.
+- **Widget grande de Android** (`PlayerWidgetBig`, `widget_big.xml`): ♥ y aleatorio. La interfaz manda `liked`/`shuffle`.
+- **CSP** `connect-src`: suma ws.audioscrobbler.com, ntfy.sh y api.mymemory.translated.net (Windows y Android).
+- `tools/firmar-instalador.md`: opciones para firmar el instalador (SignPath, Certum, Azure).
+
 ## 2.21.0 — sin internet
 - **Lo guardado = `data/stream-cache`** (la caché que ya existía para cuando YouTube rechaza el enlace). Límite configurable (`offlineMaxMB`; 1 GB en Windows y 500 MB en Android por defecto). LRU por mtime, que se renueva al empezar a sonar.
 - **Servidores (Node y Android):**

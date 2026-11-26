@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="widget_big_desc">Carátula grande con me gusta, anterior, play/pausa, siguiente y aleatorio</string>
     <string name="widget_desc">Lo que suena en Petalwave, con anterior, play/pausa y siguiente</string>
     <string name="sc_recog">¿Qué suena?</string>
     <string name="sc_recog_long">Reconocer una canción</string>

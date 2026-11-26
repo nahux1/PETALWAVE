@@ -13,10 +13,14 @@ import { renderStats } from './statsui.js';
 import { renderSettings, keyName, isRecordingKey } from './settings.js';
 import { attach, MODES, setMode, setViewMode, cycleMode, start as startViz } from './viz.js';
 import { initYtm } from './ytmui.js';
-import { initLikes, likeCurrent } from './likes.js';
+import { initLikes, likeCurrent, isLiked } from './likes.js';
 import { loadTaste, recsOnline, recsLocal, nope } from './taste.js';
 import { initSmartDl } from './smartdl.js';
 import { initOffline, isOffline, playable } from './offline.js';
+import { initIntegrations } from './integrations.js';
+import { initAlarm } from './alarm.js';
+import { initRemote } from './remotectl.js';
+import { initParty } from './party.js';
 import { renderHome, initHome } from './home.js';
 import { renderExplore, initExplore } from './explore.js';
 import { initGsearch, open as openSearch } from './gsearch.js';
@@ -144,6 +148,8 @@ const ACTIONS = {
       { label: 'al terminar el álbum', icon: 'moon', fn: () => player.setSleep('album') },
       on && { sep: true },
       on && { label: 'apagar temporizador', icon: 'x', fn: () => player.setSleep(0) },
+      { sep: true },
+      { label: '⏰ alarma para despertar…', raw: true, fn: () => bus.emit('open-settings', 'alarm') },
     ]);
   },
   full: () => toggleFull(), mini: () => toggleMini(), compact: toggleCompact,
@@ -214,13 +220,15 @@ document.addEventListener('keydown', (e) => {
       nat.media(JSON.stringify({
         title: t ? t.title : '', artist: t ? (t.artist || '') : '', album: t ? (t.album || '') : '',
         cover: t ? location.origin + coverUrl(t.id) : '', playing: !engine.paused,
-        pos: engine.time, dur: engine.duration || 0,
+        pos: engine.time, dur: engine.duration || 0, liked: !!(t && isLiked(t.id)), shuffle: !!player.S.shuffle,
       }));
     } catch {}
   };
   bus.on('np', () => { send(); setTimeout(send, 1500); });
   bus.on('eng:state', send);
   bus.on('eng:seek', send);
+  bus.on('like', send);
+  bus.on('modes', send);
   document.addEventListener('pw-cmd', (e) => {
     const c = String(e.detail || '');
     if (c.startsWith('seek:')) engine.seek(+c.slice(5));
@@ -385,6 +393,10 @@ async function boot() {
   initLikes();
   initSmartDl();
   initOffline();
+  initIntegrations();
+  initAlarm();
+  initRemote();
+  initParty();
   initHome();
   initExplore();
   initAdapt();

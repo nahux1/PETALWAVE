@@ -63,7 +63,7 @@ export const bus = {
 // eventos del servidor (una sola conexión para todo)
 export function connectStream() {
   const es = new EventSource('/api/stream');
-  for (const t of ['dl', 'dllog', 'dlfile', 'scan', 'library', 'sync', 'cookies', 'spotify', 'update']) {
+  for (const t of ['dl', 'dllog', 'dlfile', 'scan', 'library', 'sync', 'cookies', 'spotify', 'update', 'remote']) {
     es.addEventListener(t, (e) => { try { bus.emit('sse:' + t, JSON.parse(e.data)); } catch {} });
   }
   es.onopen = () => bus.emit('sse:open');
@@ -99,6 +99,7 @@ const DEFAULT_PREFS = {
   dl: { format: 'mp3', quality: '320', cookies: '', playlist: false },
   dlAsk: true, dlPick: 'mp3',
   offlineAuto: true, offlineWifi: true, offlineMode: false,
+  discord: false, discordId: '', lastfm: {}, lastfmOn: true,
 };
 let prefs = structuredClone(DEFAULT_PREFS);
 const pushPrefs = debounce(() => api.post('/api/settings', { ui: prefs }).catch(() => {}), 800);

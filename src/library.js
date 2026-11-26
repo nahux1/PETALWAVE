@@ -247,6 +247,32 @@ class Library {
     return this.addFile(t.path);
   }
 
+  // poner o cambiar la portada dentro del archivo (ffmpeg, sin recodificar el audio). img = Buffer con JPG o PNG
+  async setCover(id, img) {
+    const t = this.tracks.get(id);
+    if (!t) throw new Error('No existe esa canción');
+    if (!this.ffmpeg) throw new Error('Necesito ffmpeg para poner portadas');
+    if (!['mp3', 'm4a', 'flac', 'mp4', 'aac'].includes(t.ext) || t.video) throw new Error(`Los archivos .${t.ext} no guardan portada adentro (sirven mp3, m4a y flac)`);
+    if (!img || img.length < 200 || img.length > 12 * 1024 * 1024) throw new Error('imagen inválida');
+    const png = img[0] === 0x89 && img[1] === 0x50, jpg = img[0] === 0xff && img[1] === 0xd8;
+    if (!png && !jpg) throw new Error('la imagen tiene que ser JPG o PNG');
+    const pic = path.join(t.folder, `.pw-cover-${id}.${png ? 'png' : 'jpg'}`);
+    const tmp = path.join(t.folder, `.pw-edit-${id}.${t.ext}`);
+    await fsp.writeFile(pic, img);
+    const args = ['-y', '-v', 'error', '-i', t.path, '-i', pic, '-map', '0:a', '-map', '1:0', '-c', 'copy', '-disposition:v:0', 'attached_pic'];
+    if (t.ext === 'mp3') args.push('-id3v2_version', '3', '-metadata:s:v', 'title=Album cover', '-metadata:s:v', 'comment=Cover (front)');
+    args.push(tmp);
+    const r = await run(this.ffmpeg, args, { timeout: 120000 });
+    try { fs.unlinkSync(pic); } catch {}
+    if (r.code !== 0 || !fs.existsSync(tmp)) {
+      try { fs.unlinkSync(tmp); } catch {}
+      throw new Error('ffmpeg no pudo poner la portada: ' + (r.err.split('\n').filter(Boolean).pop() || r.code));
+    }
+    await fsp.rename(tmp, t.path);
+    try { fs.unlinkSync(this.coverPath(id)); } catch {}
+    return this.addFile(t.path);
+  }
+
   // mueve a la papelera de reciclaje (se puede recuperar)
   async trash(id) {
     const t = this.tracks.get(id);

@@ -2,6 +2,7 @@
 import { $, $$, bus, P, api, esc, toast, host, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, confirm2, fmtSize } from './core.js';
 import { supportRowHtml, bindSupportRow } from './support.js';
 import { runSmartDl, smartDone } from './smartdl.js';
+import { LANGS, getLang, setLang } from './i18n.js';
 const isAndroid = !!window.PetalwaveNative;
 const niceAndroid = (f) => f.replace(/^\/storage\/emulated\/0\/?/, 'Teléfono › ').replace(/^\/storage\/([\w-]+)\/?/, 'Tarjeta SD › ').replace(/\//g, ' › ');
 import { allThemes, setTheme, setDyn } from './theme.js';
@@ -34,6 +35,9 @@ export async function renderSettings() {
   const tip = (txt) => `<i class="tipi" title="${esc(txt)}">i</i>`;
   const chk = (k, label, sub, more) => `<label class="cfrow"><span>${label}${more ? tip(more) : ''}${sub ? `<span class="m">${sub}</span>` : ''}</span><input type="checkbox" data-p="${k}" ${p[k] ? 'checked' : ''}></label>`;
   box.innerHTML = `<div class="cfg">
+    <div class="cfgsec"><h3>🌐 idioma · language</h3>
+      <div class="cfrow"><span>idioma de la interfaz<span class="m" data-raw>Español · English · Português</span></span><select id="cLang" data-raw>${LANGS.map(([v, l]) => `<option value="${v}" ${getLang() === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    </div>
     <div class="cfgsec"><h3>◐ tema</h3>
       <div class="themes">${Object.entries(allThemes()).map(([k, t]) => `<button class="th-card ${p.theme === k ? 'on' : ''}" data-theme="${k}" title="${esc(t.desc)}">${sw(t)}<b>${t.mine ? '✎ ' : ''}${esc(t.name)}</b><div class="m">${esc(t.desc)}</div></button>`).join('')}</div>
       ${chk('autoTheme', 'tema automático', 'uno de día y otro de noche', 'Cambia solo de tema según la hora. Si está activo "colores de la carátula", manda la carátula.')}
@@ -90,6 +94,26 @@ export async function renderSettings() {
       <div class="cfrow"><span>espacio para lo guardado<span class="m" id="cOffInfo">…</span></span><span><select id="cOffMax">${[[250, '250 MB'], [500, '500 MB'], [1024, '1 GB'], [2048, '2 GB'], [5120, '5 GB'], [10240, '10 GB']].map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select> <button class="cb sm" id="cOffClear">borrar lo guardado</button></span></div>
       ${chk('offlineMode', 'modo sin internet', 'no usar internet para la música: solo suena lo guardado (para ahorrar datos o en el avión)')}
       <div class="cfrow"><span>qué puedo escuchar sin internet</span><button class="cb sm" id="cOffOpen">✈ ver</button></div>
+    </div>
+    <div class="cfgsec" id="cfg-alarm"><h3>⏰ alarma ${tip(isAndroid ? 'Suena aunque el celular esté bloqueado o Petalwave cerrado (usa la alarma del sistema). El volumen sube de a poco hasta el tuyo.' : 'Petalwave tiene que estar abierto (aunque sea minimizado o en la bandeja) y la PC encendida, sin suspender. El volumen sube de a poco hasta el tuyo.')}</h3>
+      <label class="cfrow"><span>despertarme con música<span class="m" id="cAlInfo"></span></span><input type="checkbox" id="cAlOn"></label>
+      <div class="cfrow"><span>hora</span><input type="time" id="cAlTime" class="inp"></div>
+      <div class="cfrow"><span>días<span class="m">sin ninguno marcado: todos los días</span></span><span class="aldays" id="cAlDays"></span></div>
+      <div class="cfrow"><span>qué suena</span><select id="cAlSrc"></select></div>
+      <div class="cfrow"><span>el volumen sube en</span><select id="cAlRamp">${[1, 2, 3, 5, 10].map((n) => `<option value="${n}">${n} min</option>`).join('')}</select></div>
+      <div class="cfrow"><span>posponer</span><select id="cAlSnz">${[5, 10, 15, 20].map((n) => `<option value="${n}">${n} min</option>`).join('')}</select></div>
+      <div class="cfrow"><span>probar cómo suena</span><button class="cb sm" id="cAlTest">⏰ probar ahora</button></div>
+    </div>
+    ${isAndroid ? '' : `<div class="cfgsec" id="cfg-remote"><h3>📱 control remoto ${tip('Maneja Petalwave de esta PC desde el celular, sin instalar nada: play, siguiente, volumen, ♥ y la cola. Los dos tienen que estar en la misma WiFi. Sin la clave del código QR nadie puede usarlo; "cambiar la clave" desconecta a los celulares que ya estaban.')}</h3>
+      <label class="cfrow"><span>manejar desde el celular<span class="m" id="cRmInfo">apagado</span></span><input type="checkbox" id="cRm"></label>
+      <div class="cfrow"><span>conectar un celular</span><button class="cb sm" id="cRmQr">📱 mostrar código QR</button></div>
+    </div>`}
+    <div class="cfgsec" id="cfg-conn"><h3>⇄ conexiones</h3>
+      ${isAndroid ? '' : `<label class="cfrow"><span>Discord${tip('Muestra "Escuchando <canción>" en tu perfil de Discord, con la portada y el tiempo. Habla con la app de Discord abierta en esta PC: no pide tu cuenta ni tu contraseña. Necesita el ID de una aplicación de Discord (se crea gratis en discord.com/developers con el nombre Petalwave).')}<span class="m" id="cDcInfo">mostrar lo que escuchás en tu perfil</span></span><input type="checkbox" id="cDc" ${p.discord ? 'checked' : ''}></label>
+      <div class="cfrow"><span>ID de la aplicación de Discord<span class="m">discord.com/developers → New Application → Application ID</span></span><input id="cDcId" class="inp" style="width:190px" inputmode="numeric" placeholder="123456789012345678" value="${esc(p.discordId || '')}"></div>`}
+      <div class="cfrow"><span>Last.fm${tip('Registra en tu perfil de Last.fm cada canción que escuchás (la mitad o 4 minutos), y tus ♥. Sin internet se guardan y se mandan después. Necesita una clave de API gratis: last.fm/api/account/create (podés poner cualquier nombre y dejar vacío el callback).')}<span class="m" id="cLfInfo">${p.lastfm && p.lastfm.user ? 'conectado como ' + esc(p.lastfm.user) : 'registrá lo que escuchás en tu perfil'}</span></span><span>${p.lastfm && p.lastfm.user ? '<button class="cb sm" id="cLfOff">desconectar</button>' : '<button class="cb sm" id="cLfOn">conectar</button>'}</span></div>
+      ${p.lastfm && p.lastfm.user ? chk('lastfmOn', 'registrar lo que escucho', 'apagalo para escuchar sin que quede en Last.fm') : `<div class="cfrow"><span>clave de API<span class="m">last.fm/api/account/create</span></span><input id="cLfKey" class="inp" style="width:190px" placeholder="API key" value="${esc((p.lastfm || {}).key || '')}"></div>
+      <div class="cfrow"><span>secreto compartido<span class="m">el "Shared secret" de la misma página</span></span><input id="cLfSec" class="inp" style="width:190px" type="password" placeholder="Shared secret" value="${esc((p.lastfm || {}).secret || '')}"></div>`}
     </div>
     <div class="cfgsec"><h3>≡ letras ${tip('Orden de búsqueda: archivo .lrc o .txt con el mismo nombre del audio → letra guardada dentro del archivo → YouTube Music → LRCLIB.')}</h3>
       <label class="cfrow"><span>YouTube Music${tip('Las mismas letras que muestra YouTube Music (LyricFind / Musixmatch), sincronizadas cuando existen. Vía ytmusicapi.')}<span class="m">letras oficiales, sincronizadas</span></span><input type="checkbox" id="cLrcY" ${server.lyricsYtm !== false ? 'checked' : ''}></label>
@@ -156,6 +180,48 @@ export async function renderSettings() {
     const op = $('#cOffOpen'); if (op) op.onclick = () => O.openOffline();
     const md = box.querySelector('[data-p="offlineMode"]'); if (md) md.addEventListener('change', () => O.setOfflineMode(md.checked));
   });
+  if (!isAndroid) import('./remotectl.js').then(async (Rm) => {
+    const c = $('#cRm'), info = $('#cRmInfo'); if (!c) return;
+    const show = (s) => { c.checked = !!s.on; info.textContent = s.on ? (s.urls.length ? 'activado · ' + s.urls[0].replace(/^http:\/\/|\/$/g, '') : 'activado, pero la PC no está en una red') : s.error ? 'no se pudo: ' + s.error : 'apagado'; };
+    show(await Rm.remoteStatus());
+    c.onchange = async () => { const s = await Rm.setRemote(c.checked); show(s); if (s.on) Rm.showRemoteQr(); };
+    $('#cRmQr').onclick = async () => { if (!c.checked) { c.checked = true; show(await Rm.setRemote(true)); } Rm.showRemoteQr(); };
+  });
+  import('./alarm.js').then((A) => {
+    const c = A.alarmCfg(), on = $('#cAlOn'); if (!on) return;
+    const save = (x) => { A.setAlarm(x); show(); };
+    const show = () => { const el = $('#cAlInfo'); if (el) el.textContent = A.alarmCfg().on ? 'próxima: ' + A.describeAlarm() : 'apagada'; };
+    on.checked = c.on; on.onchange = () => save({ on: on.checked });
+    const tm = $('#cAlTime'); tm.value = c.time; tm.onchange = () => { if (!tm.value) return; on.checked = true; save({ time: tm.value, on: true }); };
+    const dd = $('#cAlDays');
+    dd.innerHTML = [1, 2, 3, 4, 5, 6, 0].map((d) => `<button class="cb sm ${c.days.includes(d) ? 'on' : ''}" data-d="${d}">${A.DAY_NAMES[d]}</button>`).join('');
+    dd.querySelectorAll('[data-d]').forEach((b) => (b.onclick = () => { b.classList.toggle('on'); save({ days: [...dd.querySelectorAll('.on')].map((x) => +x.dataset.d) }); }));
+    const src = $('#cAlSrc');
+    src.innerHTML = [['liked', '♥ mis me gusta'], ['library', 'toda mi biblioteca'], ['last', 'la última cola'], ...D.playlists.filter((p) => p.id !== 'liked').map((p) => ['pl:' + p.id, '♫ ' + p.name])].map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+    src.value = c.source; if (!src.value) src.value = 'liked'; src.onchange = () => save({ source: src.value });
+    const rp = $('#cAlRamp'); rp.value = String(c.ramp); rp.onchange = () => save({ ramp: +rp.value });
+    const sz = $('#cAlSnz'); sz.value = String(c.snooze); sz.onchange = () => save({ snooze: +sz.value });
+    $('#cAlTest').onclick = () => A.ring();
+    show();
+  });
+  import('./integrations.js').then(async (I) => {
+    const dc = $('#cDc'), di = $('#cDcId'), dinfo = $('#cDcInfo');
+    const dshow = async () => { if (!dinfo) return; const s = await I.discordStatus(); dinfo.textContent = !P.get('discord') ? 'mostrar lo que escuchás en tu perfil' : !P.get('discordId') ? 'falta el ID de la aplicación' : s.connected ? 'conectado' + (s.user ? ' como ' + s.user : '') + ' ✓' : 'esperando a Discord (tiene que estar abierto)'; };
+    if (dc) dc.onchange = async () => { await I.setDiscord(dc.checked, di ? di.value : undefined); setTimeout(dshow, 1500); };
+    if (di) di.onchange = async () => { await I.setDiscord(P.get('discord') === true, di.value); setTimeout(dshow, 1500); };
+    dshow();
+    const on = $('#cLfOn'), off = $('#cLfOff'), info = $('#cLfInfo');
+    if (on) on.onclick = async () => {
+      const k = ($('#cLfKey') || {}).value || '', s = ($('#cLfSec') || {}).value || '';
+      if (!/^[0-9a-f]{32}$/i.test(k.trim()) || !/^[0-9a-f]{32}$/i.test(s.trim())) return toast('pegá la clave de API y el secreto de Last.fm (32 letras y números cada uno)', { kind: 'warn', sub: 'se crean gratis en last.fm/api/account/create' });
+      on.disabled = true; if (info) info.textContent = 'autorizá Petalwave en la página de Last.fm que se abrió…';
+      try { const u = await I.lastfmConnect(k, s); toast('Last.fm conectado como ' + u + ' ✓'); renderSettings(); }
+      catch (e) { toast(e.message, { kind: 'err' }); on.disabled = false; if (info) info.textContent = 'no se pudo conectar'; }
+    };
+    if (off) off.onclick = () => { I.lastfmDisconnect(); toast('Last.fm desconectado'); renderSettings(); };
+    if (info && I.pendingScrobbles() && I.lastfmUser()) info.textContent += ` · ${I.pendingScrobbles()} para mandar cuando haya internet`;
+  });
+  const lg = $('#cLang'); if (lg) lg.onchange = () => setLang(lg.value);
   const dp = $('#cDlPick'); if (dp) { dp.value = P.get('dlPick') === 'mp4' ? 'mp4' : 'mp3'; dp.onchange = () => P.set('dlPick', dp.value); }
   import('./recognize.js').then((m) => m.auddSettings($('#cAudd')));
   // cuentas

@@ -106,6 +106,7 @@ class MainActivity : Activity() {
         askPermissions()
         handleShare(intent)
         pendingCmd = trustedCmd(intent)
+        if (pendingCmd == "alarm") wakeForAlarm()
         pendingGo = goOf(intent)
         // el servicio mantiene viva la música con la pantalla apagada y arranca el servidor interno
         if (getSharedPreferences("petalwave", MODE_PRIVATE).getBoolean("native", false)) startService(Intent(this, NativeService::class.java))
@@ -162,7 +163,7 @@ class MainActivity : Activity() {
     // compartir un link desde YouTube / YouTube Music / el navegador → va a la pantalla de descargas
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); handleShare(intent)
-        trustedCmd(intent)?.let { cmd(it) }
+        trustedCmd(intent)?.let { if (it == "alarm") wakeForAlarm(); cmd(it) }
         goOf(intent)?.let { hostMsg("go:$it") }
         if (intent.action == "com.petalwave.app.INSTALL_STATUS") Updater.onStatus(this, intent) { m -> hostMsg("upd:$m") }
     }
@@ -202,12 +203,18 @@ class MainActivity : Activity() {
         } catch (_: Exception) { null }
     }
 
+    // alarma: mostrarse arriba de la pantalla de bloqueo y prender la pantalla
+    private fun wakeForAlarm() {
+        if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
+        else @Suppress("DEPRECATION") window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+    }
+
     // comandos del widget con la app cerrada: solo si traen la clave privada de Petalwave
     // (la pantalla principal es pública porque la abre el lanzador; sin esto cualquier app podía manejar la música)
     private fun goOf(i: Intent?): String? = i?.getStringExtra("pw_go")?.takeIf { it in setOf("mix", "disc", "liked", "recognize", "search") }
     private fun trustedCmd(i: Intent?): String? {
         val c = i?.getStringExtra("pw_cmd") ?: return null
-        if (c !in setOf("prev", "toggle", "next")) return null
+        if (c !in setOf("prev", "toggle", "next", "like", "shuffle", "alarm")) return null
         return if (i.getStringExtra("pw_key") == WidgetButtons.key(this)) c else null
     }
 
@@ -251,6 +258,22 @@ class MainActivity : Activity() {
             }
         } catch (_: Exception) { "wifi" }
         @JavascriptInterface fun media(json: String) = PlayerService.update(json)
+        // alarma con música: alarma del sistema (suena aunque el celular esté bloqueado); "0" la borra
+        @JavascriptInterface fun alarm(at: String) = runOnUiThread {
+            try {
+                val am = getSystemService(android.app.AlarmManager::class.java)
+                val pi = android.app.PendingIntent.getActivity(this@MainActivity, 40,
+                    Intent(this@MainActivity, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        .putExtra("pw_cmd", "alarm").putExtra("pw_key", WidgetButtons.key(this@MainActivity)),
+                    android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT)
+                val t = at.toLongOrNull() ?: 0L
+                am.cancel(pi)
+                if (t > System.currentTimeMillis()) {
+                    if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, t, pi)
+                    else am.setAlarmClock(android.app.AlarmManager.AlarmClockInfo(t, pi), pi)
+                }
+            } catch (_: Exception) { }
+        }
         // iniciar sesión con Google (ver LoginActivity); el resultado vuelve a la interfaz como "login:ok|err|cancel"
         // elegir carpeta con el explorador de archivos del teléfono; la ruta vuelve como "picked:<id>:<ruta>"
         @JavascriptInterface fun pickFolder(id: String) = runOnUiThread {

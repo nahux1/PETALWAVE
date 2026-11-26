@@ -16,6 +16,8 @@ const { Updater } = require('./src/update');
 const { YTM } = require('./src/ytm');
 const { Streamer } = require('./src/stream');
 const { Spotify } = require('./src/spotify');
+const { Discord } = require('./src/discord');
+const { Remote, newToken } = require('./src/remote');
 
 const PORT = +process.env.PORT || 3737;
 const ROOT = __dirname;
@@ -80,6 +82,11 @@ const stats = new Stats({ dataDir: DATA, library });
 const ytm = new YTM({ root: ROOT, cookiesTxt: COOKIES_TXT });
 const streamer = new Streamer({ ytdlp: YTDLP, cookiesTxt: COOKIES_TXT, dataDir: DATA });
 if (S.offlineMaxMB) streamer.setMax(S.offlineMaxMB);
+const discord = new Discord();
+// control remoto desde el celular (ajustes → control remoto): servidor aparte en la red de la casa, con clave
+const remote = new Remote({ port: +process.env.PW_REMOTE_PORT || 3738, mainPort: PORT, page: path.join(UI, 'remote.html'), broadcast });
+if (S.remote && S.remote.on && S.remote.token) remote.start(S.remote.token);
+if (S.discord && S.discordId) discord.configure(S.discordId);
 const spotify = new Spotify({ dataDir: DATA, port: PORT, ytm, broadcast });
 const callbackPage = (ok, msg) => `<!doctype html><meta charset="utf-8"><title>petalwave · Spotify</title>
 <body style="margin:0;height:100vh;display:grid;place-items:center;background:#0b0708;color:#ece6e6;font:15px 'JetBrains Mono',Consolas,monospace">
@@ -316,6 +323,40 @@ async function route(req, res) {
     return;
   }
 
+  // ---------- control remoto desde el celular ----------
+  if (p === '/api/remote' && M === 'GET') return U.json(res, 200, remote.status());
+  if (p === '/api/remote/config' && M === 'POST') {
+    const b = await body();
+    S.remote = S.remote || {};
+    if (b.regen === true || !S.remote.token) S.remote.token = newToken();
+    S.remote.on = b.on === true;
+    settings.save();
+    if (S.remote.on) { if (b.regen === true) remote.stop(); await remote.start(S.remote.token); } else remote.stop();
+    return U.json(res, 200, remote.status());
+  }
+  if (p === '/api/remote/state' && M === 'POST') { const b = await body(); if (b.state && typeof b.state === 'object') remote.setState(b.state); return U.json(res, 200, { ok: true }); }
+
+  // ---------- Discord: "Escuchando …" en tu perfil ----------
+  if (p === '/api/discord' && M === 'GET') return U.json(res, 200, { ...discord.status(), enabled: !!S.discord });
+  if (p === '/api/discord/config' && M === 'POST') {
+    const b = await body();
+    S.discord = b.enabled === true;
+    if (typeof b.clientId === 'string') S.discordId = b.clientId.trim().slice(0, 24);
+    settings.save();
+    discord.configure(S.discord ? S.discordId : '');
+    return U.json(res, 200, { ...discord.status(), enabled: S.discord });
+  }
+  if (p === '/api/presence' && M === 'POST') {
+    const b = await body();
+    const a = b.activity && typeof b.activity === 'object' ? b.activity : null;
+    if (a) {
+      for (const k of ['title', 'artist', 'album', 'ytId']) a[k] = String(a[k] || '').slice(0, 200);
+      if (/^[\w-]{11}$/.test(a.ytId)) { const th = streamer.thumbs.get(a.ytId); a.cover = /^https:\/\//.test(th || '') ? th : `https://i.ytimg.com/vi/${a.ytId}/hqdefault.jpg`; } else a.ytId = '';
+    }
+    if (S.discord) discord.set(a);
+    return U.json(res, 200, { ok: true });
+  }
+
   // ---------- sin internet ----------
   if (p === '/api/net' && M === 'GET') return U.json(res, 200, { online: await streamer.online(u.searchParams.get('force') === '1') });
   if (p === '/api/offline' && M === 'GET') return U.json(res, 200, streamer.offlineList());
@@ -415,6 +456,23 @@ async function route(req, res) {
   if ((mm = m(/^\/api\/track\/([0-9a-f]{16})\/meta$/)) && M === 'POST') {
     try { return U.json(res, 200, await library.editMeta(mm[1], await body())); }
     catch (e) { return U.json(res, 400, { error: e.message }); }
+  }
+  // portada: de una imagen que elegiste (base64) o de YouTube Music / YouTube (solo esos servidores)
+  if ((mm = m(/^\/api\/track\/([0-9a-f]{16})\/cover$/)) && M === 'POST') {
+    const b = await U.readBody(req, 16 * 1024 * 1024);
+    if (b.__tooBig) return U.json(res, 413, { error: 'imagen muy grande' });
+    try {
+      let img = null;
+      if (typeof b.data === 'string') img = Buffer.from(b.data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      else if (typeof b.url === 'string') {
+        const uu = new URL(b.url);
+        if (uu.protocol !== 'https:' || !/(^|\.)(googleusercontent\.com|ytimg\.com|ggpht\.com)$/.test(uu.hostname)) throw new Error('solo portadas de YouTube Music');
+        const r = await fetch(uu, { signal: AbortSignal.timeout(15000) });
+        if (!r.ok) throw new Error('no se pudo bajar la portada (' + r.status + ')');
+        img = Buffer.from(await r.arrayBuffer());
+      }
+      return U.json(res, 200, await library.setCover(mm[1], img));
+    } catch (e) { return U.json(res, 400, { error: e.message }); }
   }
   if ((mm = m(/^\/api\/track\/([0-9a-f]{16})\/trash$/)) && M === 'POST') {
     try { await library.trash(mm[1]); return U.json(res, 200, { ok: true }); }
@@ -673,7 +731,7 @@ function allowed(req) {
 // - CSP: la interfaz solo carga código propio (nada de scripts de otros sitios) y no se puede meter dentro de otra página
 // - nosniff / DENY / no-referrer: el navegador no adivina tipos, no se puede enmarcar y no se filtra la dirección local
 const SEC_HEADERS = {
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'self' https://ws.audioscrobbler.com https://ntfy.sh https://api.mymemory.translated.net; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer',

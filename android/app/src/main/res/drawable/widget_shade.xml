@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- sombra de abajo del widget grande, para que se lean el título y los botones sobre la carátula -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="90" android:startColor="#F20B0708" android:centerColor="#990B0708" android:endColor="#000B0708" />
+    <corners android:radius="18dp" />
+</shape>

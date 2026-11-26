@@ -18,7 +18,7 @@ class WidgetButtons : BroadcastReceiver() {
 
     override fun onReceive(ctx: Context, intent: Intent) {
         val cmd = intent.getStringExtra("cmd") ?: return
-        if (cmd !in setOf("prev", "toggle", "next")) return
+        if (cmd !in setOf("prev", "toggle", "next", "like", "shuffle")) return
         // con Petalwave abierto (aunque esté de fondo) va directo al reproductor; si no, abre la app y lo hace ahí
         if (MainActivity.alive()) MainActivity.cmd(cmd)
         else try {
